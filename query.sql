@@ -75,3 +75,9 @@ WHERE user_id = ?;
 -- name: ListSubscribers :many
 SELECT * FROM subscribers
 WHERE thing_id = ?;
+
+-- name: Reset :exec
+DELETE FROM things;
+
+-- name: ResetUsers :exec
+DELETE FROM users;

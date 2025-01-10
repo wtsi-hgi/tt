@@ -292,6 +292,24 @@ func (q *Queries) ListThingsByType(ctx context.Context, type_ ThingsType) ([]Thi
 	return items, nil
 }
 
+const reset = `-- name: Reset :exec
+DELETE FROM things
+`
+
+func (q *Queries) Reset(ctx context.Context) error {
+	_, err := q.db.ExecContext(ctx, reset)
+	return err
+}
+
+const resetUsers = `-- name: ResetUsers :exec
+DELETE FROM users
+`
+
+func (q *Queries) ResetUsers(ctx context.Context) error {
+	_, err := q.db.ExecContext(ctx, resetUsers)
+	return err
+}
+
 const secondWarningSent = `-- name: SecondWarningSent :execresult
 UPDATE things
 SET warned2 = ?
