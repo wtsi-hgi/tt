@@ -34,3 +34,9 @@ sqlc generate
 
 Put your MySQL connection detail export statements in a `.env` file in the repo
 folder (which won't get added to the repo).
+
+Bring up test server like:
+
+```
+go run main.go serve --address :4563
+```
