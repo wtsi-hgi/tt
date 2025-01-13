@@ -12,7 +12,7 @@ overrides:
         nullable: true
         go_type:
           type: "string"
-          pointer: true
+          pointer: false
 sql:
   - engine: "mysql"
     queries: "query.sql"

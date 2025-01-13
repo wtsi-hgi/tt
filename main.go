@@ -234,7 +234,7 @@ const (
 	<td>{{ .Type }}</td>
 	<td>{{ .Reason }}</td>
 	<td>{{ .Description }}</td>
-	<td>{{ .Remove }}</td>
+	<td>{{ .Remove.Format "2006-01-02" }}</td>
 	<td>
 		<button class="uk-button uk-button-danger" hx-delete="/things/{{ .ID }}" hx-swap="swap:1s">
 			Delete

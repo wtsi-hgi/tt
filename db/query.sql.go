@@ -25,7 +25,7 @@ type CreateThingParams struct {
 	Address     string
 	Type        ThingsType
 	Created     time.Time
-	Description *string
+	Description string
 	Reason      string
 	Remove      time.Time
 }
@@ -366,7 +366,7 @@ WHERE id = ?
 `
 
 type UpdateDescriptionParams struct {
-	Description *string
+	Description string
 	ID          uint32
 }
 

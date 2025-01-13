@@ -67,7 +67,7 @@ type Thing struct {
 	Address     string
 	Type        ThingsType
 	Created     time.Time
-	Description *string
+	Description string
 	Reason      string
 	Remove      time.Time
 	Warned1     null.Time
