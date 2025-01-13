@@ -201,19 +201,19 @@ const (
 			<tbody hx-ext="sse" sse-connect="/things/listen" sse-swap="newThing" hx-swap="beforeend">
 				<form hx-post="/things" hx-swap="none" hx-on::after-request="this.reset()">
 					<td>
-						<input class="uk-input" name="Address" type="text">
+						<input class="uk-input" name="Address" type="text" required>
 					</td>
 					<td>
-						<input class="uk-input" name="Type" type="text">
+						<input class="uk-input" name="Type" type="text" required>
 					</td>
 					<td>
-						<input class="uk-input" name="Reason" type="text">
+						<input class="uk-input" name="Reason" type="text" required>
 					</td>
 					<td>
 						<input class="uk-input" name="Description" type="text">
 					</td>
 					<td>
-						<input class="uk-input" name="Remove" type="text">
+						<input class="uk-input" name="Remove" type="date" required>
 					</td>
 					<td>
 						<button type="submit" class="uk-button uk-button-primary">Add Thing</button>
