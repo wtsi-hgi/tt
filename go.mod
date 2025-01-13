@@ -6,6 +6,7 @@ require (
 	github.com/calvinmclean/babyapi v0.23.0
 	github.com/go-chi/render v1.0.3
 	github.com/go-sql-driver/mysql v1.8.1
+	github.com/guregu/null/v5 v5.0.0
 	github.com/joho/godotenv v1.5.1
 	github.com/spf13/cobra v1.8.0
 )

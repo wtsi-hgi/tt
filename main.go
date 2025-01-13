@@ -163,7 +163,7 @@ const (
 	<head>
 		<meta charset="UTF-8">
 		<meta name="viewport" content="width=device-width, initial-scale=1.0">
-		<title>TODOs</title>
+		<title>Temporary Things</title>
 		<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/uikit@3.17.11/dist/css/uikit.min.css" />
 		<script src="https://unpkg.com/htmx.org@1.9.8"></script>
 		<script src="https://unpkg.com/htmx.org/dist/ext/sse.js"></script>
@@ -244,7 +244,7 @@ const (
 )
 
 type Thing struct {
-	babyapi.DefaultResource
+	// babyapi.DefaultResource
 	db.Thing
 }
 
@@ -318,7 +318,6 @@ func createAPI() *babyapi.API[*Thing] {
 	cmd := api.Command()
 
 	cmd.PersistentPreRunE = func(cmd *cobra.Command, args []string) error {
-		// Only setup DB for the serve command
 		if cmd.Name() != "serve" {
 			return nil
 		}
@@ -327,7 +326,7 @@ func createAPI() *babyapi.API[*Thing] {
 		return storage.Apply(api)
 	}
 
-	// cmd.Execute()
+	cmd.Execute()
 
 	return api
 }

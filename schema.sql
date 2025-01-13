@@ -8,7 +8,7 @@ CREATE TABLE things (
     remove date NOT NULL,
     warned1 date,
     warned2 date,
-    removed bool,
+    removed bool NOT NULL default 0,
     UNIQUE(address(170), type)
 ) ENGINE=INNODB;
 

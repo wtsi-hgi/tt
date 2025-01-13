@@ -5,10 +5,11 @@
 package db
 
 import (
-	"database/sql"
 	"database/sql/driver"
 	"fmt"
 	"time"
+
+	null "github.com/guregu/null/v5"
 )
 
 type ThingsType string
@@ -66,12 +67,12 @@ type Thing struct {
 	Address     string
 	Type        ThingsType
 	Created     time.Time
-	Description sql.NullString
+	Description *string
 	Reason      string
 	Remove      time.Time
-	Warned1     sql.NullTime
-	Warned2     sql.NullTime
-	Removed     sql.NullBool
+	Warned1     null.Time
+	Warned2     null.Time
+	Removed     bool
 }
 
 type User struct {

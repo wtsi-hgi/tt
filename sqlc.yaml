@@ -1,4 +1,18 @@
 version: "2"
+overrides:
+  go:
+    overrides:
+      - db_type: "date"
+        nullable: true
+        go_type:
+          import: "github.com/guregu/null/v5"
+          package: "null"
+          type: "Time"
+      - db_type: "text"
+        nullable: true
+        go_type:
+          type: "string"
+          pointer: true
 sql:
   - engine: "mysql"
     queries: "query.sql"

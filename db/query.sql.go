@@ -9,6 +9,8 @@ import (
 	"context"
 	"database/sql"
 	"time"
+
+	null "github.com/guregu/null/v5"
 )
 
 const createThing = `-- name: CreateThing :execresult
@@ -23,7 +25,7 @@ type CreateThingParams struct {
 	Address     string
 	Type        ThingsType
 	Created     time.Time
-	Description sql.NullString
+	Description *string
 	Reason      string
 	Remove      time.Time
 }
@@ -98,7 +100,7 @@ WHERE id = ?
 `
 
 type FirstWarningSentParams struct {
-	Warned1 sql.NullTime
+	Warned1 null.Time
 	ID      uint32
 }
 
@@ -317,7 +319,7 @@ WHERE id = ?
 `
 
 type SecondWarningSentParams struct {
-	Warned2 sql.NullTime
+	Warned2 null.Time
 	ID      uint32
 }
 
@@ -364,7 +366,7 @@ WHERE id = ?
 `
 
 type UpdateDescriptionParams struct {
-	Description sql.NullString
+	Description *string
 	ID          uint32
 }
 
