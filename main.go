@@ -156,8 +156,7 @@ func tryDatabase(config *mysql.Config) error {
 }
 
 const (
-	allThings         html.Template = "allThings"
-	allThingsTemplate string        = `<!doctype html>
+	rootHTML string = `<!doctype html>
 <html>
 	<head>
 		<meta charset="UTF-8">
@@ -169,10 +168,10 @@ const (
 	</head>
 
 	<style>
-	tr.htmx-swapping td {
-		opacity: 0;
-		transition: opacity 1s ease-out;
-	}
+        tr.htmx-swapping td {
+            opacity: 0;
+            transition: opacity 1s ease-out;
+        }
 	</style>
 
 	<body>
@@ -188,8 +187,8 @@ const (
 
 			<thead>
 				<tr>
-					<th>Address</th>
-					<th>Type</th>
+					<th hx-get="/getthings" hx-trigger="click" hx-target="tbody#things-list">Address</th>
+					<th hx-get="/getthings?type=dir" hx-trigger="click" hx-target="tbody#things-list">Type</th>
 					<th>Reason</th>
 					<th>Description</th>
 					<th>Removal Date</th>
@@ -197,7 +196,7 @@ const (
 				</tr>
 			</thead>
 
-			<tbody hx-ext="sse" sse-connect="/things/listen" sse-swap="newThing" hx-swap="beforeend">
+			<tbody>
 				<form hx-post="/things" hx-swap="none" hx-on::after-request="this.reset()">
 					<td>
 						<input class="uk-input" name="Address" type="text" required>
@@ -220,14 +219,18 @@ const (
 				</form>
             </tbody>
 
-            <tbody>
-                {{ range . }}
-                {{ template "thingRow" . }}
-                {{ end }}
+            <tbody hx-get="/getthings" hx-trigger="load" id="things-list" hx-ext="sse" sse-connect="/things/listen" sse-swap="newThing" hx-swap="afterbegin">
 			</tbody>
 		</table>
 	</body>
 </html>`
+
+	allThings         html.Template = "allThings"
+	allThingsTemplate string        = `
+                {{ range . }}
+                {{ template "thingRow" . }}
+                {{ end }}
+`
 
 	thingRow      html.Template = "thingRow"
 	thingTemplate string        = `<tr hx-target="this" hx-swap="outerHTML">
@@ -245,7 +248,6 @@ const (
 )
 
 type Thing struct {
-	// babyapi.DefaultResource
 	db.Thing
 }
 
@@ -284,7 +286,21 @@ func (at AllThings) HTML(_ http.ResponseWriter, r *http.Request) string {
 func createAPI() *babyapi.API[*Thing] {
 	api := babyapi.NewAPI("Things", "/things", func() *Thing { return &Thing{} })
 
-	api.AddCustomRootRoute(http.MethodGet, "/", http.RedirectHandler("/things", http.StatusFound))
+	storage := &Storage{}
+	err := storage.Apply(api)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	api.AddCustomRootRoute(http.MethodGet, "/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		fmt.Fprint(w, rootHTML)
+	}))
+
+	api.AddCustomRootRoute(http.MethodGet, "/getthings", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		things, _ := storage.GetAll(r.Context(), r.URL.Query())
+		at := AllThings{ResourceList: babyapi.ResourceList[*Thing]{Items: things}}
+		fmt.Fprint(w, at.HTML(w, r))
+	}))
 
 	// Use AllThings in the GetAll response since it implements HTMLer
 	api.SetGetAllResponseWrapper(func(things []*Thing) render.Renderer {
@@ -316,12 +332,6 @@ func createAPI() *babyapi.API[*Thing] {
 		string(allThings): allThingsTemplate,
 		string(thingRow):  thingTemplate,
 	})
-
-	storage := &Storage{}
-	err := storage.Apply(api)
-	if err != nil {
-		log.Fatal(err)
-	}
 
 	return api
 }
