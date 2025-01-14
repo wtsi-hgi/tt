@@ -187,8 +187,8 @@ const (
 
 			<thead>
 				<tr>
-					<th hx-get="/getthings" hx-trigger="click" hx-target="tbody#things-list">Address</th>
-					<th hx-get="/getthings?type=dir" hx-trigger="click" hx-target="tbody#things-list">Type</th>
+					<th hx-get="/things" hx-headers='{"Accept": "text/html"}' hx-trigger="click" hx-target="tbody#things-list">Address</th>
+					<th hx-get="/things?type=dir" hx-headers='{"Accept": "text/html"}' hx-trigger="click" hx-target="tbody#things-list">Type</th>
 					<th>Reason</th>
 					<th>Description</th>
 					<th>Removal Date</th>
@@ -219,7 +219,7 @@ const (
 				</form>
             </tbody>
 
-            <tbody hx-get="/getthings" hx-trigger="load" id="things-list" hx-ext="sse" sse-connect="/things/listen" sse-swap="newThing" hx-swap="afterbegin">
+            <tbody hx-get="/things" hx-headers='{"Accept": "text/html"}' hx-trigger="load" id="things-list" hx-ext="sse" sse-connect="/things/listen" sse-swap="newThing" hx-swap="afterbegin">
 			</tbody>
 		</table>
 	</body>
@@ -294,12 +294,6 @@ func createAPI() *babyapi.API[*Thing] {
 
 	api.AddCustomRootRoute(http.MethodGet, "/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		fmt.Fprint(w, rootHTML)
-	}))
-
-	api.AddCustomRootRoute(http.MethodGet, "/getthings", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		things, _ := storage.GetAll(r.Context(), r.URL.Query())
-		at := AllThings{ResourceList: babyapi.ResourceList[*Thing]{Items: things}}
-		fmt.Fprint(w, at.HTML(w, r))
 	}))
 
 	// Use AllThings in the GetAll response since it implements HTMLer
