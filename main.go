@@ -40,7 +40,6 @@ import (
 
 	"github.com/go-sql-driver/mysql"
 	_ "github.com/joho/godotenv/autoload"
-	"github.com/spf13/cobra"
 
 	"github.com/calvinmclean/babyapi"
 	"github.com/calvinmclean/babyapi/extensions"
@@ -165,8 +164,8 @@ const (
 		<meta name="viewport" content="width=device-width, initial-scale=1.0">
 		<title>Temporary Things</title>
 		<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/uikit@3.17.11/dist/css/uikit.min.css" />
-		<script src="https://unpkg.com/htmx.org@1.9.8"></script>
-		<script src="https://unpkg.com/htmx.org/dist/ext/sse.js"></script>
+		<script src="https://unpkg.com/htmx.org@2.0.4" integrity="sha384-HGfztofotfshcF7+8n44JQL2oJmowVChPTg48S+jvZoztPfvwD79OC/LTtG6dMp+" crossorigin="anonymous"></script>
+		<script src="https://unpkg.com/htmx-ext-sse@2.2.2/sse.js"></script>
 	</head>
 
 	<style>
@@ -198,7 +197,7 @@ const (
 				</tr>
 			</thead>
 
-			<tbody hx-ext="sse" sse-connect="/things/listen" sse-swap="newThing" hx-swap="beforeend">
+			<tbody hx-ext="sse" sse-connect="/things/listen" sse-swap="newThing" hx-swap="afterbegin">
 				<form hx-post="/things" hx-swap="none" hx-on::after-request="this.reset()">
 					<td>
 						<input class="uk-input" name="Address" type="text" required>
@@ -293,20 +292,21 @@ func createAPI() *babyapi.API[*Thing] {
 	api.ApplyExtension(extensions.HTMX[*Thing]{})
 
 	// Add SSE handler endpoint which will receive events on the returned channel and write them to the front-end
-	todoChan := api.AddServerSentEventHandler("/listen")
+	newThingChan := api.AddServerSentEventHandler("/listen")
 
-	// Push events onto the SSE channel when new TODOs are created
-	api.SetOnCreateOrUpdate(func(w http.ResponseWriter, r *http.Request, t *Thing) *babyapi.ErrResponse {
+	// Push events onto the SSE channel when new Things are created
+	api.SetAfterCreateOrUpdate(func(w http.ResponseWriter, r *http.Request, t *Thing) *babyapi.ErrResponse {
 		if r.Method != http.MethodPost {
 			return nil
 		}
 
 		select {
-		case todoChan <- &babyapi.ServerSentEvent{Event: "newThing", Data: t.HTML(w, r)}:
+		case newThingChan <- &babyapi.ServerSentEvent{Event: "newThing", Data: t.HTML(w, r)}:
 		default:
 			logger := babyapi.GetLoggerFromContext(r.Context())
 			logger.Info("no listeners for server-sent event")
 		}
+
 		return nil
 	})
 
@@ -315,18 +315,11 @@ func createAPI() *babyapi.API[*Thing] {
 		string(thingRow):  thingTemplate,
 	})
 
-	cmd := api.Command()
-
-	cmd.PersistentPreRunE = func(cmd *cobra.Command, args []string) error {
-		if cmd.Name() != "serve" {
-			return nil
-		}
-
-		storage := &Storage{}
-		return storage.Apply(api)
+	storage := &Storage{}
+	err := storage.Apply(api)
+	if err != nil {
+		log.Fatal(err)
 	}
-
-	cmd.Execute()
 
 	return api
 }
