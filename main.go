@@ -197,7 +197,7 @@ const (
 				</tr>
 			</thead>
 
-			<tbody hx-ext="sse" sse-connect="/things/listen" sse-swap="newThing" hx-swap="afterbegin">
+			<tbody hx-ext="sse" sse-connect="/things/listen" sse-swap="newThing" hx-swap="beforeend">
 				<form hx-post="/things" hx-swap="none" hx-on::after-request="this.reset()">
 					<td>
 						<input class="uk-input" name="Address" type="text" required>
@@ -218,10 +218,12 @@ const (
 						<button type="submit" class="uk-button uk-button-primary">Add Thing</button>
 					</td>
 				</form>
+            </tbody>
 
-				{{ range . }}
-				{{ template "thingRow" . }}
-				{{ end }}
+            <tbody>
+                {{ range . }}
+                {{ template "thingRow" . }}
+                {{ end }}
 			</tbody>
 		</table>
 	</body>
