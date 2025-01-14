@@ -6,9 +6,25 @@ WHERE id = ? LIMIT 1;
 SELECT * FROM things
 WHERE address = ? AND type = ? LIMIT 1;
 
--- name: ListThings :many
+-- name: ListThingsAsc :many
 SELECT * FROM things
-ORDER BY remove DESC;
+ORDER BY
+CASE ? WHEN 'address' THEN address
+       WHEN 'type' THEN type
+       WHEN 'created' THEN created
+       WHEN 'reason' THEN reason
+       WHEN 'remove' THEN remove
+       ELSE remove END ASC;
+
+-- name: ListThingsDesc :many
+SELECT * FROM things
+ORDER BY
+CASE ? WHEN 'address' THEN address
+       WHEN 'type' THEN type
+       WHEN 'created' THEN created
+       WHEN 'reason' THEN reason
+       WHEN 'remove' THEN remove
+       ELSE remove END DESC;
 
 -- name: ListThingsByType :many
 SELECT * FROM things

@@ -54,17 +54,6 @@ const (
 )
 
 func main() {
-	config, err := getSQLConfigFromEnv()
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	if false {
-		if err := tryDatabase(config); err != nil {
-			log.Fatal(err)
-		}
-	}
-
 	api := createAPI()
 	api.RunCLI()
 }
@@ -91,70 +80,6 @@ func getSQLConfigFromEnv() (*mysql.Config, error) {
 	return conf, nil
 }
 
-func tryDatabase(config *mysql.Config) error {
-	ctx := context.Background()
-
-	sqlDB, err := sql.Open(sqlDriverName, config.FormatDSN())
-	if err != nil {
-		return err
-	}
-
-	queries := db.New(sqlDB)
-
-	err = queries.Reset(ctx)
-	if err != nil {
-		return err
-	}
-
-	err = queries.ResetUsers(ctx)
-	if err != nil {
-		return err
-	}
-
-	result, err := queries.CreateUser(ctx, db.CreateUserParams{Name: "sb10", Email: "sb10@sanger.ac.uk"})
-	if err != nil {
-		return err
-	}
-
-	uid, err := result.LastInsertId()
-	if err != nil {
-		return err
-	}
-
-	result, err = queries.CreateThing(ctx, db.CreateThingParams{
-		Address: "/a/file.txt",
-		Type:    db.ThingsTypeFile,
-		Created: time.Now(),
-		Reason:  "hgi resource",
-		Remove:  time.Now().Add(time.Hour * 25),
-	})
-	if err != nil {
-		return err
-	}
-
-	tid, err := result.LastInsertId()
-	if err != nil {
-		return err
-	}
-
-	_, err = queries.Subscribe(ctx, db.SubscribeParams{
-		UserID:  uint32(uid),
-		ThingID: uint32(tid),
-	})
-	if err != nil {
-		return err
-	}
-
-	things, err := queries.ListThings(ctx)
-	if err != nil {
-		return err
-	}
-
-	log.Println(things)
-
-	return nil
-}
-
 const (
 	rootHTML string = `<!doctype html>
 <html>
@@ -162,7 +87,9 @@ const (
 		<meta charset="UTF-8">
 		<meta name="viewport" content="width=device-width, initial-scale=1.0">
 		<title>Temporary Things</title>
-		<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/uikit@3.17.11/dist/css/uikit.min.css" />
+        <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/uikit@3.22.0/dist/css/uikit.min.css" />
+        <script src="https://cdn.jsdelivr.net/npm/uikit@3.22.0/dist/js/uikit.min.js"></script>
+        <script src="https://cdn.jsdelivr.net/npm/uikit@3.22.0/dist/js/uikit-icons.min.js"></script>
 		<script src="https://unpkg.com/htmx.org@2.0.4" integrity="sha384-HGfztofotfshcF7+8n44JQL2oJmowVChPTg48S+jvZoztPfvwD79OC/LTtG6dMp+" crossorigin="anonymous"></script>
 		<script src="https://unpkg.com/htmx-ext-sse@2.2.2/sse.js"></script>
 	</head>
@@ -175,7 +102,7 @@ const (
 	</style>
 
 	<body>
-		<table class="uk-table uk-table-divider uk-margin-left uk-margin-right">
+		<table class="uk-table uk-table-divider uk-table-striped uk-margin-left uk-margin-right">
 			<colgroup>
 				<col>
 				<col>
@@ -186,12 +113,20 @@ const (
 			</colgroup>
 
 			<thead>
-				<tr>
-					<th hx-get="/things" hx-headers='{"Accept": "text/html"}' hx-trigger="click" hx-target="tbody#things-list">Address</th>
-					<th hx-get="/things?type=dir" hx-headers='{"Accept": "text/html"}' hx-trigger="click" hx-target="tbody#things-list">Type</th>
-					<th>Reason</th>
+				<tr hx-headers='{"Accept": "text/html"}' hx-trigger="click" hx-target="tbody#things-list">
+					<th>
+                        Address<span uk-icon="arrow-up" hx-get="/things?sort=address&dir=DESC"></span><span uk-icon="arrow-down" hx-get="/things?sort=address&dir=ASC"></span>
+                    </th>
+					<th>
+                        Type<span uk-icon="arrow-up" hx-get="/things?sort=type&dir=DESC"></span><span uk-icon="arrow-down" hx-get="/things?sort=type&dir=ASC"></span>
+                    </th>
+					<th>
+                        Reason<span uk-icon="arrow-up" hx-get="/things?sort=reason&dir=DESC"></span><span uk-icon="arrow-down" hx-get="/things?sort=reason&dir=ASC"></span>
+                    </th>
 					<th>Description</th>
-					<th>Removal Date</th>
+					<th>
+                        Removal Date<span uk-icon="arrow-up" hx-get="/things?sort=remove&dir=DESC"></span><span uk-icon="arrow-down" hx-get="/things?sort=remove&dir=ASC"></span>
+                    </th>
 					<th></th>
 				</tr>
 			</thead>
@@ -352,11 +287,22 @@ func (s Storage) GetAll(ctx context.Context, query url.Values) ([]*Thing, error)
 	var things []db.Thing
 	var err error
 
+	dir := query.Get("dir")
+
+	sortCol := query.Get("sort")
+	if sortCol == "" {
+		sortCol = "remove"
+	}
+
 	thingType := query.Get("type")
 	if thingType != "" {
 		things, err = s.Queries.ListThingsByType(ctx, db.ThingsType(thingType))
 	} else {
-		things, err = s.Queries.ListThings(ctx)
+		if dir == "ASC" {
+			things, err = s.Queries.ListThingsAsc(ctx, sortCol)
+		} else {
+			things, err = s.Queries.ListThingsDesc(ctx, sortCol)
+		}
 	}
 	if err != nil {
 		return nil, err

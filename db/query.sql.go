@@ -215,13 +215,19 @@ func (q *Queries) ListSubscriptions(ctx context.Context, userID uint32) ([]Subsc
 	return items, nil
 }
 
-const listThings = `-- name: ListThings :many
+const listThingsAsc = `-- name: ListThingsAsc :many
 SELECT id, address, type, created, description, reason, remove, warned1, warned2, removed FROM things
-ORDER BY remove DESC
+ORDER BY
+CASE ? WHEN 'address' THEN address
+       WHEN 'type' THEN type
+       WHEN 'created' THEN created
+       WHEN 'reason' THEN reason
+       WHEN 'remove' THEN remove
+       ELSE remove END ASC
 `
 
-func (q *Queries) ListThings(ctx context.Context) ([]Thing, error) {
-	rows, err := q.db.QueryContext(ctx, listThings)
+func (q *Queries) ListThingsAsc(ctx context.Context, dollar_1 interface{}) ([]Thing, error) {
+	rows, err := q.db.QueryContext(ctx, listThingsAsc, dollar_1)
 	if err != nil {
 		return nil, err
 	}
@@ -262,6 +268,51 @@ ORDER BY address
 
 func (q *Queries) ListThingsByType(ctx context.Context, type_ ThingsType) ([]Thing, error) {
 	rows, err := q.db.QueryContext(ctx, listThingsByType, type_)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []Thing
+	for rows.Next() {
+		var i Thing
+		if err := rows.Scan(
+			&i.ID,
+			&i.Address,
+			&i.Type,
+			&i.Created,
+			&i.Description,
+			&i.Reason,
+			&i.Remove,
+			&i.Warned1,
+			&i.Warned2,
+			&i.Removed,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const listThingsDesc = `-- name: ListThingsDesc :many
+SELECT id, address, type, created, description, reason, remove, warned1, warned2, removed FROM things
+ORDER BY
+CASE ? WHEN 'address' THEN address
+       WHEN 'type' THEN type
+       WHEN 'created' THEN created
+       WHEN 'reason' THEN reason
+       WHEN 'remove' THEN remove
+       ELSE remove END DESC
+`
+
+func (q *Queries) ListThingsDesc(ctx context.Context, dollar_1 interface{}) ([]Thing, error) {
+	rows, err := q.db.QueryContext(ctx, listThingsDesc, dollar_1)
 	if err != nil {
 		return nil, err
 	}
