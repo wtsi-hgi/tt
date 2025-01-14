@@ -365,7 +365,7 @@ func (s Storage) GetAll(ctx context.Context, query url.Values) ([]*Thing, error)
 }
 
 func (s Storage) Set(ctx context.Context, t *Thing) error {
-	_, err := s.Queries.CreateThing(ctx, db.CreateThingParams{
+	result, err := s.Queries.CreateThing(ctx, db.CreateThingParams{
 		Address:     t.Address,
 		Type:        db.ThingsType(t.Type),
 		Created:     time.Now(),
@@ -373,6 +373,13 @@ func (s Storage) Set(ctx context.Context, t *Thing) error {
 		Reason:      t.Reason,
 		Remove:      t.Remove,
 	})
+
+	if err != nil {
+		return err
+	}
+
+	id, err := result.LastInsertId()
+	t.ID = uint32(id)
 
 	return err
 }
