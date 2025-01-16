@@ -6,25 +6,28 @@ WHERE id = ? LIMIT 1;
 SELECT * FROM things
 WHERE address = ? AND type = ? LIMIT 1;
 
+-- name: NumThings :one
+SELECT COUNT(*) FROM things;
+
 -- name: ListThingsAsc :many
 SELECT * FROM things
 ORDER BY
 CASE ? WHEN 'address' THEN address
        WHEN 'type' THEN type
-       WHEN 'created' THEN created
        WHEN 'reason' THEN reason
        WHEN 'remove' THEN remove
-       ELSE remove END ASC;
+       ELSE remove END ASC
+LIMIT ? OFFSET ?;
 
 -- name: ListThingsDesc :many
 SELECT * FROM things
 ORDER BY
 CASE ? WHEN 'address' THEN address
        WHEN 'type' THEN type
-       WHEN 'created' THEN created
        WHEN 'reason' THEN reason
        WHEN 'remove' THEN remove
-       ELSE remove END DESC;
+       ELSE remove END DESC
+LIMIT ? OFFSET ?;
 
 -- name: ListThingsByType :many
 SELECT * FROM things

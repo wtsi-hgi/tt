@@ -51,6 +51,7 @@ import (
 const (
 	sqlDriverName = "mysql"
 	sqlNetwork    = "tcp"
+	perPage       = 50
 )
 
 func main() {
@@ -294,14 +295,34 @@ func (s Storage) GetAll(ctx context.Context, query url.Values) ([]*Thing, error)
 		sortCol = "remove"
 	}
 
+	page, err := strconv.Atoi(query.Get("page"))
+	if err != nil || page < 1 {
+		page = 1
+	}
+
+	offset := int32((page - 1) * perPage)
+
 	thingType := query.Get("type")
 	if thingType != "" {
 		things, err = s.Queries.ListThingsByType(ctx, db.ThingsType(thingType))
 	} else {
+		// total, err := s.Queries.NumThings(ctx)
+		// if err != nil {
+		// 	return nil, err
+		// }
+
 		if dir == "ASC" {
-			things, err = s.Queries.ListThingsAsc(ctx, sortCol)
+			things, err = s.Queries.ListThingsAsc(ctx, db.ListThingsAscParams{
+				Column1: sortCol,
+				Limit:   perPage,
+				Offset:  offset,
+			})
 		} else {
-			things, err = s.Queries.ListThingsDesc(ctx, sortCol)
+			things, err = s.Queries.ListThingsDesc(ctx, db.ListThingsDescParams{
+				Column1: sortCol,
+				Limit:   perPage,
+				Offset:  offset,
+			})
 		}
 	}
 	if err != nil {

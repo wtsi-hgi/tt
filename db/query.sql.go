@@ -220,14 +220,20 @@ SELECT id, address, type, created, description, reason, remove, warned1, warned2
 ORDER BY
 CASE ? WHEN 'address' THEN address
        WHEN 'type' THEN type
-       WHEN 'created' THEN created
        WHEN 'reason' THEN reason
        WHEN 'remove' THEN remove
        ELSE remove END ASC
+LIMIT ? OFFSET ?
 `
 
-func (q *Queries) ListThingsAsc(ctx context.Context, dollar_1 interface{}) ([]Thing, error) {
-	rows, err := q.db.QueryContext(ctx, listThingsAsc, dollar_1)
+type ListThingsAscParams struct {
+	Column1 interface{}
+	Limit   int32
+	Offset  int32
+}
+
+func (q *Queries) ListThingsAsc(ctx context.Context, arg ListThingsAscParams) ([]Thing, error) {
+	rows, err := q.db.QueryContext(ctx, listThingsAsc, arg.Column1, arg.Limit, arg.Offset)
 	if err != nil {
 		return nil, err
 	}
@@ -305,14 +311,20 @@ SELECT id, address, type, created, description, reason, remove, warned1, warned2
 ORDER BY
 CASE ? WHEN 'address' THEN address
        WHEN 'type' THEN type
-       WHEN 'created' THEN created
        WHEN 'reason' THEN reason
        WHEN 'remove' THEN remove
        ELSE remove END DESC
+LIMIT ? OFFSET ?
 `
 
-func (q *Queries) ListThingsDesc(ctx context.Context, dollar_1 interface{}) ([]Thing, error) {
-	rows, err := q.db.QueryContext(ctx, listThingsDesc, dollar_1)
+type ListThingsDescParams struct {
+	Column1 interface{}
+	Limit   int32
+	Offset  int32
+}
+
+func (q *Queries) ListThingsDesc(ctx context.Context, arg ListThingsDescParams) ([]Thing, error) {
+	rows, err := q.db.QueryContext(ctx, listThingsDesc, arg.Column1, arg.Limit, arg.Offset)
 	if err != nil {
 		return nil, err
 	}
@@ -343,6 +355,17 @@ func (q *Queries) ListThingsDesc(ctx context.Context, dollar_1 interface{}) ([]T
 		return nil, err
 	}
 	return items, nil
+}
+
+const numThings = `-- name: NumThings :one
+SELECT COUNT(*) FROM things
+`
+
+func (q *Queries) NumThings(ctx context.Context) (int64, error) {
+	row := q.db.QueryRowContext(ctx, numThings)
+	var count int64
+	err := row.Scan(&count)
+	return count, err
 }
 
 const reset = `-- name: Reset :exec
