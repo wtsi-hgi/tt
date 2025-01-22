@@ -26,6 +26,7 @@
 package mysql
 
 import (
+	"database/sql"
 	"os"
 	"testing"
 
@@ -173,6 +174,23 @@ func TestMySQL(t *testing.T) {
 		db, err := New(config)
 		So(err, ShouldBeNil)
 		So(db, ShouldNotBeNil)
+
+		Convey("You can reset the database", func() {
+			err = db.Reset()
+			So(err, ShouldBeNil)
+
+			count, err := countTableRows(db.pool, "things")
+			So(err, ShouldBeNil)
+			So(count, ShouldEqual, 0)
+
+			count, err = countTableRows(db.pool, "users")
+			So(err, ShouldBeNil)
+			So(count, ShouldEqual, 0)
+
+			count, err = countTableRows(db.pool, "subscribers")
+			So(err, ShouldBeNil)
+			So(count, ShouldEqual, 0)
+		})
 	})
 
 	Convey("Given a bad config, MySQL connections fail", t, func() {
@@ -180,4 +198,13 @@ func TestMySQL(t *testing.T) {
 		_, err := New(config)
 		So(err, ShouldNotBeNil)
 	})
+}
+
+func countTableRows(pool *sql.DB, table string) (int64, error) {
+	var count int64
+
+	row := pool.QueryRow("SELECT COUNT(*) FROM " + table)
+	err := row.Scan(&count)
+
+	return count, err
 }

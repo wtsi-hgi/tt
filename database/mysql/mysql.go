@@ -27,13 +27,18 @@ package mysql
 
 import (
 	"database/sql"
+	_ "embed"
 	"fmt"
 	"os"
+	"regexp"
 	"time"
 
 	gsdmysql "github.com/go-sql-driver/mysql"
 	"github.com/joho/godotenv"
 )
+
+//go:embed schema.sql
+var schemaSQL string
 
 const (
 	sqlDriverName   = "mysql"
@@ -114,20 +119,41 @@ func ConfigFromEnv(dir ...string) (*gsdmysql.Config, error) {
 // MySQLDB implements the database interface by storing and retrieving info
 // about things and users from a MySQL database.
 type MySQLDB struct {
-	db *sql.DB
+	pool *sql.DB
 }
 
 // New connects to the configured mysql server and returns a new MySQLDB that
 // can perform queries for things and users.
 func New(config *gsdmysql.Config) (*MySQLDB, error) {
-	db, err := sql.Open(sqlDriverName, config.FormatDSN())
+	pool, err := sql.Open(sqlDriverName, config.FormatDSN())
 	if err != nil {
 		return nil, err
 	}
 
-	db.SetConnMaxLifetime(connMaxLifetime)
-	db.SetMaxOpenConns(maxOpenConns)
-	db.SetMaxIdleConns(maxIdleConns)
+	pool.SetConnMaxLifetime(connMaxLifetime)
+	pool.SetMaxOpenConns(maxOpenConns)
+	pool.SetMaxIdleConns(maxIdleConns)
 
-	return &MySQLDB{db: db}, db.Ping()
+	return &MySQLDB{pool: pool}, pool.Ping()
+}
+
+// Reset drops all tables and recreates them. Use with extreme caution!
+func (m *MySQLDB) Reset() error {
+	statements := regexp.MustCompile(`\n\s*\n`).Split(schemaSQL, -1)
+
+	tx, err := m.pool.Begin()
+	if err != nil {
+		return err
+	}
+
+	for _, stmt := range statements {
+		_, err = tx.Exec(stmt)
+		if err != nil {
+			tx.Rollback()
+
+			return err
+		}
+	}
+
+	return tx.Commit()
 }
