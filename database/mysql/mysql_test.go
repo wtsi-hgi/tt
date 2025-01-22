@@ -31,6 +31,7 @@ import (
 	"testing"
 
 	. "github.com/smartystreets/goconvey/convey"
+	"github.com/wtsi-hgi/tt/database/types"
 )
 
 const (
@@ -127,7 +128,7 @@ func TestConfig(t *testing.T) {
 			os.Chdir(origDir)
 			os.Unsetenv(envVarUser)
 			os.Unsetenv(envVarDBName)
-			config, err = ConfigFromEnv()
+			_, err = ConfigFromEnv()
 			So(err, ShouldNotBeNil)
 
 			config, err = ConfigFromEnv(dir)
@@ -190,6 +191,34 @@ func TestMySQL(t *testing.T) {
 			count, err = countTableRows(db.pool, "subscribers")
 			So(err, ShouldBeNil)
 			So(count, ShouldEqual, 0)
+
+			Convey("You can then add users and things", func() {
+				emailSuffix := "@example.com"
+				u1 := "user1"
+				u2 := "user2"
+
+				user1, err := db.CreateUser(u1, u1+emailSuffix)
+				So(err, ShouldBeNil)
+				So(user1, ShouldResemble, &types.User{
+					ID:    1,
+					Name:  u1,
+					Email: u1 + emailSuffix,
+				})
+
+				user2, err := db.CreateUser(u2, u2+emailSuffix)
+				So(err, ShouldBeNil)
+				So(user2, ShouldResemble, &types.User{
+					ID:    2,
+					Name:  u2,
+					Email: u2 + emailSuffix,
+				})
+
+				_, err = db.CreateUser(u1, u1+"@foo.com")
+				So(err, ShouldNotBeNil)
+
+				_, err = db.CreateUser("foo", u1+emailSuffix)
+				So(err, ShouldNotBeNil)
+			})
 		})
 	})
 
