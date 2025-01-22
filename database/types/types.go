@@ -41,15 +41,36 @@ const (
 	ThingsTypeOpenstack ThingsType = "openstack"
 )
 
-type Subscriber struct {
-	UserID  uint32
-	ThingID uint32
+func ThingsTypes() []ThingsType {
+	return []ThingsType{
+		ThingsTypeDir,
+		ThingsTypeFile,
+		ThingsTypeIrods,
+		ThingsTypeOpenstack,
+		ThingsTypeS3,
+	}
+}
+
+type User struct {
+	ID    uint32
+	Name  string
+	Email string
+}
+
+type CreateThingParams struct {
+	Address     string
+	Type        ThingsType
+	Creator     *User
+	Description string
+	Reason      string
+	Remove      time.Time
 }
 
 type Thing struct {
 	ID          uint32
 	Address     string
 	Type        ThingsType
+	Creator     *User
 	Created     time.Time
 	Description string
 	Reason      string
@@ -59,8 +80,7 @@ type Thing struct {
 	Removed     bool
 }
 
-type User struct {
-	ID    uint32
-	Name  string
-	Email string
+type Subscriber struct {
+	UserID  uint32
+	ThingID uint32
 }

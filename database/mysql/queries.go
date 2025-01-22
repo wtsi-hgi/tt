@@ -25,26 +25,77 @@
 
 package mysql
 
-import "github.com/wtsi-hgi/tt/database/types"
+import (
+	"time"
+
+	"github.com/wtsi-hgi/tt/database/types"
+)
 
 const createUser = `INSERT INTO users (name, email) VALUES (?, ?)`
 
 // CreateUser creates a new user with the given name and email. The returned
 // user will have its ID set.
 func (m *MySQLDB) CreateUser(name, email string) (*types.User, error) {
-	result, err := m.pool.Exec(createUser, name, email)
-	if err != nil {
-		return nil, err
-	}
-
-	id, err := result.LastInsertId()
+	id, err := m.createRow(createUser, name, email)
 	if err != nil {
 		return nil, err
 	}
 
 	return &types.User{
-		ID:    uint32(id),
+		ID:    id,
 		Name:  name,
 		Email: email,
+	}, nil
+}
+
+func (m *MySQLDB) createRow(sql string, args ...any) (uint32, error) {
+	result, err := m.pool.Exec(sql, args...)
+	if err != nil {
+		return 0, err
+	}
+
+	id, err := result.LastInsertId()
+	if err != nil {
+		return 0, err
+	}
+
+	return uint32(id), nil
+}
+
+const createThing = `
+INSERT INTO things (
+  address, type, creator, created, description, reason, remove
+) VALUES (
+  ?, ?, ?, ?, ?, ?, ?
+)
+`
+
+// CreateThing creates a new thing with the given details. The returned thing
+// will have its ID set to an auto-increment value, and Created time set to now.
+func (m *MySQLDB) CreateThing(args types.CreateThingParams) (*types.Thing, error) {
+	created := time.Now()
+
+	id, err := m.createRow(createThing,
+		args.Address,
+		args.Type,
+		args.Creator.ID,
+		created,
+		args.Description,
+		args.Reason,
+		args.Remove,
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	return &types.Thing{
+		ID:          uint32(id),
+		Address:     args.Address,
+		Type:        args.Type,
+		Creator:     args.Creator,
+		Created:     created,
+		Description: args.Description,
+		Reason:      args.Reason,
+		Remove:      args.Remove,
 	}, nil
 }

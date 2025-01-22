@@ -1,18 +1,4 @@
-DROP TABLE IF EXISTS subscribers, users, things;
-
-CREATE TABLE things (
-    id int unsigned NOT NULL AUTO_INCREMENT PRIMARY KEY,
-    address varchar(4096) NOT NULL,
-    type enum('file', 'dir', 'irods', 's3', 'openstack') NOT NULL,
-    created date NOT NULL,
-    description text(4096),
-    reason tinytext NOT NULL,
-    remove date NOT NULL,
-    warned1 date,
-    warned2 date,
-    removed bool NOT NULL default 0,
-    UNIQUE(address(170), type)
-) ENGINE=INNODB;
+DROP TABLE IF EXISTS subscribers, things, users;
 
 CREATE TABLE users (
     id int unsigned NOT NULL AUTO_INCREMENT PRIMARY KEY,
@@ -20,6 +6,22 @@ CREATE TABLE users (
     email varchar(254) NOT NULL,
     UNIQUE(name),
     UNIQUE(email)
+) ENGINE=INNODB;
+
+CREATE TABLE things (
+    id int unsigned NOT NULL AUTO_INCREMENT PRIMARY KEY,
+    address varchar(4096) NOT NULL,
+    type enum('file', 'dir', 'irods', 's3', 'openstack') NOT NULL,
+    creator int unsigned NOT NULL,
+    created date NOT NULL,
+    description text(4096),
+    reason tinytext NOT NULL,
+    remove date NOT NULL,
+    warned1 date,
+    warned2 date,
+    removed bool NOT NULL default 0,
+    UNIQUE(address(170), type),
+    FOREIGN KEY (creator) REFERENCES users(id)
 ) ENGINE=INNODB;
 
 CREATE TABLE subscribers (

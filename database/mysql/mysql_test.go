@@ -27,8 +27,10 @@ package mysql
 
 import (
 	"database/sql"
+	"fmt"
 	"os"
 	"testing"
+	"time"
 
 	. "github.com/smartystreets/goconvey/convey"
 	"github.com/wtsi-hgi/tt/database/types"
@@ -218,6 +220,63 @@ func TestMySQL(t *testing.T) {
 
 				_, err = db.CreateUser("foo", u1+emailSuffix)
 				So(err, ShouldNotBeNil)
+
+				count, err = countTableRows(db.pool, "users")
+				So(err, ShouldBeNil)
+				So(count, ShouldEqual, 2)
+
+				var i uint32
+
+				year := uint32(1970)
+
+				for _, thingType := range types.ThingsTypes() {
+					for j := range 2 {
+						i++
+
+						creator := user1
+						if j%2 != 0 {
+							creator = user2
+						}
+
+						address := fmt.Sprintf("%s://%d", thingType, i)
+						description := fmt.Sprintf("desc %d", i)
+						reason := fmt.Sprintf("reason %d", i)
+
+						remove, err := time.Parse(time.DateOnly, fmt.Sprintf("%d-01-02", year+i))
+						So(err, ShouldBeNil)
+
+						before := time.Now()
+
+						thing, err := db.CreateThing(types.CreateThingParams{
+							Address:     address,
+							Type:        thingType,
+							Creator:     creator,
+							Description: description,
+							Reason:      reason,
+							Remove:      remove,
+						})
+						So(err, ShouldBeNil)
+
+						after := time.Now()
+						created := thing.Created
+						So(created, ShouldHappenOnOrBetween, before, after)
+
+						thing.Created = time.Time{}
+						So(thing, ShouldResemble, &types.Thing{
+							ID:          i,
+							Address:     address,
+							Type:        thingType,
+							Creator:     creator,
+							Description: description,
+							Reason:      reason,
+							Remove:      remove,
+						})
+					}
+				}
+
+				count, err = countTableRows(db.pool, "things")
+				So(err, ShouldBeNil)
+				So(count, ShouldEqual, i)
 			})
 		})
 	})
