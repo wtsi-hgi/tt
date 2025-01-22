@@ -18,6 +18,12 @@ export TT_SQL_DB=tt_db
 If you put these statements in a `.env` file that's in the current working
 directory when you start the tt server, it will automatically be sourced.
 
+To distinguish test and production environments, instead put the statements in
+files .env.test.local and .env.production.local respectively, and then set the
+TT_ENV environment variable to "test" or "production" to select the environment
+to use.
+
+
 ## Development
 
 Install sqlc:
@@ -32,11 +38,15 @@ After changing schema.sql or query.sql, run this:
 sqlc generate
 ```
 
-Put your MySQL connection detail export statements in a `.env` file in the repo
-folder (which won't get added to the repo).
+Put your MySQL connection detail export statements in a `.env.development.local`
+file in the repo folder (which won't get added to the repo).
 
-Bring up test server like:
+NB: the database configured there will have its tables dropped and recreated at
+the start of running tests!
+
+Bring up a development server like this:
 
 ```
+export TT_ENV=development
 go run main.go serve --address :4563
 ```

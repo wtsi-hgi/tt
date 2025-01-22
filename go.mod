@@ -8,6 +8,7 @@ require (
 	github.com/go-sql-driver/mysql v1.8.1
 	github.com/guregu/null/v5 v5.0.0
 	github.com/joho/godotenv v1.5.1
+	github.com/smartystreets/goconvey v1.8.1
 )
 
 require (
@@ -16,8 +17,11 @@ require (
 	github.com/ajg/form v1.5.1 // indirect
 	github.com/go-chi/chi/v5 v5.0.10 // indirect
 	github.com/gomodule/redigo v1.9.2 // indirect
+	github.com/gopherjs/gopherjs v1.17.2 // indirect
 	github.com/inconshreveable/mousetrap v1.1.0 // indirect
+	github.com/jtolds/gls v4.20.0+incompatible // indirect
 	github.com/rs/xid v1.5.0 // indirect
+	github.com/smarty/assertions v1.15.0 // indirect
 	github.com/spf13/cobra v1.8.0 // indirect
 	github.com/spf13/pflag v1.0.5 // indirect
 	github.com/tarmac-project/hord v0.6.0 // indirect
