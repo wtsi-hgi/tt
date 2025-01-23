@@ -107,14 +107,6 @@ FROM things
 INNER JOIN users ON things.creator=users.id
 `
 
-// ORDER BY
-// CASE ? WHEN 'address' THEN address
-//        WHEN 'type' THEN type
-//        WHEN 'reason' THEN reason
-//        WHEN 'remove' THEN remove
-//        ELSE remove END ASC
-// LIMIT ? OFFSET ?
-
 // GetThings returns things that match the given parameters.
 func (m *MySQLDB) GetThings(params types.GetThingsParams) ([]types.Thing, error) {
 	var sql strings.Builder
@@ -170,10 +162,21 @@ func (m *MySQLDB) GetThings(params types.GetThingsParams) ([]types.Thing, error)
 }
 
 func getThingsParamsToSQL(params types.GetThingsParams, sql *strings.Builder) {
-	paramsToSortSQL(params, sql)
+	whereSQL(params, sql)
+	orderSQL(params, sql)
 }
 
-func paramsToSortSQL(params types.GetThingsParams, sql *strings.Builder) {
+func whereSQL(params types.GetThingsParams, sql *strings.Builder) {
+	if params.FilterOnType == "" {
+		return
+	}
+
+	sql.WriteString("\nWHERE type = '")
+	sql.WriteString(string(params.FilterOnType))
+	sql.WriteString("'")
+}
+
+func orderSQL(params types.GetThingsParams, sql *strings.Builder) {
 	sql.WriteString("\nORDER BY ")
 
 	if params.OrderBy == "" {
@@ -190,3 +193,5 @@ func paramsToSortSQL(params types.GetThingsParams, sql *strings.Builder) {
 		sql.WriteString(string(params.OrderDirection))
 	}
 }
+
+// LIMIT ? OFFSET ?

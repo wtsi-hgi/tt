@@ -243,8 +243,6 @@ func TestMySQL(t *testing.T) {
 
 				i := uint32(0)
 				year := uint32(1970)
-				numThings := 10
-				expectedThings := make([]types.Thing, numThings)
 				thingsTypes := []types.ThingsType{
 					types.ThingsTypeIrods,
 					types.ThingsTypeDir,
@@ -252,6 +250,9 @@ func TestMySQL(t *testing.T) {
 					types.ThingsTypeFile,
 					types.ThingsTypeOpenstack,
 				}
+				thingsPerType := 2
+				numThings := len(thingsTypes) * thingsPerType
+				expectedThings := make([]types.Thing, numThings)
 				addresses := []string{
 					"j", "c", "e", "i", "a", "f", "b", "g", "d", "h",
 				}
@@ -260,7 +261,7 @@ func TestMySQL(t *testing.T) {
 				}
 
 				for _, thingType := range thingsTypes {
-					for j := range 2 {
+					for j := range thingsPerType {
 						creator := user1
 						if j%2 != 0 {
 							creator = user2
@@ -375,6 +376,14 @@ func TestMySQL(t *testing.T) {
 					So(len(things), ShouldEqual, numThings)
 					So(things[0].Remove.Format(time.DateOnly), ShouldEqual, "1970-01-02")
 					So(things[numThings-1].Remove.Format(time.DateOnly), ShouldEqual, "1979-01-02")
+
+					things, err = db.GetThings(types.GetThingsParams{
+						FilterOnType: types.ThingsTypeIrods,
+					})
+					So(err, ShouldBeNil)
+					So(len(things), ShouldEqual, thingsPerType)
+					So(things[0].Type, ShouldEqual, types.ThingsTypeIrods)
+					So(things[1].Type, ShouldEqual, types.ThingsTypeIrods)
 				})
 			})
 		})
