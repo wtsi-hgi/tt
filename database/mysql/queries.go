@@ -99,3 +99,66 @@ func (m *MySQLDB) CreateThing(args types.CreateThingParams) (*types.Thing, error
 		Remove:      args.Remove,
 	}, nil
 }
+
+const getThings = `
+SELECT things.id, address, type, users.id, users.name, users.email, created, description, reason, remove, warned1, warned2, removed
+FROM things
+INNER JOIN users ON things.creator=users.id
+`
+
+// ORDER BY
+// CASE ? WHEN 'address' THEN address
+//        WHEN 'type' THEN type
+//        WHEN 'reason' THEN reason
+//        WHEN 'remove' THEN remove
+//        ELSE remove END ASC
+// LIMIT ? OFFSET ?
+
+// GetThings returns things that match the given parameters.
+func (m *MySQLDB) GetThings(params types.GetThingsParams) ([]types.Thing, error) {
+	rows, err := m.pool.Query(getThings)
+	if err != nil {
+		return nil, err
+	}
+
+	defer rows.Close()
+
+	var things []types.Thing
+
+	for rows.Next() {
+		var thing types.Thing
+		var user types.User
+
+		if err := rows.Scan(
+			&thing.ID,
+			&thing.Address,
+			&thing.Type,
+			&user.ID,
+			&user.Name,
+			&user.Email,
+			&thing.Created,
+			&thing.Description,
+			&thing.Reason,
+			&thing.Remove,
+			&thing.Warned1,
+			&thing.Warned2,
+			&thing.Removed,
+		); err != nil {
+			return nil, err
+		}
+
+		thing.Creator = &user
+
+		things = append(things, thing)
+	}
+
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+
+	return things, nil
+}

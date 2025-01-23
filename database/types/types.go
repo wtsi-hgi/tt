@@ -51,6 +51,34 @@ func ThingsTypes() []ThingsType {
 	}
 }
 
+type OrderBy string
+
+const (
+	OrderByAddres OrderBy = "address"
+	OrderByType   OrderBy = "type"
+	OrderByReason OrderBy = "reason"
+	OrderByRemove OrderBy = "remove"
+)
+
+type OrderDirection string
+
+const (
+	OrderAsc  OrderDirection = "ASC"
+	OrderDesc OrderDirection = "DESC"
+)
+
+// GetThingsParams, when default value and provided to GetThings(), will get
+// all things. Optionally set any of the values to filter, order or reduce the
+// number of things returned. For ordering, both OrderBy and OrderDirection must
+// be set, or the default ordering of by remove ASC will be used.
+type GetThingsParams struct {
+	FilterOnType   ThingsType
+	OrderBy        OrderBy
+	OrderDirection OrderDirection
+	Limit          int32
+	Offset         int32
+}
+
 type User struct {
 	ID    uint32
 	Name  string

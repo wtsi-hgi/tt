@@ -225,24 +225,26 @@ func TestMySQL(t *testing.T) {
 				So(err, ShouldBeNil)
 				So(count, ShouldEqual, 2)
 
-				var i uint32
+				var numThings uint32
 
 				year := uint32(1970)
 
+				var expectedThings []types.Thing
+
 				for _, thingType := range types.ThingsTypes() {
 					for j := range 2 {
-						i++
+						numThings++
 
 						creator := user1
 						if j%2 != 0 {
 							creator = user2
 						}
 
-						address := fmt.Sprintf("%s://%d", thingType, i)
-						description := fmt.Sprintf("desc %d", i)
-						reason := fmt.Sprintf("reason %d", i)
+						address := fmt.Sprintf("%s://%d", thingType, numThings)
+						description := fmt.Sprintf("desc %d", numThings)
+						reason := fmt.Sprintf("reason %d", numThings)
 
-						remove, err := time.Parse(time.DateOnly, fmt.Sprintf("%d-01-02", year+i))
+						remove, err := time.Parse(time.DateOnly, fmt.Sprintf("%d-01-02", year+numThings))
 						So(err, ShouldBeNil)
 
 						before := time.Now()
@@ -262,21 +264,36 @@ func TestMySQL(t *testing.T) {
 						So(created, ShouldHappenOnOrBetween, before, after)
 
 						thing.Created = time.Time{}
-						So(thing, ShouldResemble, &types.Thing{
-							ID:          i,
+
+						expectedThing := types.Thing{
+							ID:          numThings,
 							Address:     address,
 							Type:        thingType,
 							Creator:     creator,
 							Description: description,
 							Reason:      reason,
 							Remove:      remove,
-						})
+						}
+
+						expectedThings = append(expectedThings, expectedThing)
+
+						So(thing, ShouldResemble, &expectedThing)
 					}
 				}
 
 				count, err = countTableRows(db.pool, "things")
 				So(err, ShouldBeNil)
-				So(count, ShouldEqual, i)
+				So(count, ShouldEqual, numThings)
+
+				Convey("Then you can get things with desired sorting, pagination and filtering", func() {
+					things, err := db.GetThings(types.GetThingsParams{})
+					So(err, ShouldBeNil)
+					So(len(things), ShouldEqual, numThings)
+					things[0].Created = time.Time{}
+					So(things[0], ShouldResemble, expectedThings[0])
+					things[numThings-1].Created = time.Time{}
+					So(things[numThings-1], ShouldResemble, expectedThings[numThings-1])
+				})
 			})
 		})
 	})
