@@ -26,6 +26,7 @@
 package mysql
 
 import (
+	"strings"
 	"time"
 
 	"github.com/wtsi-hgi/tt/database/types"
@@ -116,7 +117,12 @@ INNER JOIN users ON things.creator=users.id
 
 // GetThings returns things that match the given parameters.
 func (m *MySQLDB) GetThings(params types.GetThingsParams) ([]types.Thing, error) {
-	rows, err := m.pool.Query(getThings)
+	var sql strings.Builder
+
+	sql.WriteString(getThings)
+	getThingsParamsToSQL(params, &sql)
+
+	rows, err := m.pool.Query(sql.String())
 	if err != nil {
 		return nil, err
 	}
@@ -161,4 +167,26 @@ func (m *MySQLDB) GetThings(params types.GetThingsParams) ([]types.Thing, error)
 	}
 
 	return things, nil
+}
+
+func getThingsParamsToSQL(params types.GetThingsParams, sql *strings.Builder) {
+	paramsToSortSQL(params, sql)
+}
+
+func paramsToSortSQL(params types.GetThingsParams, sql *strings.Builder) {
+	sql.WriteString("ORDER BY ")
+
+	if params.OrderBy == "" {
+		sql.WriteString(string(types.OrderByRemove))
+	} else {
+		sql.WriteString(string(params.OrderBy))
+	}
+
+	sql.WriteString(" ")
+
+	if params.OrderDirection == "" {
+		sql.WriteString(string(types.OrderAsc))
+	} else {
+		sql.WriteString(string(params.OrderDirection))
+	}
 }

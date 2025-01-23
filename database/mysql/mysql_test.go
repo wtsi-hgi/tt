@@ -293,6 +293,14 @@ func TestMySQL(t *testing.T) {
 					So(things[0], ShouldResemble, expectedThings[0])
 					things[numThings-1].Created = time.Time{}
 					So(things[numThings-1], ShouldResemble, expectedThings[numThings-1])
+
+					things, err = db.GetThings(types.GetThingsParams{
+						OrderDirection: types.OrderDesc,
+					})
+					So(err, ShouldBeNil)
+					So(len(things), ShouldEqual, numThings)
+					So(things[0].Address, ShouldEqual, "s3://10")
+					So(things[numThings-1].Address, ShouldEqual, "dir://1")
 				})
 			})
 		})

@@ -69,12 +69,11 @@ const (
 
 // GetThingsParams, when default value and provided to GetThings(), will get
 // all things. Optionally set any of the values to filter, order or reduce the
-// number of things returned. For ordering, both OrderBy and OrderDirection must
-// be set, or the default ordering of by remove ASC will be used.
+// number of things returned.
 type GetThingsParams struct {
 	FilterOnType   ThingsType
-	OrderBy        OrderBy
-	OrderDirection OrderDirection
+	OrderBy        OrderBy        // defaults to OrderByRemove
+	OrderDirection OrderDirection // defaults to OrderAsc
 	Limit          int32
 	Offset         int32
 }
