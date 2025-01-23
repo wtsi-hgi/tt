@@ -43,11 +43,11 @@ const (
 
 func ThingsTypes() []ThingsType {
 	return []ThingsType{
-		ThingsTypeDir,
 		ThingsTypeFile,
+		ThingsTypeDir,
 		ThingsTypeIrods,
-		ThingsTypeOpenstack,
 		ThingsTypeS3,
+		ThingsTypeOpenstack,
 	}
 }
 

@@ -241,36 +241,42 @@ func TestMySQL(t *testing.T) {
 				So(err, ShouldBeNil)
 				So(count, ShouldEqual, 2)
 
-				var numThings uint32
-
+				i := uint32(0)
 				year := uint32(1970)
+				numThings := 10
+				expectedThings := make([]types.Thing, numThings)
+				thingsTypes := []types.ThingsType{
+					types.ThingsTypeIrods,
+					types.ThingsTypeDir,
+					types.ThingsTypeS3,
+					types.ThingsTypeFile,
+					types.ThingsTypeOpenstack,
+				}
+				addresses := []string{
+					"j", "c", "e", "i", "a", "f", "b", "g", "d", "h",
+				}
+				reasons := []string{
+					"i", "c", "g", "e", "a", "d", "f", "h", "j", "b",
+				}
 
-				var expectedThings []types.Thing
-
-				for _, thingType := range types.ThingsTypes() {
+				for _, thingType := range thingsTypes {
 					for j := range 2 {
-						numThings++
-
 						creator := user1
 						if j%2 != 0 {
 							creator = user2
 						}
 
-						address := fmt.Sprintf("%s://%d", thingType, numThings)
-						description := fmt.Sprintf("desc %d", numThings)
-						reason := fmt.Sprintf("reason %d", numThings)
-
-						remove, err := time.Parse(time.DateOnly, fmt.Sprintf("%d-01-02", year+numThings))
+						remove, err := time.Parse(time.DateOnly, fmt.Sprintf("%d-01-02", year+i))
 						So(err, ShouldBeNil)
 
 						before := time.Now()
 
 						thing, err := db.CreateThing(types.CreateThingParams{
-							Address:     address,
+							Address:     addresses[i],
 							Type:        thingType,
 							Creator:     creator,
-							Description: description,
-							Reason:      reason,
+							Description: "desc",
+							Reason:      reasons[i],
 							Remove:      remove,
 						})
 						So(err, ShouldBeNil)
@@ -279,21 +285,21 @@ func TestMySQL(t *testing.T) {
 						created := thing.Created
 						So(created, ShouldHappenOnOrBetween, before, after)
 
-						thing.Created = time.Time{}
-
 						expectedThing := types.Thing{
-							ID:          numThings,
-							Address:     address,
+							ID:          i + 1,
+							Address:     addresses[i],
 							Type:        thingType,
 							Creator:     creator,
-							Description: description,
-							Reason:      reason,
+							Description: "desc",
+							Reason:      reasons[i],
 							Remove:      remove,
 						}
+						expectedThings[i] = expectedThing
 
-						expectedThings = append(expectedThings, expectedThing)
-
+						thing.Created = time.Time{}
 						So(thing, ShouldResemble, &expectedThing)
+
+						i++
 					}
 				}
 
@@ -315,8 +321,60 @@ func TestMySQL(t *testing.T) {
 					})
 					So(err, ShouldBeNil)
 					So(len(things), ShouldEqual, numThings)
-					So(things[0].Address, ShouldEqual, "s3://10")
-					So(things[numThings-1].Address, ShouldEqual, "dir://1")
+					So(things[0].Address, ShouldEqual, addresses[numThings-1])
+					So(things[0].Type, ShouldEqual, thingsTypes[len(thingsTypes)-1])
+					So(things[0].Reason, ShouldEqual, reasons[numThings-1])
+					So(things[0].Remove.Format(time.DateOnly), ShouldEqual, "1979-01-02")
+					So(things[numThings-1].Remove.Format(time.DateOnly), ShouldEqual, "1970-01-02")
+
+					things, err = db.GetThings(types.GetThingsParams{
+						OrderBy: types.OrderByAddres,
+					})
+					So(err, ShouldBeNil)
+					So(len(things), ShouldEqual, numThings)
+					So(things[0].Address, ShouldEqual, "a")
+					So(things[numThings-1].Address, ShouldEqual, "j")
+
+					things, err = db.GetThings(types.GetThingsParams{
+						OrderBy:        types.OrderByAddres,
+						OrderDirection: types.OrderDesc,
+					})
+					So(err, ShouldBeNil)
+					So(len(things), ShouldEqual, numThings)
+					So(things[0].Address, ShouldEqual, "j")
+					So(things[numThings-1].Address, ShouldEqual, "a")
+
+					things, err = db.GetThings(types.GetThingsParams{
+						OrderBy: types.OrderByType,
+					})
+					So(err, ShouldBeNil)
+					So(len(things), ShouldEqual, numThings)
+					So(things[0].Type, ShouldEqual, types.ThingsTypeFile)
+					So(things[1].Type, ShouldEqual, types.ThingsTypeFile)
+					So(things[2].Type, ShouldEqual, types.ThingsTypeDir)
+					So(things[3].Type, ShouldEqual, types.ThingsTypeDir)
+					So(things[4].Type, ShouldEqual, types.ThingsTypeIrods)
+					So(things[5].Type, ShouldEqual, types.ThingsTypeIrods)
+					So(things[6].Type, ShouldEqual, types.ThingsTypeS3)
+					So(things[7].Type, ShouldEqual, types.ThingsTypeS3)
+					So(things[8].Type, ShouldEqual, types.ThingsTypeOpenstack)
+					So(things[9].Type, ShouldEqual, types.ThingsTypeOpenstack)
+
+					things, err = db.GetThings(types.GetThingsParams{
+						OrderBy: types.OrderByReason,
+					})
+					So(err, ShouldBeNil)
+					So(len(things), ShouldEqual, numThings)
+					So(things[0].Reason, ShouldEqual, "a")
+					So(things[numThings-1].Reason, ShouldEqual, "j")
+
+					things, err = db.GetThings(types.GetThingsParams{
+						OrderBy: types.OrderByRemove,
+					})
+					So(err, ShouldBeNil)
+					So(len(things), ShouldEqual, numThings)
+					So(things[0].Remove.Format(time.DateOnly), ShouldEqual, "1970-01-02")
+					So(things[numThings-1].Remove.Format(time.DateOnly), ShouldEqual, "1979-01-02")
 				})
 			})
 		})
