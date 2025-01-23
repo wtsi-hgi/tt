@@ -451,6 +451,30 @@ func TestMySQL(t *testing.T) {
 					So(len(result.Things), ShouldEqual, 1)
 					So(result.Things[0].ID, ShouldEqual, 5)
 				})
+
+				Convey("Then you can delete users and things", func() {
+					err = db.DeleteUser(2)
+					So(err, ShouldBeNil)
+
+					count, err = countTableRows(db.pool, "users")
+					So(err, ShouldBeNil)
+					So(count, ShouldEqual, 1)
+
+					count, err = countTableRows(db.pool, "things")
+					So(err, ShouldBeNil)
+					So(count, ShouldEqual, numThings/2)
+
+					err = db.DeleteThing(3)
+					So(err, ShouldBeNil)
+
+					count, err = countTableRows(db.pool, "users")
+					So(err, ShouldBeNil)
+					So(count, ShouldEqual, 1)
+
+					count, err = countTableRows(db.pool, "things")
+					So(err, ShouldBeNil)
+					So(count, ShouldEqual, (numThings/2)-1)
+				})
 			})
 		})
 	})

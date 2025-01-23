@@ -243,3 +243,22 @@ func (m *MySQLDB) calculateLastPage(params types.GetThingsParams) (int, error) {
 
 	return int(math.Ceil(float64(count) / float64(params.ThingsPerPage))), nil
 }
+
+const deleteUser = `DELETE FROM users WHERE id = ?`
+
+// DeleteUser deletes the user with the given ID. This will also delete any
+// things created by this user.
+func (m *MySQLDB) DeleteUser(id uint32) error {
+	_, err := m.pool.Exec(deleteUser, id)
+
+	return err
+}
+
+const deleteThing = `DELETE FROM things WHERE id = ?`
+
+// DeleteThing deletes the thing with the given ID.
+func (m *MySQLDB) DeleteThing(id uint32) error {
+	_, err := m.pool.Exec(deleteThing, id)
+
+	return err
+}

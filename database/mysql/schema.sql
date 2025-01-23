@@ -22,6 +22,7 @@ CREATE TABLE things (
     removed bool NOT NULL default 0,
     UNIQUE(address(170), type),
     FOREIGN KEY (creator) REFERENCES users(id)
+        ON DELETE CASCADE
 ) ENGINE=INNODB;
 
 CREATE TABLE subscribers (
