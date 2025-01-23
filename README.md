@@ -26,18 +26,6 @@ at a lower precedence than the local files.)
 
 ## Development
 
-Install sqlc:
-
-```
-go install github.com/sqlc-dev/sqlc/cmd/sqlc@latest
-```
-
-After changing schema.sql or query.sql, run this:
-
-```
-sqlc generate
-```
-
 Put your MySQL connection detail export statements in a `.env.development.local`
 file in the repo folder (which won't get added to the repo). To actually run the
 the MySQL tests you must also include TT_SQL_DO_TESTS=TABLES_WILL_BE_DROPPED in

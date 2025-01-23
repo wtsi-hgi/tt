@@ -262,3 +262,50 @@ func (m *MySQLDB) DeleteThing(id uint32) error {
 
 	return err
 }
+
+const extendRemoval = `
+UPDATE things
+SET remove = ?, warned1 = NULL, warned2 = NULL
+WHERE id = ?
+`
+
+const updateDescription = `
+UPDATE things
+SET description = ?
+WHERE id = ?
+`
+
+const firstWarningSent = `
+UPDATE things
+SET warned1 = ?
+WHERE id = ?
+`
+
+const secondWarningSent = `
+UPDATE things
+SET warned2 = ?
+WHERE id = ?
+`
+
+const subscribe = `
+INSERT INTO subscribers (
+  user_id, thing_id
+) VALUES (
+  ?, ?
+)
+`
+
+const unsubscribe = `
+DELETE FROM subscribers
+WHERE user_id = ? AND thing_id = ?
+`
+
+const listSubscribers = `
+SELECT user_id, thing_id FROM subscribers
+WHERE thing_id = ?
+`
+
+const listSubscriptions = `
+SELECT user_id, thing_id FROM subscribers
+WHERE user_id = ?
+`

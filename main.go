@@ -29,23 +29,20 @@ package main
 
 import (
 	"context"
-	"database/sql"
 	"fmt"
 	"log"
 	"net/http"
 	"net/url"
-	"os"
 	"strconv"
 	"time"
-
-	"github.com/go-sql-driver/mysql"
-	_ "github.com/joho/godotenv/autoload"
 
 	"github.com/calvinmclean/babyapi"
 	"github.com/calvinmclean/babyapi/extensions"
 	"github.com/calvinmclean/babyapi/html"
 	"github.com/go-chi/render"
-	"github.com/wtsi-hgi/tt/db"
+	"github.com/wtsi-hgi/tt/database"
+	"github.com/wtsi-hgi/tt/database/mysql"
+	"github.com/wtsi-hgi/tt/database/types"
 )
 
 const (
@@ -57,28 +54,6 @@ const (
 func main() {
 	api := createAPI()
 	api.RunCLI()
-}
-
-func getSQLConfigFromEnv() (*mysql.Config, error) {
-	user := os.Getenv("TT_SQL_USER")
-	pass := os.Getenv("TT_SQL_PASS")
-	host := os.Getenv("TT_SQL_HOST")
-	port := os.Getenv("TT_SQL_PORT")
-	dbname := os.Getenv("TT_SQL_DB")
-
-	if user == "" || pass == "" || host == "" || port == "" || dbname == "" {
-		return nil, fmt.Errorf("missing required environment variables")
-	}
-
-	conf := mysql.NewConfig()
-	conf.User = user
-	conf.Passwd = pass
-	conf.Net = sqlNetwork
-	conf.Addr = fmt.Sprintf("%s:%s", host, port)
-	conf.DBName = dbname
-	conf.ParseTime = true
-
-	return conf, nil
 }
 
 const (
@@ -184,7 +159,7 @@ const (
 )
 
 type Thing struct {
-	db.Thing
+	types.Thing
 }
 
 func (t *Thing) HTML(_ http.ResponseWriter, r *http.Request) string {
@@ -267,27 +242,29 @@ func createAPI() *babyapi.API[*Thing] {
 }
 
 type Storage struct {
-	*db.Queries
+	database.Queries
 }
 
 func (s Storage) Get(ctx context.Context, idStr string) (*Thing, error) {
-	id, err := strconv.Atoi(idStr)
+	// id, err := strconv.Atoi(idStr)
+	// if err != nil {
+	// 	return nil, err
+	// }
+
+	//TODO: do we actually need a GetThingByID?
+
+	result, err := s.Queries.GetThings(types.GetThingsParams{
+		Page:          1,
+		ThingsPerPage: 1,
+	})
 	if err != nil {
 		return nil, err
 	}
 
-	t, err := s.Queries.GetThingByID(ctx, uint32(id))
-	if err != nil {
-		return nil, err
-	}
-
-	return &Thing{Thing: t}, nil
+	return &Thing{Thing: result.Things[0]}, nil
 }
 
 func (s Storage) GetAll(ctx context.Context, query url.Values) ([]*Thing, error) {
-	var things []db.Thing
-	var err error
-
 	dir := query.Get("dir")
 
 	sortCol := query.Get("sort")
@@ -300,59 +277,46 @@ func (s Storage) GetAll(ctx context.Context, query url.Values) ([]*Thing, error)
 		page = 1
 	}
 
-	offset := int32((page - 1) * perPage)
+	var thingType types.ThingsType
 
-	thingType := query.Get("type")
-	if thingType != "" {
-		things, err = s.Queries.ListThingsByType(ctx, db.ThingsType(thingType))
-	} else {
-		// total, err := s.Queries.NumThings(ctx)
-		// if err != nil {
-		// 	return nil, err
-		// }
-
-		if dir == "ASC" {
-			things, err = s.Queries.ListThingsAsc(ctx, db.ListThingsAscParams{
-				Column1: sortCol,
-				Limit:   perPage,
-				Offset:  offset,
-			})
-		} else {
-			things, err = s.Queries.ListThingsDesc(ctx, db.ListThingsDescParams{
-				Column1: sortCol,
-				Limit:   perPage,
-				Offset:  offset,
-			})
-		}
+	switch query.Get("type") {
+	case string(types.ThingsTypeDir):
+		thingType = types.ThingsTypeDir
 	}
+
+	result, err := s.Queries.GetThings(types.GetThingsParams{
+		FilterOnType:   thingType,
+		OrderBy:        types.OrderBy(sortCol),
+		OrderDirection: types.OrderDirection(dir),
+		Page:           page,
+		ThingsPerPage:  perPage,
+	})
 	if err != nil {
 		return nil, err
 	}
 
-	var result []*Thing
-	for _, t := range things {
-		result = append(result, &Thing{Thing: t})
+	results := make([]*Thing, len(result.Things))
+	for i, t := range result.Things {
+		results[i] = &Thing{Thing: t}
 	}
 
-	return result, nil
+	return results, nil
 }
 
 func (s Storage) Set(ctx context.Context, t *Thing) error {
-	result, err := s.Queries.CreateThing(ctx, db.CreateThingParams{
+	thing, err := s.Queries.CreateThing(types.CreateThingParams{
 		Address:     t.Address,
-		Type:        db.ThingsType(t.Type),
-		Created:     time.Now(),
+		Type:        t.Type,
+		Creator:     t.Creator,
 		Description: t.Description,
 		Reason:      t.Reason,
 		Remove:      t.Remove,
 	})
-
 	if err != nil {
 		return err
 	}
 
-	id, err := result.LastInsertId()
-	t.ID = uint32(id)
+	t.ID = thing.ID
 
 	return err
 }
@@ -363,26 +327,26 @@ func (s Storage) Delete(ctx context.Context, idStr string) error {
 		return err
 	}
 
-	return s.Queries.DeleteThing(ctx, uint32(id))
+	return s.Queries.DeleteThing(uint32(id))
 }
 
 func (s *Storage) Apply(api *babyapi.API[*Thing]) error {
-	config, err := getSQLConfigFromEnv()
+	config, err := mysql.ConfigFromEnv()
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	database, err := sql.Open(sqlDriverName, config.FormatDSN())
+	database, err := mysql.New(config)
 	if err != nil {
 		return fmt.Errorf("error opening database: %w", err)
 	}
 
-	go func() {
-		<-api.Done()
-		database.Close()
-	}()
+	// go func() {
+	// 	<-api.Done()
+	// 	database.Close()
+	// }()
 
-	s.Queries = db.New(database)
+	s.Queries = database
 	api.SetStorage(s)
 
 	return nil
