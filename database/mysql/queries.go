@@ -26,6 +26,7 @@
 package mysql
 
 import (
+	"strconv"
 	"strings"
 	"time"
 
@@ -164,6 +165,7 @@ func (m *MySQLDB) GetThings(params types.GetThingsParams) ([]types.Thing, error)
 func getThingsParamsToSQL(params types.GetThingsParams, sql *strings.Builder) {
 	whereSQL(params, sql)
 	orderSQL(params, sql)
+	limitSQL(params, sql)
 }
 
 func whereSQL(params types.GetThingsParams, sql *strings.Builder) {
@@ -194,4 +196,16 @@ func orderSQL(params types.GetThingsParams, sql *strings.Builder) {
 	}
 }
 
-// LIMIT ? OFFSET ?
+func limitSQL(params types.GetThingsParams, sql *strings.Builder) {
+	if params.Page < 1 || params.ThingsPerPage < 1 {
+		return
+	}
+
+	limit := strconv.Itoa(params.ThingsPerPage)
+	offset := strconv.Itoa((params.Page - 1) * params.ThingsPerPage)
+
+	sql.WriteString("\nLIMIT ")
+	sql.WriteString(limit)
+	sql.WriteString(" OFFSET ")
+	sql.WriteString(offset)
+}

@@ -68,14 +68,14 @@ const (
 )
 
 // GetThingsParams, when default value and provided to GetThings(), will get
-// all things. Optionally set any of the values to filter, order or reduce the
-// number of things returned.
+// all things. Optionally set any of the values to filter, order or get a
+// certain page of results.
 type GetThingsParams struct {
 	FilterOnType   ThingsType
 	OrderBy        OrderBy        // defaults to OrderByRemove
 	OrderDirection OrderDirection // defaults to OrderAsc
-	Limit          int32
-	Offset         int32
+	Page           int            // treated as 0 if ThingsPerPage is < 1
+	ThingsPerPage  int            // treated as infinite if Page is < 1
 }
 
 type User struct {

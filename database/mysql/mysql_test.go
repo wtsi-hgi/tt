@@ -384,6 +384,65 @@ func TestMySQL(t *testing.T) {
 					So(len(things), ShouldEqual, thingsPerType)
 					So(things[0].Type, ShouldEqual, types.ThingsTypeIrods)
 					So(things[1].Type, ShouldEqual, types.ThingsTypeIrods)
+
+					page := 1
+					perPage := 3
+					things, err = db.GetThings(types.GetThingsParams{
+						Page:          page,
+						ThingsPerPage: perPage,
+					})
+					So(err, ShouldBeNil)
+					So(len(things), ShouldEqual, perPage)
+					So(things[0].ID, ShouldEqual, 1)
+					So(things[perPage-1].ID, ShouldEqual, 3)
+
+					page++
+					things, err = db.GetThings(types.GetThingsParams{
+						Page:          page,
+						ThingsPerPage: perPage,
+					})
+					So(err, ShouldBeNil)
+					So(len(things), ShouldEqual, perPage)
+					So(things[0].ID, ShouldEqual, 4)
+					So(things[perPage-1].ID, ShouldEqual, 6)
+
+					page++
+					things, err = db.GetThings(types.GetThingsParams{
+						Page:          page,
+						ThingsPerPage: perPage,
+					})
+					So(err, ShouldBeNil)
+					So(len(things), ShouldEqual, perPage)
+					So(things[0].ID, ShouldEqual, 7)
+					So(things[perPage-1].ID, ShouldEqual, 9)
+
+					page++
+					things, err = db.GetThings(types.GetThingsParams{
+						Page:          page,
+						ThingsPerPage: perPage,
+					})
+					So(err, ShouldBeNil)
+					So(len(things), ShouldEqual, 1)
+					So(things[0].ID, ShouldEqual, 10)
+
+					page++
+					things, err = db.GetThings(types.GetThingsParams{
+						Page:          page,
+						ThingsPerPage: perPage,
+					})
+					So(err, ShouldBeNil)
+					So(len(things), ShouldEqual, 0)
+
+					things, err = db.GetThings(types.GetThingsParams{
+						OrderBy:        types.OrderByReason,
+						OrderDirection: types.OrderDesc,
+						FilterOnType:   types.ThingsTypeS3,
+						Page:           2,
+						ThingsPerPage:  1,
+					})
+					So(err, ShouldBeNil)
+					So(len(things), ShouldEqual, 1)
+					So(things[0].ID, ShouldEqual, 5)
 				})
 			})
 		})
