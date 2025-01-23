@@ -309,131 +309,137 @@ func TestMySQL(t *testing.T) {
 				So(count, ShouldEqual, numThings)
 
 				Convey("Then you can get things with desired sorting, pagination and filtering", func() {
-					things, err := db.GetThings(types.GetThingsParams{})
+					result, err := db.GetThings(types.GetThingsParams{})
 					So(err, ShouldBeNil)
-					So(len(things), ShouldEqual, numThings)
-					things[0].Created = time.Time{}
-					So(things[0], ShouldResemble, expectedThings[0])
-					things[numThings-1].Created = time.Time{}
-					So(things[numThings-1], ShouldResemble, expectedThings[numThings-1])
+					So(len(result.Things), ShouldEqual, numThings)
+					So(result.LastPage, ShouldEqual, 0)
+					result.Things[0].Created = time.Time{}
+					So(result.Things[0], ShouldResemble, expectedThings[0])
+					result.Things[numThings-1].Created = time.Time{}
+					So(result.Things[numThings-1], ShouldResemble, expectedThings[numThings-1])
 
-					things, err = db.GetThings(types.GetThingsParams{
+					result, err = db.GetThings(types.GetThingsParams{
 						OrderDirection: types.OrderDesc,
 					})
 					So(err, ShouldBeNil)
-					So(len(things), ShouldEqual, numThings)
-					So(things[0].Address, ShouldEqual, addresses[numThings-1])
-					So(things[0].Type, ShouldEqual, thingsTypes[len(thingsTypes)-1])
-					So(things[0].Reason, ShouldEqual, reasons[numThings-1])
-					So(things[0].Remove.Format(time.DateOnly), ShouldEqual, "1979-01-02")
-					So(things[numThings-1].Remove.Format(time.DateOnly), ShouldEqual, "1970-01-02")
+					So(len(result.Things), ShouldEqual, numThings)
+					So(result.Things[0].Address, ShouldEqual, addresses[numThings-1])
+					So(result.Things[0].Type, ShouldEqual, thingsTypes[len(thingsTypes)-1])
+					So(result.Things[0].Reason, ShouldEqual, reasons[numThings-1])
+					So(result.Things[0].Remove.Format(time.DateOnly), ShouldEqual, "1979-01-02")
+					So(result.Things[numThings-1].Remove.Format(time.DateOnly), ShouldEqual, "1970-01-02")
 
-					things, err = db.GetThings(types.GetThingsParams{
+					result, err = db.GetThings(types.GetThingsParams{
 						OrderBy: types.OrderByAddres,
 					})
 					So(err, ShouldBeNil)
-					So(len(things), ShouldEqual, numThings)
-					So(things[0].Address, ShouldEqual, "a")
-					So(things[numThings-1].Address, ShouldEqual, "j")
+					So(len(result.Things), ShouldEqual, numThings)
+					So(result.Things[0].Address, ShouldEqual, "a")
+					So(result.Things[numThings-1].Address, ShouldEqual, "j")
 
-					things, err = db.GetThings(types.GetThingsParams{
+					result, err = db.GetThings(types.GetThingsParams{
 						OrderBy:        types.OrderByAddres,
 						OrderDirection: types.OrderDesc,
 					})
 					So(err, ShouldBeNil)
-					So(len(things), ShouldEqual, numThings)
-					So(things[0].Address, ShouldEqual, "j")
-					So(things[numThings-1].Address, ShouldEqual, "a")
+					So(len(result.Things), ShouldEqual, numThings)
+					So(result.Things[0].Address, ShouldEqual, "j")
+					So(result.Things[numThings-1].Address, ShouldEqual, "a")
 
-					things, err = db.GetThings(types.GetThingsParams{
+					result, err = db.GetThings(types.GetThingsParams{
 						OrderBy: types.OrderByType,
 					})
 					So(err, ShouldBeNil)
-					So(len(things), ShouldEqual, numThings)
-					So(things[0].Type, ShouldEqual, types.ThingsTypeFile)
-					So(things[1].Type, ShouldEqual, types.ThingsTypeFile)
-					So(things[2].Type, ShouldEqual, types.ThingsTypeDir)
-					So(things[3].Type, ShouldEqual, types.ThingsTypeDir)
-					So(things[4].Type, ShouldEqual, types.ThingsTypeIrods)
-					So(things[5].Type, ShouldEqual, types.ThingsTypeIrods)
-					So(things[6].Type, ShouldEqual, types.ThingsTypeS3)
-					So(things[7].Type, ShouldEqual, types.ThingsTypeS3)
-					So(things[8].Type, ShouldEqual, types.ThingsTypeOpenstack)
-					So(things[9].Type, ShouldEqual, types.ThingsTypeOpenstack)
+					So(len(result.Things), ShouldEqual, numThings)
+					So(result.Things[0].Type, ShouldEqual, types.ThingsTypeFile)
+					So(result.Things[1].Type, ShouldEqual, types.ThingsTypeFile)
+					So(result.Things[2].Type, ShouldEqual, types.ThingsTypeDir)
+					So(result.Things[3].Type, ShouldEqual, types.ThingsTypeDir)
+					So(result.Things[4].Type, ShouldEqual, types.ThingsTypeIrods)
+					So(result.Things[5].Type, ShouldEqual, types.ThingsTypeIrods)
+					So(result.Things[6].Type, ShouldEqual, types.ThingsTypeS3)
+					So(result.Things[7].Type, ShouldEqual, types.ThingsTypeS3)
+					So(result.Things[8].Type, ShouldEqual, types.ThingsTypeOpenstack)
+					So(result.Things[9].Type, ShouldEqual, types.ThingsTypeOpenstack)
 
-					things, err = db.GetThings(types.GetThingsParams{
+					result, err = db.GetThings(types.GetThingsParams{
 						OrderBy: types.OrderByReason,
 					})
 					So(err, ShouldBeNil)
-					So(len(things), ShouldEqual, numThings)
-					So(things[0].Reason, ShouldEqual, "a")
-					So(things[numThings-1].Reason, ShouldEqual, "j")
+					So(len(result.Things), ShouldEqual, numThings)
+					So(result.Things[0].Reason, ShouldEqual, "a")
+					So(result.Things[numThings-1].Reason, ShouldEqual, "j")
 
-					things, err = db.GetThings(types.GetThingsParams{
+					result, err = db.GetThings(types.GetThingsParams{
 						OrderBy: types.OrderByRemove,
 					})
 					So(err, ShouldBeNil)
-					So(len(things), ShouldEqual, numThings)
-					So(things[0].Remove.Format(time.DateOnly), ShouldEqual, "1970-01-02")
-					So(things[numThings-1].Remove.Format(time.DateOnly), ShouldEqual, "1979-01-02")
+					So(len(result.Things), ShouldEqual, numThings)
+					So(result.Things[0].Remove.Format(time.DateOnly), ShouldEqual, "1970-01-02")
+					So(result.Things[numThings-1].Remove.Format(time.DateOnly), ShouldEqual, "1979-01-02")
 
-					things, err = db.GetThings(types.GetThingsParams{
+					result, err = db.GetThings(types.GetThingsParams{
 						FilterOnType: types.ThingsTypeIrods,
 					})
 					So(err, ShouldBeNil)
-					So(len(things), ShouldEqual, thingsPerType)
-					So(things[0].Type, ShouldEqual, types.ThingsTypeIrods)
-					So(things[1].Type, ShouldEqual, types.ThingsTypeIrods)
+					So(len(result.Things), ShouldEqual, thingsPerType)
+					So(result.Things[0].Type, ShouldEqual, types.ThingsTypeIrods)
+					So(result.Things[1].Type, ShouldEqual, types.ThingsTypeIrods)
 
 					page := 1
 					perPage := 3
-					things, err = db.GetThings(types.GetThingsParams{
+					result, err = db.GetThings(types.GetThingsParams{
 						Page:          page,
 						ThingsPerPage: perPage,
 					})
 					So(err, ShouldBeNil)
-					So(len(things), ShouldEqual, perPage)
-					So(things[0].ID, ShouldEqual, 1)
-					So(things[perPage-1].ID, ShouldEqual, 3)
+					So(result.LastPage, ShouldEqual, 4)
+					So(len(result.Things), ShouldEqual, perPage)
+					So(result.Things[0].ID, ShouldEqual, 1)
+					So(result.Things[perPage-1].ID, ShouldEqual, 3)
 
 					page++
-					things, err = db.GetThings(types.GetThingsParams{
+					result, err = db.GetThings(types.GetThingsParams{
 						Page:          page,
 						ThingsPerPage: perPage,
 					})
 					So(err, ShouldBeNil)
-					So(len(things), ShouldEqual, perPage)
-					So(things[0].ID, ShouldEqual, 4)
-					So(things[perPage-1].ID, ShouldEqual, 6)
+					So(result.LastPage, ShouldEqual, 4)
+					So(len(result.Things), ShouldEqual, perPage)
+					So(result.Things[0].ID, ShouldEqual, 4)
+					So(result.Things[perPage-1].ID, ShouldEqual, 6)
 
 					page++
-					things, err = db.GetThings(types.GetThingsParams{
+					result, err = db.GetThings(types.GetThingsParams{
 						Page:          page,
 						ThingsPerPage: perPage,
 					})
 					So(err, ShouldBeNil)
-					So(len(things), ShouldEqual, perPage)
-					So(things[0].ID, ShouldEqual, 7)
-					So(things[perPage-1].ID, ShouldEqual, 9)
+					So(result.LastPage, ShouldEqual, 4)
+					So(len(result.Things), ShouldEqual, perPage)
+					So(result.Things[0].ID, ShouldEqual, 7)
+					So(result.Things[perPage-1].ID, ShouldEqual, 9)
 
 					page++
-					things, err = db.GetThings(types.GetThingsParams{
+					result, err = db.GetThings(types.GetThingsParams{
 						Page:          page,
 						ThingsPerPage: perPage,
 					})
 					So(err, ShouldBeNil)
-					So(len(things), ShouldEqual, 1)
-					So(things[0].ID, ShouldEqual, 10)
+					So(result.LastPage, ShouldEqual, 4)
+					So(len(result.Things), ShouldEqual, 1)
+					So(result.Things[0].ID, ShouldEqual, 10)
 
 					page++
-					things, err = db.GetThings(types.GetThingsParams{
+					result, err = db.GetThings(types.GetThingsParams{
 						Page:          page,
 						ThingsPerPage: perPage,
 					})
 					So(err, ShouldBeNil)
-					So(len(things), ShouldEqual, 0)
+					So(result.LastPage, ShouldEqual, 4)
+					So(len(result.Things), ShouldEqual, 0)
 
-					things, err = db.GetThings(types.GetThingsParams{
+					result, err = db.GetThings(types.GetThingsParams{
 						OrderBy:        types.OrderByReason,
 						OrderDirection: types.OrderDesc,
 						FilterOnType:   types.ThingsTypeS3,
@@ -441,8 +447,9 @@ func TestMySQL(t *testing.T) {
 						ThingsPerPage:  1,
 					})
 					So(err, ShouldBeNil)
-					So(len(things), ShouldEqual, 1)
-					So(things[0].ID, ShouldEqual, 5)
+					So(result.LastPage, ShouldEqual, 2)
+					So(len(result.Things), ShouldEqual, 1)
+					So(result.Things[0].ID, ShouldEqual, 5)
 				})
 			})
 		})

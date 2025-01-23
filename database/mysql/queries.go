@@ -26,6 +26,7 @@
 package mysql
 
 import (
+	"math"
 	"strconv"
 	"strings"
 	"time"
@@ -108,8 +109,9 @@ FROM things
 INNER JOIN users ON things.creator=users.id
 `
 
-// GetThings returns things that match the given parameters.
-func (m *MySQLDB) GetThings(params types.GetThingsParams) ([]types.Thing, error) {
+// GetThings returns things that match the given parameters. Also in the result
+// is the last page that would return things if Page and ThingsPerPage are > 0.
+func (m *MySQLDB) GetThings(params types.GetThingsParams) (*types.GetThingsResult, error) {
 	var sql strings.Builder
 
 	sql.WriteString(getThings)
@@ -159,7 +161,15 @@ func (m *MySQLDB) GetThings(params types.GetThingsParams) ([]types.Thing, error)
 		return nil, err
 	}
 
-	return things, nil
+	lastPage, err := m.calculateLastPage(params)
+	if err != nil {
+		return nil, err
+	}
+
+	return &types.GetThingsResult{
+		Things:   things,
+		LastPage: lastPage,
+	}, nil
 }
 
 func getThingsParamsToSQL(params types.GetThingsParams, sql *strings.Builder) {
@@ -208,4 +218,28 @@ func limitSQL(params types.GetThingsParams, sql *strings.Builder) {
 	sql.WriteString(limit)
 	sql.WriteString(" OFFSET ")
 	sql.WriteString(offset)
+}
+
+const countThings = `SELECT COUNT(*) FROM things`
+
+func (m *MySQLDB) calculateLastPage(params types.GetThingsParams) (int, error) {
+	if params.Page < 1 || params.ThingsPerPage < 1 {
+		return 0, nil
+	}
+
+	var (
+		sql   strings.Builder
+		count int64
+	)
+
+	sql.WriteString(countThings)
+	whereSQL(params, &sql)
+
+	row := m.pool.QueryRow(sql.String())
+
+	if err := row.Scan(&count); err != nil {
+		return 0, err
+	}
+
+	return int(math.Ceil(float64(count) / float64(params.ThingsPerPage))), nil
 }

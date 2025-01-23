@@ -78,6 +78,16 @@ type GetThingsParams struct {
 	ThingsPerPage  int            // treated as infinite if Page is < 1
 }
 
+// GetThingsResult is the type returned by GetThings(). The Things property will
+// contain the retrieved results. The LastPage property will tell you the last
+// value of Page in your GetThingsParams that would return any Things given the
+// same GetThingsParams.ThingsPerPage. If Page or GetThingsParams is 0, LastPage
+// will always be 0.
+type GetThingsResult struct {
+	Things   []Thing
+	LastPage int
+}
+
 type User struct {
 	ID    uint32
 	Name  string
