@@ -88,10 +88,6 @@ func ConfigFromEnv(dir ...string) (*gsdmysql.Config, error) {
 	}
 
 	env := os.Getenv(envVarEnv)
-	if env == "" {
-		env = "development"
-	}
-
 	godotenv.Load(parentDir + ".env." + env + ".local")
 	godotenv.Load(parentDir + ".env")
 

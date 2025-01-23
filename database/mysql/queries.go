@@ -174,7 +174,7 @@ func getThingsParamsToSQL(params types.GetThingsParams, sql *strings.Builder) {
 }
 
 func paramsToSortSQL(params types.GetThingsParams, sql *strings.Builder) {
-	sql.WriteString("ORDER BY ")
+	sql.WriteString("\nORDER BY ")
 
 	if params.OrderBy == "" {
 		sql.WriteString(string(types.OrderByRemove))

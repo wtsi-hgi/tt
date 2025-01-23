@@ -37,7 +37,8 @@ import (
 )
 
 const (
-	filePerm = 0644
+	filePerm      = 0644
+	envVarDoTests = "TT_SQL_DO_TESTS"
 )
 
 func TestConfig(t *testing.T) {
@@ -98,8 +99,15 @@ func TestConfig(t *testing.T) {
 				[]byte(envVarUser+"=produser\n"), filePerm)
 			So(err, ShouldBeNil)
 
+			os.Unsetenv(envVarEnv)
 			os.Unsetenv(envVarUser)
-			config, err := ConfigFromEnv()
+			_, err = ConfigFromEnv()
+			So(err, ShouldNotBeNil)
+
+			os.Unsetenv(envVarEnv)
+			os.Unsetenv(envVarUser)
+			os.Setenv(envVarEnv, "development")
+			config, err = ConfigFromEnv()
 			So(err, ShouldBeNil)
 			So(config.User, ShouldEqual, "devuser")
 
@@ -127,6 +135,14 @@ func TestConfig(t *testing.T) {
 			So(config.User, ShouldEqual, "devuser")
 			So(config.DBName, ShouldEqual, "envdb")
 
+			os.Unsetenv(envVarUser)
+			os.Unsetenv(envVarDBName)
+			os.Unsetenv(envVarEnv)
+			config, err = ConfigFromEnv()
+			So(err, ShouldBeNil)
+			So(config.User, ShouldEqual, "envuser")
+			So(config.DBName, ShouldEqual, "envdb")
+
 			os.Chdir(origDir)
 			os.Unsetenv(envVarUser)
 			os.Unsetenv(envVarDBName)
@@ -135,7 +151,7 @@ func TestConfig(t *testing.T) {
 
 			config, err = ConfigFromEnv(dir)
 			So(err, ShouldBeNil)
-			So(config.User, ShouldEqual, "devuser")
+			So(config.User, ShouldEqual, "envuser")
 			So(config.DBName, ShouldEqual, "envdb")
 		})
 	})
@@ -167,7 +183,7 @@ func TestMySQL(t *testing.T) {
 
 	os.Setenv(envVarEnv, "development")
 	config, err := ConfigFromEnv("../..")
-	if err != nil {
+	if os.Getenv(envVarDoTests) != "TABLES_WILL_BE_DROPPED" || err != nil {
 		SkipConvey("Skipping MySQL tests due to missing test env vars", t, func() {})
 
 		return
