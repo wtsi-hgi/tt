@@ -33,7 +33,7 @@ import (
 	"time"
 
 	. "github.com/smartystreets/goconvey/convey"
-	"github.com/wtsi-hgi/tt/database/types"
+	"github.com/wtsi-hgi/tt/database"
 )
 
 const (
@@ -217,7 +217,7 @@ func TestMySQL(t *testing.T) {
 
 				user1, err := db.CreateUser(u1, u1+emailSuffix)
 				So(err, ShouldBeNil)
-				So(user1, ShouldResemble, &types.User{
+				So(user1, ShouldResemble, &database.User{
 					ID:    1,
 					Name:  u1,
 					Email: u1 + emailSuffix,
@@ -225,7 +225,7 @@ func TestMySQL(t *testing.T) {
 
 				user2, err := db.CreateUser(u2, u2+emailSuffix)
 				So(err, ShouldBeNil)
-				So(user2, ShouldResemble, &types.User{
+				So(user2, ShouldResemble, &database.User{
 					ID:    2,
 					Name:  u2,
 					Email: u2 + emailSuffix,
@@ -243,16 +243,16 @@ func TestMySQL(t *testing.T) {
 
 				i := uint32(0)
 				year := uint32(1970)
-				thingsTypes := []types.ThingsType{
-					types.ThingsTypeIrods,
-					types.ThingsTypeDir,
-					types.ThingsTypeS3,
-					types.ThingsTypeFile,
-					types.ThingsTypeOpenstack,
+				thingsTypes := []database.ThingsType{
+					database.ThingsTypeIrods,
+					database.ThingsTypeDir,
+					database.ThingsTypeS3,
+					database.ThingsTypeFile,
+					database.ThingsTypeOpenstack,
 				}
 				thingsPerType := 2
 				numThings := len(thingsTypes) * thingsPerType
-				expectedThings := make([]types.Thing, numThings)
+				expectedThings := make([]database.Thing, numThings)
 				addresses := []string{
 					"j", "c", "e", "i", "a", "f", "b", "g", "d", "h",
 				}
@@ -272,7 +272,7 @@ func TestMySQL(t *testing.T) {
 
 						before := time.Now()
 
-						thing, err := db.CreateThing(types.CreateThingParams{
+						thing, err := db.CreateThing(database.CreateThingParams{
 							Address:     addresses[i],
 							Type:        thingType,
 							Description: "desc",
@@ -286,7 +286,7 @@ func TestMySQL(t *testing.T) {
 						created := thing.Created
 						So(created, ShouldHappenOnOrBetween, before, after)
 
-						expectedThing := types.Thing{
+						expectedThing := database.Thing{
 							ID:          i + 1,
 							Address:     addresses[i],
 							Type:        thingType,
@@ -303,9 +303,9 @@ func TestMySQL(t *testing.T) {
 					}
 				}
 
-				_, err = db.CreateThing(types.CreateThingParams{
+				_, err = db.CreateThing(database.CreateThingParams{
 					Address:     "addr",
-					Type:        types.ThingsTypeIrods,
+					Type:        database.ThingsTypeIrods,
 					Description: "desc",
 					Reason:      "reason",
 					Remove:      expectedThings[0].Remove,
@@ -334,7 +334,7 @@ func TestMySQL(t *testing.T) {
 				So(count, ShouldEqual, numThings/2)
 
 				Convey("Then you can get things with desired sorting, pagination and filtering", func() {
-					result, err := db.GetThings(types.GetThingsParams{})
+					result, err := db.GetThings(database.GetThingsParams{})
 					So(err, ShouldBeNil)
 					So(len(result.Things), ShouldEqual, numThings)
 					So(result.LastPage, ShouldEqual, 0)
@@ -343,8 +343,8 @@ func TestMySQL(t *testing.T) {
 					result.Things[numThings-1].Created = time.Time{}
 					So(result.Things[numThings-1], ShouldResemble, expectedThings[numThings-1])
 
-					result, err = db.GetThings(types.GetThingsParams{
-						OrderDirection: types.OrderDesc,
+					result, err = db.GetThings(database.GetThingsParams{
+						OrderDirection: database.OrderDesc,
 					})
 					So(err, ShouldBeNil)
 					So(len(result.Things), ShouldEqual, numThings)
@@ -354,66 +354,66 @@ func TestMySQL(t *testing.T) {
 					So(result.Things[0].Remove.Format(time.DateOnly), ShouldEqual, "1979-01-02")
 					So(result.Things[numThings-1].Remove.Format(time.DateOnly), ShouldEqual, "1970-01-02")
 
-					result, err = db.GetThings(types.GetThingsParams{
-						OrderBy: types.OrderByAddres,
+					result, err = db.GetThings(database.GetThingsParams{
+						OrderBy: database.OrderByAddres,
 					})
 					So(err, ShouldBeNil)
 					So(len(result.Things), ShouldEqual, numThings)
 					So(result.Things[0].Address, ShouldEqual, "a")
 					So(result.Things[numThings-1].Address, ShouldEqual, "j")
 
-					result, err = db.GetThings(types.GetThingsParams{
-						OrderBy:        types.OrderByAddres,
-						OrderDirection: types.OrderDesc,
+					result, err = db.GetThings(database.GetThingsParams{
+						OrderBy:        database.OrderByAddres,
+						OrderDirection: database.OrderDesc,
 					})
 					So(err, ShouldBeNil)
 					So(len(result.Things), ShouldEqual, numThings)
 					So(result.Things[0].Address, ShouldEqual, "j")
 					So(result.Things[numThings-1].Address, ShouldEqual, "a")
 
-					result, err = db.GetThings(types.GetThingsParams{
-						OrderBy: types.OrderByType,
+					result, err = db.GetThings(database.GetThingsParams{
+						OrderBy: database.OrderByType,
 					})
 					So(err, ShouldBeNil)
 					So(len(result.Things), ShouldEqual, numThings)
-					So(result.Things[0].Type, ShouldEqual, types.ThingsTypeFile)
-					So(result.Things[1].Type, ShouldEqual, types.ThingsTypeFile)
-					So(result.Things[2].Type, ShouldEqual, types.ThingsTypeDir)
-					So(result.Things[3].Type, ShouldEqual, types.ThingsTypeDir)
-					So(result.Things[4].Type, ShouldEqual, types.ThingsTypeIrods)
-					So(result.Things[5].Type, ShouldEqual, types.ThingsTypeIrods)
-					So(result.Things[6].Type, ShouldEqual, types.ThingsTypeS3)
-					So(result.Things[7].Type, ShouldEqual, types.ThingsTypeS3)
-					So(result.Things[8].Type, ShouldEqual, types.ThingsTypeOpenstack)
-					So(result.Things[9].Type, ShouldEqual, types.ThingsTypeOpenstack)
+					So(result.Things[0].Type, ShouldEqual, database.ThingsTypeFile)
+					So(result.Things[1].Type, ShouldEqual, database.ThingsTypeFile)
+					So(result.Things[2].Type, ShouldEqual, database.ThingsTypeDir)
+					So(result.Things[3].Type, ShouldEqual, database.ThingsTypeDir)
+					So(result.Things[4].Type, ShouldEqual, database.ThingsTypeIrods)
+					So(result.Things[5].Type, ShouldEqual, database.ThingsTypeIrods)
+					So(result.Things[6].Type, ShouldEqual, database.ThingsTypeS3)
+					So(result.Things[7].Type, ShouldEqual, database.ThingsTypeS3)
+					So(result.Things[8].Type, ShouldEqual, database.ThingsTypeOpenstack)
+					So(result.Things[9].Type, ShouldEqual, database.ThingsTypeOpenstack)
 
-					result, err = db.GetThings(types.GetThingsParams{
-						OrderBy: types.OrderByReason,
+					result, err = db.GetThings(database.GetThingsParams{
+						OrderBy: database.OrderByReason,
 					})
 					So(err, ShouldBeNil)
 					So(len(result.Things), ShouldEqual, numThings)
 					So(result.Things[0].Reason, ShouldEqual, "a")
 					So(result.Things[numThings-1].Reason, ShouldEqual, "j")
 
-					result, err = db.GetThings(types.GetThingsParams{
-						OrderBy: types.OrderByRemove,
+					result, err = db.GetThings(database.GetThingsParams{
+						OrderBy: database.OrderByRemove,
 					})
 					So(err, ShouldBeNil)
 					So(len(result.Things), ShouldEqual, numThings)
 					So(result.Things[0].Remove.Format(time.DateOnly), ShouldEqual, "1970-01-02")
 					So(result.Things[numThings-1].Remove.Format(time.DateOnly), ShouldEqual, "1979-01-02")
 
-					result, err = db.GetThings(types.GetThingsParams{
-						FilterOnType: types.ThingsTypeIrods,
+					result, err = db.GetThings(database.GetThingsParams{
+						FilterOnType: database.ThingsTypeIrods,
 					})
 					So(err, ShouldBeNil)
 					So(len(result.Things), ShouldEqual, thingsPerType)
-					So(result.Things[0].Type, ShouldEqual, types.ThingsTypeIrods)
-					So(result.Things[1].Type, ShouldEqual, types.ThingsTypeIrods)
+					So(result.Things[0].Type, ShouldEqual, database.ThingsTypeIrods)
+					So(result.Things[1].Type, ShouldEqual, database.ThingsTypeIrods)
 
 					page := 1
 					perPage := 3
-					result, err = db.GetThings(types.GetThingsParams{
+					result, err = db.GetThings(database.GetThingsParams{
 						Page:          page,
 						ThingsPerPage: perPage,
 					})
@@ -424,7 +424,7 @@ func TestMySQL(t *testing.T) {
 					So(result.Things[perPage-1].ID, ShouldEqual, 3)
 
 					page++
-					result, err = db.GetThings(types.GetThingsParams{
+					result, err = db.GetThings(database.GetThingsParams{
 						Page:          page,
 						ThingsPerPage: perPage,
 					})
@@ -435,7 +435,7 @@ func TestMySQL(t *testing.T) {
 					So(result.Things[perPage-1].ID, ShouldEqual, 6)
 
 					page++
-					result, err = db.GetThings(types.GetThingsParams{
+					result, err = db.GetThings(database.GetThingsParams{
 						Page:          page,
 						ThingsPerPage: perPage,
 					})
@@ -446,7 +446,7 @@ func TestMySQL(t *testing.T) {
 					So(result.Things[perPage-1].ID, ShouldEqual, 9)
 
 					page++
-					result, err = db.GetThings(types.GetThingsParams{
+					result, err = db.GetThings(database.GetThingsParams{
 						Page:          page,
 						ThingsPerPage: perPage,
 					})
@@ -456,7 +456,7 @@ func TestMySQL(t *testing.T) {
 					So(result.Things[0].ID, ShouldEqual, 10)
 
 					page++
-					result, err = db.GetThings(types.GetThingsParams{
+					result, err = db.GetThings(database.GetThingsParams{
 						Page:          page,
 						ThingsPerPage: perPage,
 					})
@@ -464,10 +464,10 @@ func TestMySQL(t *testing.T) {
 					So(result.LastPage, ShouldEqual, 4)
 					So(len(result.Things), ShouldEqual, 0)
 
-					result, err = db.GetThings(types.GetThingsParams{
-						OrderBy:        types.OrderByReason,
-						OrderDirection: types.OrderDesc,
-						FilterOnType:   types.ThingsTypeS3,
+					result, err = db.GetThings(database.GetThingsParams{
+						OrderBy:        database.OrderByReason,
+						OrderDirection: database.OrderDesc,
+						FilterOnType:   database.ThingsTypeS3,
 						Page:           2,
 						ThingsPerPage:  1,
 					})

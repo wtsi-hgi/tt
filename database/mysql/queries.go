@@ -32,20 +32,20 @@ import (
 	"strings"
 	"time"
 
-	"github.com/wtsi-hgi/tt/database/types"
+	"github.com/wtsi-hgi/tt/database"
 )
 
 const createUser = `INSERT INTO users (name, email) VALUES (?, ?)`
 
 // CreateUser creates a new user with the given name and email. The returned
 // user will have its ID set.
-func (m *MySQLDB) CreateUser(name, email string) (*types.User, error) {
+func (m *MySQLDB) CreateUser(name, email string) (*database.User, error) {
 	id, err := createRow(m.pool, createUser, name, email)
 	if err != nil {
 		return nil, err
 	}
 
-	return &types.User{
+	return &database.User{
 		ID:    id,
 		Name:  name,
 		Email: email,
@@ -77,7 +77,7 @@ WHERE name = ?
 `
 
 // GetUserByName returns the user with the given name.
-func (m *MySQLDB) GetUserByName(name string) (*types.User, error) {
+func (m *MySQLDB) GetUserByName(name string) (*database.User, error) {
 	rows, err := m.pool.Query(getUserByName, name)
 	if err != nil {
 		return nil, err
@@ -87,7 +87,7 @@ func (m *MySQLDB) GetUserByName(name string) (*types.User, error) {
 
 	rows.Next()
 
-	var user types.User
+	var user database.User
 
 	if err := rows.Scan(
 		&user.ID,
@@ -128,7 +128,7 @@ INSERT INTO subscribers (
 // will have its ID set to an auto-increment value, and Created time set to now.
 // The supplied Creator must match the Name of an existing User, and will be
 // recored as a Subscriber of the new Thing.
-func (m *MySQLDB) CreateThing(args types.CreateThingParams) (*types.Thing, error) {
+func (m *MySQLDB) CreateThing(args database.CreateThingParams) (*database.Thing, error) {
 	created := time.Now()
 
 	user, err := m.GetUserByName(args.Creator)
@@ -167,7 +167,7 @@ func (m *MySQLDB) CreateThing(args types.CreateThingParams) (*types.Thing, error
 		return nil, err
 	}
 
-	return &types.Thing{
+	return &database.Thing{
 		ID:          uint32(id),
 		Address:     args.Address,
 		Type:        args.Type,
@@ -185,7 +185,7 @@ FROM things
 
 // GetThings returns things that match the given parameters. Also in the result
 // is the last page that would return things if Page and ThingsPerPage are > 0.
-func (m *MySQLDB) GetThings(params types.GetThingsParams) (*types.GetThingsResult, error) {
+func (m *MySQLDB) GetThings(params database.GetThingsParams) (*database.GetThingsResult, error) {
 	var sql strings.Builder
 
 	sql.WriteString(getThings)
@@ -198,10 +198,10 @@ func (m *MySQLDB) GetThings(params types.GetThingsParams) (*types.GetThingsResul
 
 	defer rows.Close()
 
-	var things []types.Thing
+	var things []database.Thing
 
 	for rows.Next() {
-		var thing types.Thing
+		var thing database.Thing
 
 		if err := rows.Scan(
 			&thing.ID,
@@ -234,19 +234,19 @@ func (m *MySQLDB) GetThings(params types.GetThingsParams) (*types.GetThingsResul
 		return nil, err
 	}
 
-	return &types.GetThingsResult{
+	return &database.GetThingsResult{
 		Things:   things,
 		LastPage: lastPage,
 	}, nil
 }
 
-func getThingsParamsToSQL(params types.GetThingsParams, sql *strings.Builder) {
+func getThingsParamsToSQL(params database.GetThingsParams, sql *strings.Builder) {
 	whereSQL(params, sql)
 	orderSQL(params, sql)
 	limitSQL(params, sql)
 }
 
-func whereSQL(params types.GetThingsParams, sql *strings.Builder) {
+func whereSQL(params database.GetThingsParams, sql *strings.Builder) {
 	if params.FilterOnType == "" {
 		return
 	}
@@ -256,11 +256,11 @@ func whereSQL(params types.GetThingsParams, sql *strings.Builder) {
 	sql.WriteString("'")
 }
 
-func orderSQL(params types.GetThingsParams, sql *strings.Builder) {
+func orderSQL(params database.GetThingsParams, sql *strings.Builder) {
 	sql.WriteString("\nORDER BY ")
 
 	if params.OrderBy == "" {
-		sql.WriteString(string(types.OrderByRemove))
+		sql.WriteString(string(database.OrderByRemove))
 	} else {
 		sql.WriteString(string(params.OrderBy))
 	}
@@ -268,13 +268,13 @@ func orderSQL(params types.GetThingsParams, sql *strings.Builder) {
 	sql.WriteString(" ")
 
 	if params.OrderDirection == "" {
-		sql.WriteString(string(types.OrderAsc))
+		sql.WriteString(string(database.OrderAsc))
 	} else {
 		sql.WriteString(string(params.OrderDirection))
 	}
 }
 
-func limitSQL(params types.GetThingsParams, sql *strings.Builder) {
+func limitSQL(params database.GetThingsParams, sql *strings.Builder) {
 	if params.Page < 1 || params.ThingsPerPage < 1 {
 		return
 	}
@@ -290,7 +290,7 @@ func limitSQL(params types.GetThingsParams, sql *strings.Builder) {
 
 const countThings = `SELECT COUNT(*) FROM things`
 
-func (m *MySQLDB) calculateLastPage(params types.GetThingsParams) (int, error) {
+func (m *MySQLDB) calculateLastPage(params database.GetThingsParams) (int, error) {
 	if params.Page < 1 || params.ThingsPerPage < 1 {
 		return 0, nil
 	}

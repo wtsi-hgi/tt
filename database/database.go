@@ -25,12 +25,10 @@
 
 package database
 
-import "github.com/wtsi-hgi/tt/database/types"
-
 type Queries interface {
-	CreateUser(name, email string) (*types.User, error)
-	CreateThing(args types.CreateThingParams) (*types.Thing, error)
-	GetThings(params types.GetThingsParams) (*types.GetThingsResult, error)
+	CreateUser(name, email string) (*User, error)
+	CreateThing(args CreateThingParams) (*Thing, error)
+	GetThings(params GetThingsParams) (*GetThingsResult, error)
 	DeleteUser(id uint32) error
 	DeleteThing(id uint32) error
 }

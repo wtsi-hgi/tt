@@ -42,7 +42,6 @@ import (
 	"github.com/go-chi/render"
 	"github.com/wtsi-hgi/tt/database"
 	"github.com/wtsi-hgi/tt/database/mysql"
-	"github.com/wtsi-hgi/tt/database/types"
 )
 
 const (
@@ -161,7 +160,7 @@ const (
 )
 
 type Thing struct {
-	types.Thing
+	database.Thing
 }
 
 func (t *Thing) HTML(_ http.ResponseWriter, r *http.Request) string {
@@ -255,7 +254,7 @@ func (s Storage) Get(ctx context.Context, idStr string) (*Thing, error) {
 
 	//TODO: do we actually need a GetThingByID?
 
-	result, err := s.Queries.GetThings(types.GetThingsParams{
+	result, err := s.Queries.GetThings(database.GetThingsParams{
 		Page:          1,
 		ThingsPerPage: 1,
 	})
@@ -279,17 +278,17 @@ func (s Storage) GetAll(ctx context.Context, query url.Values) ([]*Thing, error)
 		page = 1
 	}
 
-	var thingType types.ThingsType
+	var thingType database.ThingsType
 
 	switch query.Get("type") {
-	case string(types.ThingsTypeDir):
-		thingType = types.ThingsTypeDir
+	case string(database.ThingsTypeDir):
+		thingType = database.ThingsTypeDir
 	}
 
-	result, err := s.Queries.GetThings(types.GetThingsParams{
+	result, err := s.Queries.GetThings(database.GetThingsParams{
 		FilterOnType:   thingType,
-		OrderBy:        types.OrderBy(sortCol),
-		OrderDirection: types.OrderDirection(dir),
+		OrderBy:        database.OrderBy(sortCol),
+		OrderDirection: database.OrderDirection(dir),
 		Page:           page,
 		ThingsPerPage:  perPage,
 	})
@@ -306,7 +305,7 @@ func (s Storage) GetAll(ctx context.Context, query url.Values) ([]*Thing, error)
 }
 
 func (s Storage) Set(ctx context.Context, t *Thing) error {
-	thing, err := s.Queries.CreateThing(types.CreateThingParams{
+	thing, err := s.Queries.CreateThing(database.CreateThingParams{
 		Address:     t.Address,
 		Type:        t.Type,
 		Description: t.Description,
