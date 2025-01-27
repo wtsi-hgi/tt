@@ -78,6 +78,8 @@ const (
 	</style>
 
 	<body>
+		Username: <input class="uk-input" name="username" type="text"/>
+
 		<table class="uk-table uk-table-divider uk-table-striped uk-margin-left uk-margin-right">
 			<colgroup>
 				<col>
@@ -108,7 +110,7 @@ const (
 			</thead>
 
 			<tbody>
-				<form hx-post="/things" hx-swap="none" hx-on::after-request="this.reset()">
+				<form hx-post="/things" hx-include="[name='username']" hx-swap="none" hx-on::after-request="this.reset()">
 					<td>
 						<input class="uk-input" name="Address" type="text" required>
 					</td>
@@ -307,10 +309,10 @@ func (s Storage) Set(ctx context.Context, t *Thing) error {
 	thing, err := s.Queries.CreateThing(types.CreateThingParams{
 		Address:     t.Address,
 		Type:        t.Type,
-		Creator:     t.Creator,
 		Description: t.Description,
 		Reason:      t.Reason,
 		Remove:      t.Remove,
+		Creator:     "",
 	})
 	if err != nil {
 		return err

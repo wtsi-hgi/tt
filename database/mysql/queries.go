@@ -26,6 +26,7 @@
 package mysql
 
 import (
+	"database/sql"
 	"math"
 	"strconv"
 	"strings"
@@ -39,7 +40,7 @@ const createUser = `INSERT INTO users (name, email) VALUES (?, ?)`
 // CreateUser creates a new user with the given name and email. The returned
 // user will have its ID set.
 func (m *MySQLDB) CreateUser(name, email string) (*types.User, error) {
-	id, err := m.createRow(createUser, name, email)
+	id, err := createRow(m.pool, createUser, name, email)
 	if err != nil {
 		return nil, err
 	}
@@ -51,8 +52,12 @@ func (m *MySQLDB) CreateUser(name, email string) (*types.User, error) {
 	}, nil
 }
 
-func (m *MySQLDB) createRow(sql string, args ...any) (uint32, error) {
-	result, err := m.pool.Exec(sql, args...)
+type executor interface {
+	Exec(query string, args ...any) (sql.Result, error)
+}
+
+func createRow(db executor, sql string, args ...any) (uint32, error) {
+	result, err := db.Exec(sql, args...)
 	if err != nil {
 		return 0, err
 	}
@@ -65,28 +70,99 @@ func (m *MySQLDB) createRow(sql string, args ...any) (uint32, error) {
 	return uint32(id), nil
 }
 
+const getUserByName = `
+SELECT id, name, email
+FROM users
+WHERE name = ?
+`
+
+// GetUserByName returns the user with the given name.
+func (m *MySQLDB) GetUserByName(name string) (*types.User, error) {
+	rows, err := m.pool.Query(getUserByName, name)
+	if err != nil {
+		return nil, err
+	}
+
+	defer rows.Close()
+
+	rows.Next()
+
+	var user types.User
+
+	if err := rows.Scan(
+		&user.ID,
+		&user.Name,
+		&user.Email,
+	); err != nil {
+		return nil, err
+	}
+
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+
+	return &user, nil
+}
+
 const createThing = `
 INSERT INTO things (
-  address, type, creator, created, description, reason, remove
+  address, type, created, description, reason, remove
 ) VALUES (
-  ?, ?, ?, ?, ?, ?, ?
+  ?, ?, ?, ?, ?, ?
+)
+`
+
+const createSubscription = `
+INSERT INTO subscribers (
+  user_id, thing_id, creator
+) VALUES (
+  ?, ?, ?
 )
 `
 
 // CreateThing creates a new thing with the given details. The returned thing
 // will have its ID set to an auto-increment value, and Created time set to now.
+// The supplied Creator must match the Name of an existing User, and will be
+// recored as a Subscriber of the new Thing.
 func (m *MySQLDB) CreateThing(args types.CreateThingParams) (*types.Thing, error) {
 	created := time.Now()
 
-	id, err := m.createRow(createThing,
+	user, err := m.GetUserByName(args.Creator)
+	if err != nil {
+		return nil, err
+	}
+
+	tx, err := m.pool.Begin()
+	if err != nil {
+		return nil, err
+	}
+
+	id, err := createRow(tx, createThing,
 		args.Address,
 		args.Type,
-		args.Creator.ID,
 		created,
 		args.Description,
 		args.Reason,
 		args.Remove,
 	)
+	if err != nil {
+		tx.Rollback()
+
+		return nil, err
+	}
+
+	_, err = tx.Exec(createSubscription, user.ID, id, 1)
+	if err != nil {
+		tx.Rollback()
+
+		return nil, err
+	}
+
+	err = tx.Commit()
 	if err != nil {
 		return nil, err
 	}
@@ -95,7 +171,6 @@ func (m *MySQLDB) CreateThing(args types.CreateThingParams) (*types.Thing, error
 		ID:          uint32(id),
 		Address:     args.Address,
 		Type:        args.Type,
-		Creator:     args.Creator,
 		Created:     created,
 		Description: args.Description,
 		Reason:      args.Reason,
@@ -104,9 +179,8 @@ func (m *MySQLDB) CreateThing(args types.CreateThingParams) (*types.Thing, error
 }
 
 const getThings = `
-SELECT things.id, address, type, users.id, users.name, users.email, created, description, reason, remove, warned1, warned2, removed
+SELECT things.id, address, type, created, description, reason, remove, warned1, warned2, removed
 FROM things
-INNER JOIN users ON things.creator=users.id
 `
 
 // GetThings returns things that match the given parameters. Also in the result
@@ -128,15 +202,11 @@ func (m *MySQLDB) GetThings(params types.GetThingsParams) (*types.GetThingsResul
 
 	for rows.Next() {
 		var thing types.Thing
-		var user types.User
 
 		if err := rows.Scan(
 			&thing.ID,
 			&thing.Address,
 			&thing.Type,
-			&user.ID,
-			&user.Name,
-			&user.Email,
 			&thing.Created,
 			&thing.Description,
 			&thing.Reason,
@@ -147,8 +217,6 @@ func (m *MySQLDB) GetThings(params types.GetThingsParams) (*types.GetThingsResul
 		); err != nil {
 			return nil, err
 		}
-
-		thing.Creator = &user
 
 		things = append(things, thing)
 	}

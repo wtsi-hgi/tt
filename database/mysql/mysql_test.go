@@ -275,10 +275,10 @@ func TestMySQL(t *testing.T) {
 						thing, err := db.CreateThing(types.CreateThingParams{
 							Address:     addresses[i],
 							Type:        thingType,
-							Creator:     creator,
 							Description: "desc",
 							Reason:      reasons[i],
 							Remove:      remove,
+							Creator:     creator.Name,
 						})
 						So(err, ShouldBeNil)
 
@@ -290,7 +290,6 @@ func TestMySQL(t *testing.T) {
 							ID:          i + 1,
 							Address:     addresses[i],
 							Type:        thingType,
-							Creator:     creator,
 							Description: "desc",
 							Reason:      reasons[i],
 							Remove:      remove,
@@ -304,9 +303,35 @@ func TestMySQL(t *testing.T) {
 					}
 				}
 
+				_, err = db.CreateThing(types.CreateThingParams{
+					Address:     "addr",
+					Type:        types.ThingsTypeIrods,
+					Description: "desc",
+					Reason:      "reason",
+					Remove:      expectedThings[0].Remove,
+					Creator:     "invalid",
+				})
+				So(err, ShouldNotBeNil)
+
 				count, err = countTableRows(db.pool, "things")
 				So(err, ShouldBeNil)
 				So(count, ShouldEqual, numThings)
+
+				count, err = countTableRows(db.pool, "subscribers")
+				So(err, ShouldBeNil)
+				So(count, ShouldEqual, numThings)
+
+				count, err = countTableRows(db.pool, "subscribers", "creator = 1")
+				So(err, ShouldBeNil)
+				So(count, ShouldEqual, numThings)
+
+				count, err = countTableRows(db.pool, "subscribers", "user_id = 1")
+				So(err, ShouldBeNil)
+				So(count, ShouldEqual, numThings/2)
+
+				count, err = countTableRows(db.pool, "subscribers", "user_id = 2")
+				So(err, ShouldBeNil)
+				So(count, ShouldEqual, numThings/2)
 
 				Convey("Then you can get things with desired sorting, pagination and filtering", func() {
 					result, err := db.GetThings(types.GetThingsParams{})
@@ -462,6 +487,10 @@ func TestMySQL(t *testing.T) {
 
 					count, err = countTableRows(db.pool, "things")
 					So(err, ShouldBeNil)
+					So(count, ShouldEqual, numThings)
+
+					count, err = countTableRows(db.pool, "subscribers")
+					So(err, ShouldBeNil)
 					So(count, ShouldEqual, numThings/2)
 
 					err = db.DeleteThing(3)
@@ -472,6 +501,10 @@ func TestMySQL(t *testing.T) {
 					So(count, ShouldEqual, 1)
 
 					count, err = countTableRows(db.pool, "things")
+					So(err, ShouldBeNil)
+					So(count, ShouldEqual, numThings-1)
+
+					count, err = countTableRows(db.pool, "subscribers")
 					So(err, ShouldBeNil)
 					So(count, ShouldEqual, (numThings/2)-1)
 				})
@@ -486,10 +519,16 @@ func TestMySQL(t *testing.T) {
 	})
 }
 
-func countTableRows(pool *sql.DB, table string) (int64, error) {
+func countTableRows(pool *sql.DB, table string, where ...string) (int64, error) {
 	var count int64
 
-	row := pool.QueryRow("SELECT COUNT(*) FROM " + table)
+	sql := "SELECT COUNT(*) FROM " + table
+
+	if len(where) == 1 {
+		sql += " WHERE " + where[0]
+	}
+
+	row := pool.QueryRow(sql)
 	err := row.Scan(&count)
 
 	return count, err

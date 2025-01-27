@@ -97,17 +97,16 @@ type User struct {
 type CreateThingParams struct {
 	Address     string
 	Type        ThingsType
-	Creator     *User
 	Description string
 	Reason      string
 	Remove      time.Time
+	Creator     string // Creator must correspond to the Name of a User.
 }
 
 type Thing struct {
 	ID          uint32
 	Address     string
 	Type        ThingsType
-	Creator     *User
 	Created     time.Time
 	Description string
 	Reason      string
@@ -120,4 +119,5 @@ type Thing struct {
 type Subscriber struct {
 	UserID  uint32
 	ThingID uint32
+	Creator bool
 }
