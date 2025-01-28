@@ -25,11 +25,35 @@
 
 package database
 
-type Queries interface {
-	CreateUser(name, email string) (*User, error)
-	CreateThing(args CreateThingParams) (*Thing, error)
-	GetThings(params GetThingsParams) (*GetThingsResult, error)
-	DeleteUser(id uint32) error
-	DeleteThing(id uint32) error
-	Close() error
+import (
+	"testing"
+
+	. "github.com/smartystreets/goconvey/convey"
+)
+
+func TestNewThingsTypes(t *testing.T) {
+	Convey("You can convert strings to ThingsType*, unless it's invalid", t, func() {
+		tt, err := NewThingsType("dir")
+		So(err, ShouldBeNil)
+		So(tt, ShouldEqual, ThingsTypeDir)
+
+		tt, err = NewThingsType("file")
+		So(err, ShouldBeNil)
+		So(tt, ShouldEqual, ThingsTypeFile)
+
+		tt, err = NewThingsType("irods")
+		So(err, ShouldBeNil)
+		So(tt, ShouldEqual, ThingsTypeIrods)
+
+		tt, err = NewThingsType("openstack")
+		So(err, ShouldBeNil)
+		So(tt, ShouldEqual, ThingsTypeOpenstack)
+
+		tt, err = NewThingsType("s3")
+		So(err, ShouldBeNil)
+		So(tt, ShouldEqual, ThingsTypeS3)
+
+		_, err = NewThingsType("invalid")
+		So(err, ShouldNotBeNil)
+	})
 }

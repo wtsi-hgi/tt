@@ -31,24 +31,53 @@ import (
 	null "github.com/guregu/null/v5"
 )
 
+type Error string
+
+func (e Error) Error() string { return string(e) }
+
+const ErrBadType = Error("Invalid things type")
+
 type ThingsType string
 
 const (
-	ThingsTypeFile      ThingsType = "file"
 	ThingsTypeDir       ThingsType = "dir"
+	ThingsTypeFile      ThingsType = "file"
 	ThingsTypeIrods     ThingsType = "irods"
-	ThingsTypeS3        ThingsType = "s3"
 	ThingsTypeOpenstack ThingsType = "openstack"
+	ThingsTypeS3        ThingsType = "s3"
 )
 
 func ThingsTypes() []ThingsType {
 	return []ThingsType{
-		ThingsTypeFile,
 		ThingsTypeDir,
+		ThingsTypeFile,
 		ThingsTypeIrods,
-		ThingsTypeS3,
 		ThingsTypeOpenstack,
+		ThingsTypeS3,
 	}
+}
+
+// NewThingsType converts the given str to a ThingsType, but only if it matches
+// one of the allowed ThingsType* constants. Returns an error if not.
+func NewThingsType(str string) (ThingsType, error) {
+	var thingsType ThingsType
+
+	switch ThingsType(str) {
+	case ThingsTypeDir:
+		thingsType = ThingsTypeDir
+	case ThingsTypeFile:
+		thingsType = ThingsTypeFile
+	case ThingsTypeIrods:
+		thingsType = ThingsTypeIrods
+	case ThingsTypeOpenstack:
+		thingsType = ThingsTypeOpenstack
+	case ThingsTypeS3:
+		thingsType = ThingsTypeS3
+	default:
+		return "", ErrBadType
+	}
+
+	return thingsType, nil
 }
 
 type OrderBy string

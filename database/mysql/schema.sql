@@ -11,7 +11,7 @@ CREATE TABLE users (
 CREATE TABLE things (
     id int unsigned NOT NULL AUTO_INCREMENT PRIMARY KEY,
     address varchar(4096) NOT NULL,
-    type enum('file', 'dir', 'irods', 's3', 'openstack') NOT NULL,
+    type enum('dir', 'file', 'irods', 'openstack', 's3') NOT NULL,
     created date NOT NULL,
     description text(4096),
     reason tinytext NOT NULL,

@@ -160,20 +160,49 @@ func TestConfig(t *testing.T) {
 // restoreOrigEnvs returns a function you should defer to restore the original
 // env vars.
 func restoreOrigEnvs() func() {
-	origEnv := os.Getenv(envVarEnv)
-	origUser := os.Getenv(envVarUser)
-	origPass := os.Getenv(envVarPass)
-	origHost := os.Getenv(envVarHost)
-	origPort := os.Getenv(envVarPort)
-	origDBName := os.Getenv(envVarDBName)
+	origEnv, origEnvSet := os.LookupEnv(envVarEnv)
+	origUser, origUserSet := os.LookupEnv(envVarUser)
+	origPass, origPassSet := os.LookupEnv(envVarPass)
+	origHost, origHostSet := os.LookupEnv(envVarHost)
+	origPort, origPortSet := os.LookupEnv(envVarPort)
+	origDBName, origDBNameSet := os.LookupEnv(envVarDBName)
 
 	return func() {
-		os.Setenv(envVarEnv, origEnv)
-		os.Setenv(envVarUser, origUser)
-		os.Setenv(envVarPass, origPass)
-		os.Setenv(envVarHost, origHost)
-		os.Setenv(envVarPort, origPort)
-		os.Setenv(envVarDBName, origDBName)
+		if origEnvSet {
+			os.Setenv(envVarEnv, origEnv)
+		} else {
+			os.Unsetenv(envVarEnv)
+		}
+
+		if origUserSet {
+			os.Setenv(envVarUser, origUser)
+		} else {
+			os.Unsetenv(envVarUser)
+		}
+
+		if origPassSet {
+			os.Setenv(envVarPass, origPass)
+		} else {
+			os.Unsetenv(envVarPass)
+		}
+
+		if origHostSet {
+			os.Setenv(envVarHost, origHost)
+		} else {
+			os.Unsetenv(envVarHost)
+		}
+
+		if origPortSet {
+			os.Setenv(envVarPort, origPort)
+		} else {
+			os.Unsetenv(envVarPort)
+		}
+
+		if origDBNameSet {
+			os.Setenv(envVarDBName, origDBName)
+		} else {
+			os.Unsetenv(envVarDBName)
+		}
 	}
 }
 
@@ -376,16 +405,16 @@ func TestMySQL(t *testing.T) {
 					})
 					So(err, ShouldBeNil)
 					So(len(result.Things), ShouldEqual, numThings)
-					So(result.Things[0].Type, ShouldEqual, database.ThingsTypeFile)
-					So(result.Things[1].Type, ShouldEqual, database.ThingsTypeFile)
-					So(result.Things[2].Type, ShouldEqual, database.ThingsTypeDir)
-					So(result.Things[3].Type, ShouldEqual, database.ThingsTypeDir)
+					So(result.Things[0].Type, ShouldEqual, database.ThingsTypeDir)
+					So(result.Things[1].Type, ShouldEqual, database.ThingsTypeDir)
+					So(result.Things[2].Type, ShouldEqual, database.ThingsTypeFile)
+					So(result.Things[3].Type, ShouldEqual, database.ThingsTypeFile)
 					So(result.Things[4].Type, ShouldEqual, database.ThingsTypeIrods)
 					So(result.Things[5].Type, ShouldEqual, database.ThingsTypeIrods)
-					So(result.Things[6].Type, ShouldEqual, database.ThingsTypeS3)
-					So(result.Things[7].Type, ShouldEqual, database.ThingsTypeS3)
-					So(result.Things[8].Type, ShouldEqual, database.ThingsTypeOpenstack)
-					So(result.Things[9].Type, ShouldEqual, database.ThingsTypeOpenstack)
+					So(result.Things[6].Type, ShouldEqual, database.ThingsTypeOpenstack)
+					So(result.Things[7].Type, ShouldEqual, database.ThingsTypeOpenstack)
+					So(result.Things[8].Type, ShouldEqual, database.ThingsTypeS3)
+					So(result.Things[9].Type, ShouldEqual, database.ThingsTypeS3)
 
 					result, err = db.GetThings(database.GetThingsParams{
 						OrderBy: database.OrderByReason,

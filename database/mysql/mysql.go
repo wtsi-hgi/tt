@@ -153,3 +153,8 @@ func (m *MySQLDB) Reset() error {
 
 	return tx.Commit()
 }
+
+// Close closes the database connection. Not strictly necessary to call this.
+func (m *MySQLDB) Close() error {
+	return m.pool.Close()
+}
