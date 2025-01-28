@@ -1,0 +1,89 @@
+<!doctype html>
+<html>
+
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<title>Temporary Things</title>
+	<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/uikit@3.22.0/dist/css/uikit.min.css" />
+	<script src="https://cdn.jsdelivr.net/npm/uikit@3.22.0/dist/js/uikit.min.js"></script>
+	<script src="https://cdn.jsdelivr.net/npm/uikit@3.22.0/dist/js/uikit-icons.min.js"></script>
+	<script src="https://unpkg.com/htmx.org@2.0.4"
+		integrity="sha384-HGfztofotfshcF7+8n44JQL2oJmowVChPTg48S+jvZoztPfvwD79OC/LTtG6dMp+"
+		crossorigin="anonymous"></script>
+	<script src="https://unpkg.com/htmx-ext-sse@2.2.2/sse.js"></script>
+</head>
+
+<style>
+	tr.htmx-swapping td {
+		opacity: 0;
+		transition: opacity 1s ease-out;
+	}
+</style>
+
+<body>
+	Username: <input class="uk-input" name="Creator" type="text" />
+
+	<table class="uk-table uk-table-divider uk-table-striped uk-margin-left uk-margin-right">
+		<colgroup>
+			<col>
+			<col>
+			<col>
+			<col>
+			<col>
+			<col style="width: 300px;">
+		</colgroup>
+
+		<thead>
+			<tr hx-headers='{"Accept": "text/html"}' hx-trigger="click" hx-target="tbody#things-list">
+				<th>
+					Address<span uk-icon="arrow-up" hx-get="/things?sort=address&dir=DESC"></span><span
+						uk-icon="arrow-down" hx-get="/things?sort=address&dir=ASC"></span>
+				</th>
+				<th>
+					Type<span uk-icon="arrow-up" hx-get="/things?sort=type&dir=DESC"></span><span uk-icon="arrow-down"
+						hx-get="/things?sort=type&dir=ASC"></span>
+				</th>
+				<th>
+					Reason<span uk-icon="arrow-up" hx-get="/things?sort=reason&dir=DESC"></span><span
+						uk-icon="arrow-down" hx-get="/things?sort=reason&dir=ASC"></span>
+				</th>
+				<th>Description</th>
+				<th>
+					Removal Date<span uk-icon="arrow-up" hx-get="/things?sort=remove&dir=DESC"></span><span
+						uk-icon="arrow-down" hx-get="/things?sort=remove&dir=ASC"></span>
+				</th>
+				<th></th>
+			</tr>
+		</thead>
+
+		<tbody>
+			<form hx-post="/things" hx-include="[name='Creator']" hx-swap="none" hx-on::after-request="this.reset()">
+				<td>
+					<input class="uk-input" name="Address" type="text" required>
+				</td>
+				<td>
+					<input class="uk-input" name="Type" type="text" required>
+				</td>
+				<td>
+					<input class="uk-input" name="Reason" type="text" required>
+				</td>
+				<td>
+					<input class="uk-input" name="Description" type="text">
+				</td>
+				<td>
+					<input class="uk-input" name="Remove" type="date" required>
+				</td>
+				<td>
+					<button type="submit" class="uk-button uk-button-primary">Add Thing</button>
+				</td>
+			</form>
+		</tbody>
+
+		<tbody hx-get="/things" hx-headers='{"Accept": "text/html"}' hx-trigger="load" id="things-list" hx-ext="sse"
+			sse-connect="/things/listen" sse-swap="newThing" hx-swap="afterbegin">
+		</tbody>
+	</table>
+</body>
+
+</html>

@@ -34,9 +34,19 @@ that file.
 NB: the database configured there will have its tables dropped and recreated at
 the start of running tests!
 
-Bring up a development server like this:
+To initialise a database, for now you can manually run database/mysql/schema.sql
+against your database. NB: it will first drop all tables in the database!
+
+For convenience, install air for automatic re-builds and server restarting when
+you make changes to files:
+
+```
+go install github.com/air-verse/air@latest
+```
+
+Then you can bring up a development server that logs to STDERR like this:
 
 ```
 export TT_ENV=development
-go run main.go serve --address :4563
+air server --url :4563 --logfile /root/uncreatable-file-path
 ```

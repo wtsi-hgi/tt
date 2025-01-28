@@ -40,19 +40,20 @@ import (
 	"github.com/calvinmclean/babyapi/extensions"
 	"github.com/calvinmclean/babyapi/html"
 	"github.com/go-chi/render"
+	"github.com/wtsi-hgi/tt/cmd"
 	"github.com/wtsi-hgi/tt/database"
 	"github.com/wtsi-hgi/tt/database/mysql"
 )
 
 const (
-	sqlDriverName = "mysql"
-	sqlNetwork    = "tcp"
-	perPage       = 50
+	perPage = 50
 )
 
 func main() {
-	api := createAPI()
-	api.RunCLI()
+	cmd.Execute()
+
+	// api := createAPI()
+	// api.RunCLI()
 }
 
 const (
