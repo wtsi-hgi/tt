@@ -128,8 +128,8 @@ type CreateThingParams struct {
 	Type        ThingsType
 	Description string
 	Reason      string
-	Remove      time.Time
-	Creator     string // Creator must correspond to the Name of a User.
+	Remove      time.Time `time_format:"2006-01-02"`
+	Creator     string    // Creator must correspond to the Name of a User.
 }
 
 type Thing struct {

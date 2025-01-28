@@ -341,6 +341,7 @@ func TestMySQL(t *testing.T) {
 					Creator:     "invalid",
 				})
 				So(err, ShouldNotBeNil)
+				So(err, ShouldEqual, ErrNoUser)
 
 				count, err = countTableRows(db.pool, "things")
 				So(err, ShouldBeNil)

@@ -35,6 +35,8 @@ import (
 	"github.com/wtsi-hgi/tt/database"
 )
 
+const ErrNoUser = database.Error("No User found with that name")
+
 const createUser = `INSERT INTO users (name, email) VALUES (?, ?)`
 
 // CreateUser creates a new user with the given name and email. The returned
@@ -85,7 +87,9 @@ func (m *MySQLDB) GetUserByName(name string) (*database.User, error) {
 
 	defer rows.Close()
 
-	rows.Next()
+	if gotRow := rows.Next(); !gotRow {
+		return nil, ErrNoUser
+	}
 
 	var user database.User
 
