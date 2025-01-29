@@ -125,7 +125,10 @@ func New(conf Config) (*Server, error) {
 
 	s.router.Use(gas.IncludeAbortErrorsInBody)
 
-	s.addEndPoints()
+	err := s.addEndPoints()
+	if err != nil {
+		return nil, err
+	}
 
 	return s, nil
 }
@@ -147,34 +150,39 @@ func ginLogger() gin.HandlerFunc {
 	})
 }
 
-func (s *Server) addEndPoints() {
+func (s *Server) addEndPoints() error {
 	s.rootTemplate = template.New("")
-	tmpl := template.Must(s.rootTemplate,
-		s.loadAllTemplates(s.router.FuncMap, templatesFS, "templates/.*"),
-	)
-	s.router.SetHTMLTemplate(tmpl)
+
+	err := s.loadAllTemplates("templates/.*")
+	if err != nil {
+		return err
+	}
+
+	s.router.SetHTMLTemplate(s.rootTemplate)
 
 	s.router.GET("/", s.pageRoot)
 	s.router.GET("/things", s.getThings)
 	s.router.GET("/things/listen", s.sendNewThings())
 	s.router.POST("/things", s.postThing)
+
+	return nil
 }
 
-func (s *Server) loadAllTemplates(funcMap template.FuncMap, embedFS embed.FS, pattern string) error {
-	return fs.WalkDir(embedFS, ".", func(path string, d fs.DirEntry, walkErr error) error {
+func (s *Server) loadAllTemplates(pattern string) error {
+	return fs.WalkDir(templatesFS, ".", func(path string, d fs.DirEntry, walkErr error) error {
 		if walkErr != nil {
 			return walkErr
 		}
 
 		if matched, _ := regexp.MatchString(pattern, path); !d.IsDir() && matched {
-			data, readErr := embedFS.ReadFile(path)
-			if readErr != nil {
-				return readErr
+			data, err := templatesFS.ReadFile(path)
+			if err != nil {
+				return err
 			}
 
-			t := s.rootTemplate.New(path).Funcs(funcMap)
-			if _, parseErr := t.Parse(string(data)); parseErr != nil {
-				return parseErr
+			t := s.rootTemplate.New(path).Funcs(s.router.FuncMap)
+			if _, err = t.Parse(string(data)); err != nil {
+				return err
 			}
 		}
 
