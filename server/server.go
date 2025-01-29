@@ -34,7 +34,6 @@ import (
 	"log"
 	"net/http"
 	"regexp"
-	"strconv"
 	"sync"
 	"time"
 
@@ -164,6 +163,7 @@ func (s *Server) addEndPoints() error {
 	s.router.GET("/things", s.getThings)
 	s.router.GET("/things/listen", s.sendNewThings())
 	s.router.POST("/things", s.postThing)
+	s.router.DELETE("/things/:id", s.deleteThing)
 
 	return nil
 }
@@ -188,77 +188,6 @@ func (s *Server) loadAllTemplates(pattern string) error {
 
 		return nil
 	})
-}
-
-func (s *Server) pageRoot(c *gin.Context) {
-	c.HTML(http.StatusOK, "templates/root.html", nil)
-}
-
-const perPage = 50
-
-func (s *Server) getThings(c *gin.Context) {
-	dir := c.Query("dir")
-	sortCol := c.DefaultQuery("sort", "remove")
-
-	page, err := strconv.Atoi(c.DefaultQuery("page", "1"))
-	if err != nil || page < 1 {
-		page = 1
-	}
-
-	var thingType database.ThingsType
-
-	switch c.Query("type") {
-	case string(database.ThingsTypeDir):
-		thingType = database.ThingsTypeDir
-	}
-
-	result, err := s.db.GetThings(database.GetThingsParams{
-		FilterOnType:   thingType,
-		OrderBy:        database.OrderBy(sortCol),
-		OrderDirection: database.OrderDirection(dir),
-		Page:           page,
-		ThingsPerPage:  perPage,
-	})
-	if err != nil {
-		c.AbortWithError(http.StatusInternalServerError, err)
-
-		return
-	}
-
-	c.HTML(http.StatusOK, "templates/things.html", result.Things)
-}
-
-func (s *Server) postThing(c *gin.Context) {
-	var postedThing database.CreateThingParams
-
-	if err := c.ShouldBind(&postedThing); err != nil {
-		c.AbortWithError(http.StatusBadRequest, err)
-
-		return
-	}
-
-	_, err := database.NewThingsType(string(postedThing.Type))
-	if err != nil {
-		c.AbortWithError(http.StatusBadRequest, err)
-
-		return
-	}
-
-	thing, err := s.db.CreateThing(postedThing)
-	if err != nil {
-		c.AbortWithError(http.StatusBadRequest, err)
-
-		return
-	}
-
-	err = s.broadcastNewThing(thing)
-	if err != nil {
-		c.AbortWithError(http.StatusInternalServerError, err)
-
-		return
-	}
-
-	c.Status(http.StatusOK)
 }
 
 // Start starts listening on the given addr, blocking until Stop() is called
