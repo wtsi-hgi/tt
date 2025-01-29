@@ -26,6 +26,7 @@
 package server
 
 import (
+	"bytes"
 	"embed"
 	"fmt"
 	"html/template"
@@ -82,11 +83,13 @@ func (c Config) CheckValid() error {
 // Server is used to start a web server that provides a REST API to the setdb
 // package's database, and a website that displays the information nicely.
 type Server struct {
-	router   *gin.Engine
-	srv      *graceful.Server
-	srvMutex sync.Mutex
-	db       database.Queries
-	Logger   *log.Logger
+	router       *gin.Engine
+	srv          *graceful.Server
+	srvMutex     sync.Mutex
+	db           database.Queries
+	Logger       *log.Logger
+	rootTemplate *template.Template
+	newThingChan chan *ServerSentEvent
 }
 
 // New creates a Server which serves the tt website.
@@ -146,16 +149,20 @@ func ginLogger() gin.HandlerFunc {
 }
 
 func (s *Server) addEndPoints() {
-	root := template.New("")
-	tmpl := template.Must(root, loadAllTemplates(s.router.FuncMap, root, templatesFS, "templates/.*"))
+	s.rootTemplate = template.New("")
+	tmpl := template.Must(s.rootTemplate,
+		s.loadAllTemplates(s.router.FuncMap, templatesFS, "templates/.*"),
+	)
 	s.router.SetHTMLTemplate(tmpl)
+
+	s.newThingChan = s.AddServerSentEventHandler("/things/listen")
 
 	s.router.GET("/", s.pageRoot)
 	s.router.GET("/things", s.pageGetThings)
 	s.router.POST("/things", s.postThings)
 }
 
-func loadAllTemplates(funcMap template.FuncMap, rootTemplate *template.Template, embedFS embed.FS, pattern string) error {
+func (s *Server) loadAllTemplates(funcMap template.FuncMap, embedFS embed.FS, pattern string) error {
 	return fs.WalkDir(embedFS, ".", func(path string, d fs.DirEntry, walkErr error) error {
 		if walkErr != nil {
 			return walkErr
@@ -167,7 +174,7 @@ func loadAllTemplates(funcMap template.FuncMap, rootTemplate *template.Template,
 				return readErr
 			}
 
-			t := rootTemplate.New(path).Funcs(funcMap)
+			t := s.rootTemplate.New(path).Funcs(funcMap)
 			if _, parseErr := t.Parse(string(data)); parseErr != nil {
 				return parseErr
 			}
@@ -231,30 +238,42 @@ func (s *Server) postThings(c *gin.Context) {
 		return
 	}
 
-	// remove, err := time.Parse(time.DateOnly, c.Query("Remove"))
-	// if err != nil {
-	// 	c.AbortWithError(http.StatusBadRequest, err)
-
-	// 	return
-	// }
-
-	_, err = s.db.CreateThing(postedThing) // 	database.CreateThingParams{
-	// 	Address:     c.Query("Address"),
-	// 	Type:        tt,
-	// 	Description: c.Query("Description"),
-	// 	Reason:      c.Query("Reason"),
-	// 	Remove:      remove,
-	// 	Creator:     c.Query("Username"),
-	// }
-
+	thing, err := s.db.CreateThing(postedThing)
 	if err != nil {
-		fmt.Printf("thing creation failed: %s\n", err)
 		c.AbortWithError(http.StatusBadRequest, err)
 
 		return
 	}
 
+	err = s.sendServerEventNewThing(thing)
+	if err != nil {
+		c.AbortWithError(http.StatusInternalServerError, err)
+
+		return
+	}
+
 	c.Status(http.StatusOK)
+}
+
+func (s *Server) sendServerEventNewThing(thing *database.Thing) error {
+	var renderedOutput bytes.Buffer
+
+	err := s.rootTemplate.ExecuteTemplate(&renderedOutput, "templates/thing.html", thing)
+	if err != nil {
+		return err
+	}
+
+	go func() {
+		htmlStr := renderedOutput.String()
+
+		select {
+		case s.newThingChan <- &ServerSentEvent{Event: "newThing", Data: htmlStr}:
+		default:
+			s.Logger.Println("no listeners for server-sent event")
+		}
+	}()
+
+	return nil
 }
 
 // Start starts listening on the given addr, blocking until Stop() is called

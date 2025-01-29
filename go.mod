@@ -3,9 +3,7 @@ module github.com/wtsi-hgi/tt
 go 1.23.3
 
 require (
-	github.com/calvinmclean/babyapi v0.23.0
 	github.com/gin-gonic/gin v1.10.0
-	github.com/go-chi/render v1.0.3
 	github.com/go-sql-driver/mysql v1.8.1
 	github.com/guregu/null/v5 v5.0.0
 	github.com/inconshreveable/log15 v2.16.0+incompatible
@@ -18,8 +16,6 @@ require (
 
 require (
 	filippo.io/edwards25519 v1.1.0 // indirect
-	github.com/FZambia/sentinel v1.1.1 // indirect
-	github.com/ajg/form v1.5.1 // indirect
 	github.com/appleboy/gin-jwt/v2 v2.10.1 // indirect
 	github.com/bytedance/sonic v1.12.8 // indirect
 	github.com/bytedance/sonic/loader v0.2.3 // indirect
@@ -28,7 +24,6 @@ require (
 	github.com/gabriel-vasile/mimetype v1.4.8 // indirect
 	github.com/gin-contrib/secure v1.1.1 // indirect
 	github.com/gin-contrib/sse v1.0.0 // indirect
-	github.com/go-chi/chi/v5 v5.0.10 // indirect
 	github.com/go-playground/locales v0.14.1 // indirect
 	github.com/go-playground/universal-translator v0.18.1 // indirect
 	github.com/go-playground/validator/v10 v10.24.0 // indirect
@@ -36,7 +31,6 @@ require (
 	github.com/go-stack/stack v1.8.1 // indirect
 	github.com/goccy/go-json v0.10.4 // indirect
 	github.com/golang-jwt/jwt/v4 v4.5.1 // indirect
-	github.com/gomodule/redigo v1.9.2 // indirect
 	github.com/google/go-cmp v0.6.0 // indirect
 	github.com/gopherjs/gopherjs v1.17.2 // indirect
 	github.com/gorilla/securecookie v1.1.2 // indirect
@@ -61,12 +55,8 @@ require (
 	github.com/patrickmn/go-cache v0.0.0-20180815053127-5633e0862627 // indirect
 	github.com/pelletier/go-toml/v2 v2.2.3 // indirect
 	github.com/pkg/errors v0.9.1 // indirect
-	github.com/rs/xid v1.6.0 // indirect
 	github.com/smarty/assertions v1.15.0 // indirect
 	github.com/spf13/pflag v1.0.5 // indirect
-	github.com/tarmac-project/hord v0.6.0 // indirect
-	github.com/tarmac-project/hord/drivers/hashmap v0.6.0 // indirect
-	github.com/tarmac-project/hord/drivers/redis v0.6.0 // indirect
 	github.com/thanhpk/randstr v1.0.6 // indirect
 	github.com/twitchyliquid64/golang-asm v0.15.1 // indirect
 	github.com/ugorji/go/codec v1.2.12 // indirect
