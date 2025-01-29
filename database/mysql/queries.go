@@ -319,7 +319,7 @@ func (m *MySQLDB) calculateLastPage(params database.GetThingsParams) (int, error
 const deleteUser = `DELETE FROM users WHERE id = ?`
 
 // DeleteUser deletes the user with the given ID. This will also delete any
-// things created by this user.
+// subscriptions the user had (but not any Things the user created).
 func (m *MySQLDB) DeleteUser(id uint32) error {
 	_, err := m.pool.Exec(deleteUser, id)
 

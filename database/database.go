@@ -25,11 +25,32 @@
 
 package database
 
+// Queries are used to interact with a database of Things, Users and
+// Subscribers.
 type Queries interface {
+	// CreateUser creates a new user with the given name and email. The returned
+	// user will have its ID set.
 	CreateUser(name, email string) (*User, error)
+
+	// CreateThing creates a new Thing with the given details. The returned
+	// Thing will have its ID set to an auto-increment value, and Created time
+	// set to now. The supplied Creator must match the Name of an existing User,
+	// and will be recored as a Subscriber of the new Thing.
 	CreateThing(args CreateThingParams) (*Thing, error)
+
+	// GetThings returns things that match the given parameters. Also in the
+	// result is the last page that would return things if Page and
+	// ThingsPerPage are > 0.
 	GetThings(params GetThingsParams) (*GetThingsResult, error)
+
+	// DeleteUser deletes the user with the given ID. This will also delete any
+	// subscriptions the user had (but not any Things the user created).
 	DeleteUser(id uint32) error
+
+	// DeleteThing deletes the thing with the given ID.
 	DeleteThing(id uint32) error
+
+	// Close releases any resources associated with doing the Queries, such as
+	// closing database handles.
 	Close() error
 }
