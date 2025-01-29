@@ -26,7 +26,6 @@
 package server
 
 import (
-	"bytes"
 	"embed"
 	"fmt"
 	"html/template"
@@ -89,7 +88,7 @@ type Server struct {
 	db           database.Queries
 	Logger       *log.Logger
 	rootTemplate *template.Template
-	newThingChan chan *ServerSentEvent
+	newThingChan chan sseThing
 }
 
 // New creates a Server which serves the tt website.
@@ -155,11 +154,10 @@ func (s *Server) addEndPoints() {
 	)
 	s.router.SetHTMLTemplate(tmpl)
 
-	s.newThingChan = s.AddServerSentEventHandler("/things/listen")
-
 	s.router.GET("/", s.pageRoot)
-	s.router.GET("/things", s.pageGetThings)
-	s.router.POST("/things", s.postThings)
+	s.router.GET("/things", s.getThings)
+	s.router.GET("/things/listen", s.sendNewThings())
+	s.router.POST("/things", s.postThing)
 }
 
 func (s *Server) loadAllTemplates(funcMap template.FuncMap, embedFS embed.FS, pattern string) error {
@@ -190,7 +188,7 @@ func (s *Server) pageRoot(c *gin.Context) {
 
 const perPage = 50
 
-func (s *Server) pageGetThings(c *gin.Context) {
+func (s *Server) getThings(c *gin.Context) {
 	dir := c.Query("dir")
 	sortCol := c.DefaultQuery("sort", "remove")
 
@@ -222,7 +220,7 @@ func (s *Server) pageGetThings(c *gin.Context) {
 	c.HTML(http.StatusOK, "templates/things.html", result.Things)
 }
 
-func (s *Server) postThings(c *gin.Context) {
+func (s *Server) postThing(c *gin.Context) {
 	var postedThing database.CreateThingParams
 
 	if err := c.ShouldBind(&postedThing); err != nil {
@@ -245,7 +243,7 @@ func (s *Server) postThings(c *gin.Context) {
 		return
 	}
 
-	err = s.sendServerEventNewThing(thing)
+	err = s.broadcastNewThing(thing)
 	if err != nil {
 		c.AbortWithError(http.StatusInternalServerError, err)
 
@@ -253,27 +251,6 @@ func (s *Server) postThings(c *gin.Context) {
 	}
 
 	c.Status(http.StatusOK)
-}
-
-func (s *Server) sendServerEventNewThing(thing *database.Thing) error {
-	var renderedOutput bytes.Buffer
-
-	err := s.rootTemplate.ExecuteTemplate(&renderedOutput, "templates/thing.html", thing)
-	if err != nil {
-		return err
-	}
-
-	go func() {
-		htmlStr := renderedOutput.String()
-
-		select {
-		case s.newThingChan <- &ServerSentEvent{Event: "newThing", Data: htmlStr}:
-		default:
-			s.Logger.Println("no listeners for server-sent event")
-		}
-	}()
-
-	return nil
 }
 
 // Start starts listening on the given addr, blocking until Stop() is called
@@ -316,6 +293,8 @@ func (s *Server) Stop() {
 	}
 
 	s.srvMutex.Unlock()
+
+	close(s.newThingChan)
 
 	ch := srv.StopChan()
 	srv.Stop(stopTimeout)

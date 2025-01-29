@@ -28,96 +28,98 @@
 package server
 
 import (
+	"bytes"
 	"fmt"
 	"net/http"
 	"strings"
 	"sync"
 
 	"github.com/gin-gonic/gin"
+	"github.com/wtsi-hgi/tt/database"
 )
 
-type broadcastChannel[T any] struct {
-	listeners []chan T
-	lock      sync.RWMutex
-}
+// sseThing is used to give the html string of a Thing the ability to Write()
+// itself to a http.ResponseWriter as a server sent event.
+type sseThing string
 
-func (bc *broadcastChannel[T]) GetListener() chan T {
-	bc.lock.Lock()
-	defer bc.lock.Unlock()
-	newChan := make(chan T)
-	bc.listeners = append(bc.listeners, newChan)
-	return newChan
-}
-
-func (bc *broadcastChannel[T]) RemoveListener(removeChan chan T) {
-	bc.lock.Lock()
-	defer bc.lock.Unlock()
-	for i, listener := range bc.listeners {
-		if listener == removeChan {
-			bc.listeners[i] = bc.listeners[len(bc.listeners)-1]
-			bc.listeners = bc.listeners[:len(bc.listeners)-1]
-			close(listener)
-			return
-		}
-	}
-}
-
-func (bc *broadcastChannel[T]) SendToAll(input T) {
-	bc.lock.RLock()
-	defer bc.lock.RUnlock()
-	for _, listener := range bc.listeners {
-		listener <- input
-	}
-}
-
-func (bc *broadcastChannel[T]) runInputChannel(inputChan chan T) {
-	for input := range inputChan {
-		bc.SendToAll(input)
-	}
-}
-
-// GetInputChannel returns a channel acting as an input to the broadcast
-// channel, closing the channel will stop the worker goroutine
-func (bc *broadcastChannel[T]) GetInputChannel() chan T {
-	newInputChan := make(chan T)
-	go bc.runInputChannel(newInputChan)
-	return newInputChan
-}
-
-// ServerSentEvent is a simple struct that represents an event used in HTTP
-// event stream
-type ServerSentEvent struct {
-	Event string
-	Data  string
-}
-
-// Write will write the ServerSentEvent to the HTTP response stream and flush.
-// It removes all newlines in the event data
-func (sse *ServerSentEvent) Write(w http.ResponseWriter) {
-	fmt.Fprintf(w, "event: %s\ndata: %s\n\n", sse.Event, strings.ReplaceAll(sse.Data, "\n", ""))
+func (sse sseThing) Write(w http.ResponseWriter) {
+	fmt.Fprintf(w, "event: newThing\ndata: %s\n\n", strings.ReplaceAll(string(sse), "\n", ""))
 	if f, ok := w.(http.Flusher); ok {
 		f.Flush()
 	}
 }
 
-// AddServerSentEventHandler is a shortcut for HandleServerSentEvents that
-// automatically creates and returns the events channel and adds a custom
-// handler for GET requests matching the provided pattern
-func (s *Server) AddServerSentEventHandler(pattern string) chan *ServerSentEvent {
-	eventsBroadcastChannel := broadcastChannel[*ServerSentEvent]{}
-
-	s.router.GET(pattern, s.HandleServerSentEvents(&eventsBroadcastChannel))
-
-	return eventsBroadcastChannel.GetInputChannel()
+type broadcaster struct {
+	listeners []chan sseThing
+	sync.RWMutex
 }
 
-// HandleServerSentEvents is a handler function that will listen on the provided
-// channel and write events to the HTTP response
-func (s *Server) HandleServerSentEvents(EventsBroadcastChannel *broadcastChannel[*ServerSentEvent]) gin.HandlerFunc {
+// Start begins ranging over the returned channel, calling Broadcast() with the
+// the sseThings you send on the channel, to replicate the sseThing to all
+// listeners.
+func (bc *broadcaster) Start() chan sseThing {
+	sseThingChan := make(chan sseThing)
+
+	go func() {
+		for input := range sseThingChan {
+			bc.Broadcast(input)
+		}
+	}()
+
+	return sseThingChan
+}
+
+// Broadcast replicates the given input to all listeners registerd with
+// NewListener().
+func (bc *broadcaster) Broadcast(input sseThing) {
+	bc.RLock()
+	defer bc.RUnlock()
+
+	for _, listener := range bc.listeners {
+		listener <- input
+	}
+}
+
+// NewListener adds a new listener client that will receive future broadcasts
+// of new sseThings.
+func (bc *broadcaster) NewListener() chan sseThing {
+	bc.Lock()
+	defer bc.Unlock()
+
+	newChan := make(chan sseThing)
+	bc.listeners = append(bc.listeners, newChan)
+
+	return newChan
+}
+
+// RemoveListener removes a listener channel previously supplied to
+// NewListern().
+func (bc *broadcaster) RemoveListener(removeChan chan sseThing) {
+	bc.Lock()
+	defer bc.Unlock()
+
+	for i, listener := range bc.listeners {
+		if listener == removeChan {
+			bc.listeners[i] = bc.listeners[len(bc.listeners)-1]
+			bc.listeners = bc.listeners[:len(bc.listeners)-1]
+			close(listener)
+
+			return
+		}
+	}
+}
+
+// sendNewThings creates a channel that broadcastNewThing() will send new Things
+// on, which will then be replicated to every listener of this route, the
+// clients getting the rendered html of the Thing.
+func (s *Server) sendNewThings() func(c *gin.Context) {
+	b := broadcaster{}
+	s.newThingChan = b.Start()
+
 	return func(c *gin.Context) {
 		w := c.Writer
-		events := EventsBroadcastChannel.GetListener()
-		defer EventsBroadcastChannel.RemoveListener(events)
+		events := b.NewListener()
+		defer b.RemoveListener(events)
 		w.Header().Set("Cache-Control", "no-cache")
 		w.Header().Set("Connection", "keep-alive")
 		w.Header().Set("Content-Type", "text/event-stream")
@@ -131,4 +133,22 @@ func (s *Server) HandleServerSentEvents(EventsBroadcastChannel *broadcastChannel
 			}
 		}
 	}
+}
+
+// broadcastNewThing returns an error if there's an issue rendering the given
+// thing via the thing.html template. Otherwise, in a goroutine, sends the Thing
+// html on the channel that replicates it to all sendNewThings() listeners.
+func (s *Server) broadcastNewThing(thing *database.Thing) error {
+	var renderedOutput bytes.Buffer
+
+	err := s.rootTemplate.ExecuteTemplate(&renderedOutput, "templates/thing.html", thing)
+	if err != nil {
+		return err
+	}
+
+	go func() {
+		s.newThingChan <- sseThing(renderedOutput.String())
+	}()
+
+	return nil
 }
