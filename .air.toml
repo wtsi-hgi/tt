@@ -40,12 +40,12 @@ tmp_dir = "tmp"
   time = false
 
 [misc]
-  clean_on_exit = false
+  clean_on_exit = true
 
 [proxy]
-  app_port = 0
   enabled = false
-  proxy_port = 0
+  app_port = 4563
+  proxy_port = 4564
 
 [screen]
   clear_on_rebuild = false
