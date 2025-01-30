@@ -27,13 +27,13 @@ package mysql
 
 import (
 	"database/sql"
-	"fmt"
 	"os"
 	"testing"
 	"time"
 
 	. "github.com/smartystreets/goconvey/convey"
 	"github.com/wtsi-hgi/tt/database"
+	"github.com/wtsi-hgi/tt/internal"
 )
 
 const (
@@ -240,96 +240,53 @@ func TestMySQL(t *testing.T) {
 			So(count, ShouldEqual, 0)
 
 			Convey("You can then add users and things", func() {
-				emailSuffix := "@example.com"
-				u1 := "user1"
-				u2 := "user2"
+				expectedUsers, expectedThings, expectedSubs := internal.GetExampleData()
 
-				user1, err := db.CreateUser(u1, u1+emailSuffix)
+				user1, err := db.CreateUser(expectedUsers[0].Name, expectedUsers[0].Email)
 				So(err, ShouldBeNil)
-				So(user1, ShouldResemble, &database.User{
-					ID:    1,
-					Name:  u1,
-					Email: u1 + emailSuffix,
-				})
+				So(user1, ShouldResemble, &expectedUsers[0])
 
-				user2, err := db.CreateUser(u2, u2+emailSuffix)
+				user2, err := db.CreateUser(expectedUsers[1].Name, expectedUsers[1].Email)
 				So(err, ShouldBeNil)
-				So(user2, ShouldResemble, &database.User{
-					ID:    2,
-					Name:  u2,
-					Email: u2 + emailSuffix,
-				})
+				So(user2, ShouldResemble, &expectedUsers[1])
 
-				_, err = db.CreateUser(u1, u1+"@foo.com")
+				_, err = db.CreateUser(expectedUsers[0].Name, "foo@bar.com")
 				So(err, ShouldNotBeNil)
 
-				_, err = db.CreateUser("foo", u1+emailSuffix)
+				_, err = db.CreateUser("foo", expectedUsers[1].Email)
 				So(err, ShouldNotBeNil)
 
 				count, err = countTableRows(db.pool, "users")
 				So(err, ShouldBeNil)
 				So(count, ShouldEqual, 2)
 
-				i := uint32(0)
-				year := uint32(1970)
-				thingsTypes := []database.ThingsType{
-					database.ThingsTypeIrods,
-					database.ThingsTypeDir,
-					database.ThingsTypeS3,
-					database.ThingsTypeFile,
-					database.ThingsTypeOpenstack,
-				}
-				thingsPerType := 2
-				numThings := len(thingsTypes) * thingsPerType
-				expectedThings := make([]database.Thing, numThings)
-				addresses := []string{
-					"j", "c", "e", "i", "a", "f", "b", "g", "d", "h",
-				}
-				reasons := []string{
-					"i", "c", "g", "e", "a", "d", "f", "h", "j", "b",
-				}
+				for i, et := range expectedThings {
+					before := time.Now()
 
-				for _, thingType := range thingsTypes {
-					for j := range thingsPerType {
-						creator := user1
-						if j%2 != 0 {
-							creator = user2
-						}
+					var creator database.User
 
-						remove, err := time.Parse(time.DateOnly, fmt.Sprintf("%d-01-02", year+i))
-						So(err, ShouldBeNil)
-
-						before := time.Now()
-
-						thing, err := db.CreateThing(database.CreateThingParams{
-							Address:     addresses[i],
-							Type:        thingType,
-							Description: "desc",
-							Reason:      reasons[i],
-							Remove:      remove,
-							Creator:     creator.Name,
-						})
-						So(err, ShouldBeNil)
-
-						after := time.Now()
-						created := thing.Created
-						So(created, ShouldHappenOnOrBetween, before, after)
-
-						expectedThing := database.Thing{
-							ID:          i + 1,
-							Address:     addresses[i],
-							Type:        thingType,
-							Description: "desc",
-							Reason:      reasons[i],
-							Remove:      remove,
-						}
-						expectedThings[i] = expectedThing
-
-						thing.Created = time.Time{}
-						So(thing, ShouldResemble, &expectedThing)
-
-						i++
+					if expectedSubs[i].UserID == expectedUsers[0].ID {
+						creator = expectedUsers[0]
+					} else {
+						creator = expectedUsers[1]
 					}
+
+					thing, err := db.CreateThing(database.CreateThingParams{
+						Address:     et.Address,
+						Type:        et.Type,
+						Description: et.Description,
+						Reason:      et.Reason,
+						Remove:      et.Remove,
+						Creator:     creator.Name,
+					})
+					So(err, ShouldBeNil)
+
+					after := time.Now()
+					created := thing.Created
+					So(created, ShouldHappenOnOrBetween, before, after)
+
+					thing.Created = time.Time{}
+					So(thing, ShouldResemble, &et)
 				}
 
 				_, err = db.CreateThing(database.CreateThingParams{
@@ -343,6 +300,7 @@ func TestMySQL(t *testing.T) {
 				So(err, ShouldNotBeNil)
 				So(err, ShouldEqual, ErrNoUser)
 
+				numThings := len(expectedThings)
 				count, err = countTableRows(db.pool, "things")
 				So(err, ShouldBeNil)
 				So(count, ShouldEqual, numThings)
@@ -378,9 +336,9 @@ func TestMySQL(t *testing.T) {
 					})
 					So(err, ShouldBeNil)
 					So(len(result.Things), ShouldEqual, numThings)
-					So(result.Things[0].Address, ShouldEqual, addresses[numThings-1])
-					So(result.Things[0].Type, ShouldEqual, thingsTypes[len(thingsTypes)-1])
-					So(result.Things[0].Reason, ShouldEqual, reasons[numThings-1])
+					So(result.Things[0].Address, ShouldEqual, expectedThings[numThings-1].Address)
+					So(result.Things[0].Type, ShouldEqual, expectedThings[numThings-1].Type)
+					So(result.Things[0].Reason, ShouldEqual, expectedThings[numThings-1].Reason)
 					So(result.Things[0].Remove.Format(time.DateOnly), ShouldEqual, "1979-01-02")
 					So(result.Things[numThings-1].Remove.Format(time.DateOnly), ShouldEqual, "1970-01-02")
 
@@ -443,7 +401,7 @@ func TestMySQL(t *testing.T) {
 						FilterOnType: database.ThingsTypeIrods,
 					})
 					So(err, ShouldBeNil)
-					So(len(result.Things), ShouldEqual, thingsPerType)
+					So(len(result.Things), ShouldEqual, 2)
 					So(result.Things[0].Type, ShouldEqual, database.ThingsTypeIrods)
 					So(result.Things[1].Type, ShouldEqual, database.ThingsTypeIrods)
 
