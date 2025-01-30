@@ -35,7 +35,11 @@ type Error string
 
 func (e Error) Error() string { return string(e) }
 
-const ErrBadType = Error("Invalid things type")
+const (
+	ErrBadType           = Error("Invalid things type")
+	ErrBadOrderBy        = Error("Invalid order")
+	ErrBadOrderDirection = Error("Invalid direction")
+)
 
 type ThingsType string
 
@@ -92,12 +96,52 @@ const (
 	OrderByRemove OrderBy = "remove"
 )
 
+// NewOrderBy converts the given str to an OrderBy, but only if it matches
+// one of the allowed OrderBy* constants. Returns an error if not. Blank str
+// returns the default OrderByRemove.
+func NewOrderBy(str string) (OrderBy, error) {
+	var orderBy OrderBy
+
+	switch OrderBy(str) {
+	case OrderByAddres:
+		orderBy = OrderByAddres
+	case OrderByType:
+		orderBy = OrderByType
+	case OrderByReason:
+		orderBy = OrderByReason
+	case "", OrderByRemove:
+		orderBy = OrderByRemove
+	default:
+		return "", ErrBadOrderBy
+	}
+
+	return orderBy, nil
+}
+
 type OrderDirection string
 
 const (
 	OrderAsc  OrderDirection = "ASC"
 	OrderDesc OrderDirection = "DESC"
 )
+
+// NewOrderDirection converts the given str to an OrderDirection, but only if it
+// matches one of the allowed OrderDirection* constants. Returns an error if
+// not. Blank str returns the default OrderAsc.
+func NewOrderDirection(str string) (OrderDirection, error) {
+	var orderDir OrderDirection
+
+	switch OrderDirection(str) {
+	case "", OrderAsc:
+		orderDir = OrderAsc
+	case OrderDesc:
+		orderDir = OrderDesc
+	default:
+		return "", ErrBadOrderDirection
+	}
+
+	return orderDir, nil
+}
 
 // GetThingsParams, when default value and provided to GetThings(), will get
 // all things. Optionally set any of the values to filter, order or get a

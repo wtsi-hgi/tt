@@ -61,3 +61,49 @@ func TestNewThingsTypes(t *testing.T) {
 		So(err, ShouldNotBeNil)
 	})
 }
+
+func TestNewOrderBy(t *testing.T) {
+	Convey("You can convert strings to OrderBy*, unless it's invalid", t, func() {
+		ob, err := NewOrderBy("")
+		So(err, ShouldBeNil)
+		So(ob, ShouldEqual, OrderByRemove)
+
+		ob, err = NewOrderBy("address")
+		So(err, ShouldBeNil)
+		So(ob, ShouldEqual, OrderByAddres)
+
+		ob, err = NewOrderBy("type")
+		So(err, ShouldBeNil)
+		So(ob, ShouldEqual, OrderByType)
+
+		ob, err = NewOrderBy("reason")
+		So(err, ShouldBeNil)
+		So(ob, ShouldEqual, OrderByReason)
+
+		ob, err = NewOrderBy("remove")
+		So(err, ShouldBeNil)
+		So(ob, ShouldEqual, OrderByRemove)
+
+		_, err = NewOrderBy("invalid")
+		So(err, ShouldNotBeNil)
+	})
+}
+
+func TestNewOrderDirection(t *testing.T) {
+	Convey("You can convert strings to OrderDirection*, unless it's invalid", t, func() {
+		od, err := NewOrderDirection("")
+		So(err, ShouldBeNil)
+		So(od, ShouldEqual, OrderAsc)
+
+		od, err = NewOrderDirection("ASC")
+		So(err, ShouldBeNil)
+		So(od, ShouldEqual, OrderAsc)
+
+		od, err = NewOrderDirection("DESC")
+		So(err, ShouldBeNil)
+		So(od, ShouldEqual, OrderDesc)
+
+		_, err = NewOrderDirection("invalid")
+		So(err, ShouldNotBeNil)
+	})
+}
