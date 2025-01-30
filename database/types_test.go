@@ -33,7 +33,11 @@ import (
 
 func TestNewThingsTypes(t *testing.T) {
 	Convey("You can convert strings to ThingsType*, unless it's invalid", t, func() {
-		tt, err := NewThingsType("dir")
+		tt, err := NewThingsType("")
+		So(err, ShouldBeNil)
+		So(tt, ShouldEqual, ThingsTypeNil)
+
+		tt, err = NewThingsType("dir")
 		So(err, ShouldBeNil)
 		So(tt, ShouldEqual, ThingsTypeDir)
 

@@ -434,6 +434,12 @@ func TestMySQL(t *testing.T) {
 					So(result.Things[numThings-1].Remove.Format(time.DateOnly), ShouldEqual, "1979-01-02")
 
 					result, err = db.GetThings(database.GetThingsParams{
+						FilterOnType: database.ThingsTypeNil,
+					})
+					So(err, ShouldBeNil)
+					So(len(result.Things), ShouldEqual, numThings)
+
+					result, err = db.GetThings(database.GetThingsParams{
 						FilterOnType: database.ThingsTypeIrods,
 					})
 					So(err, ShouldBeNil)

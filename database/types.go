@@ -40,6 +40,7 @@ const ErrBadType = Error("Invalid things type")
 type ThingsType string
 
 const (
+	ThingsTypeNil       ThingsType = ""
 	ThingsTypeDir       ThingsType = "dir"
 	ThingsTypeFile      ThingsType = "file"
 	ThingsTypeIrods     ThingsType = "irods"
@@ -63,6 +64,8 @@ func NewThingsType(str string) (ThingsType, error) {
 	var thingsType ThingsType
 
 	switch ThingsType(str) {
+	case ThingsTypeNil:
+		thingsType = ThingsTypeNil
 	case ThingsTypeDir:
 		thingsType = ThingsTypeDir
 	case ThingsTypeFile:

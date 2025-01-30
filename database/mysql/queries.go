@@ -251,7 +251,7 @@ func getThingsParamsToSQL(params database.GetThingsParams, sql *strings.Builder)
 }
 
 func whereSQL(params database.GetThingsParams, sql *strings.Builder) {
-	if params.FilterOnType == "" {
+	if params.FilterOnType == database.ThingsTypeNil {
 		return
 	}
 
