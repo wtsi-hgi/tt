@@ -90,10 +90,10 @@ func NewThingsType(str string) (ThingsType, error) {
 type OrderBy string
 
 const (
-	OrderByAddres OrderBy = "address"
-	OrderByType   OrderBy = "type"
-	OrderByReason OrderBy = "reason"
-	OrderByRemove OrderBy = "remove"
+	OrderByAddress OrderBy = "address"
+	OrderByType    OrderBy = "type"
+	OrderByReason  OrderBy = "reason"
+	OrderByRemove  OrderBy = "remove"
 )
 
 // NewOrderBy converts the given str to an OrderBy, but only if it matches
@@ -103,8 +103,8 @@ func NewOrderBy(str string) (OrderBy, error) {
 	var orderBy OrderBy
 
 	switch OrderBy(str) {
-	case OrderByAddres:
-		orderBy = OrderByAddres
+	case OrderByAddress:
+		orderBy = OrderByAddress
 	case OrderByType:
 		orderBy = OrderByType
 	case OrderByReason:

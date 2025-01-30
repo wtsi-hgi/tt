@@ -70,7 +70,7 @@ func TestNewOrderBy(t *testing.T) {
 
 		ob, err = NewOrderBy("address")
 		So(err, ShouldBeNil)
-		So(ob, ShouldEqual, OrderByAddres)
+		So(ob, ShouldEqual, OrderByAddress)
 
 		ob, err = NewOrderBy("type")
 		So(err, ShouldBeNil)

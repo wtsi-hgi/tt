@@ -343,7 +343,7 @@ func TestMySQL(t *testing.T) {
 					So(result.Things[numThings-1].Remove.Format(time.DateOnly), ShouldEqual, "1970-01-02")
 
 					result, err = db.GetThings(database.GetThingsParams{
-						OrderBy: database.OrderByAddres,
+						OrderBy: database.OrderByAddress,
 					})
 					So(err, ShouldBeNil)
 					So(len(result.Things), ShouldEqual, numThings)
@@ -351,7 +351,7 @@ func TestMySQL(t *testing.T) {
 					So(result.Things[numThings-1].Address, ShouldEqual, "j")
 
 					result, err = db.GetThings(database.GetThingsParams{
-						OrderBy:        database.OrderByAddres,
+						OrderBy:        database.OrderByAddress,
 						OrderDirection: database.OrderDesc,
 					})
 					So(err, ShouldBeNil)

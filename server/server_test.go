@@ -82,7 +82,7 @@ func sortAndFilterThings(origThings []database.Thing, params database.GetThingsP
 
 	order := []int{0, 1, 2, 3, 4, 5, 6, 7, 8, 9}
 
-	if params.OrderBy == database.OrderByAddres {
+	if params.OrderBy == database.OrderByAddress {
 		order = []int{4, 6, 1, 8, 2, 6, 7, 9, 3, 0}
 	}
 
@@ -177,7 +177,7 @@ func TestServer(t *testing.T) {
 			So(code, ShouldEqual, http.StatusBadRequest)
 
 			things = sortAndFilterThings(mdb.things, database.GetThingsParams{
-				OrderBy: database.OrderByAddres,
+				OrderBy: database.OrderByAddress,
 			})
 			expected = executeThingsTemplate(things)
 			actual = testEndpoint(s, "GET", "/things?sort=address", nil)
@@ -187,7 +187,7 @@ func TestServer(t *testing.T) {
 			So(code, ShouldEqual, http.StatusBadRequest)
 
 			things = sortAndFilterThings(mdb.things, database.GetThingsParams{
-				OrderBy:        database.OrderByAddres,
+				OrderBy:        database.OrderByAddress,
 				OrderDirection: database.OrderDesc,
 			})
 			expected = executeThingsTemplate(things)
