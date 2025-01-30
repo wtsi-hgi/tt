@@ -40,25 +40,36 @@ func (s *Server) pageRoot(c *gin.Context) {
 }
 
 func (s *Server) getThings(c *gin.Context) {
-	dir := c.Query("dir")
-	sortCol := c.DefaultQuery("sort", "remove")
+	orderBy, err := database.NewOrderBy(c.Query("sort"))
+	if err != nil {
+		c.AbortWithError(http.StatusBadRequest, err)
+
+		return
+	}
+
+	orderDirection, err := database.NewOrderDirection(c.Query("dir"))
+	if err != nil {
+		c.AbortWithError(http.StatusBadRequest, err)
+
+		return
+	}
 
 	page, err := strconv.Atoi(c.DefaultQuery("page", "1"))
 	if err != nil || page < 1 {
 		page = 1
 	}
 
-	var thingType database.ThingsType
+	thingType, err := database.NewThingsType(c.Query("type"))
+	if err != nil {
+		c.AbortWithError(http.StatusBadRequest, err)
 
-	switch c.Query("type") {
-	case string(database.ThingsTypeDir):
-		thingType = database.ThingsTypeDir
+		return
 	}
 
 	result, err := s.db.GetThings(database.GetThingsParams{
 		FilterOnType:   thingType,
-		OrderBy:        database.OrderBy(sortCol),
-		OrderDirection: database.OrderDirection(dir),
+		OrderBy:        orderBy,
+		OrderDirection: orderDirection,
 		Page:           page,
 		ThingsPerPage:  perPage,
 	})

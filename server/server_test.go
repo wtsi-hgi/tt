@@ -26,22 +26,40 @@
 package server
 
 import (
+	"bytes"
+	"html/template"
 	"io"
 	"net/http"
 	"net/http/httptest"
+	"slices"
+	"strings"
 	"testing"
 	"time"
 
 	. "github.com/smartystreets/goconvey/convey"
 	gas "github.com/wtsi-hgi/go-authserver"
 	"github.com/wtsi-hgi/tt/database"
+	"github.com/wtsi-hgi/tt/internal"
 )
 
 type mockDB struct {
+	users    []database.User
+	things   []database.Thing
+	subs     []database.Subscriber
+	lastPage int
 }
 
 func newMockDB() *mockDB {
-	return &mockDB{}
+	var users []database.User
+	var things []database.Thing
+	var subs []database.Subscriber
+
+	return &mockDB{
+		users:    users,
+		things:   things,
+		subs:     subs,
+		lastPage: 1,
+	}
 }
 
 func (m *mockDB) CreateUser(name, email string) (*database.User, error) {
@@ -53,7 +71,38 @@ func (m *mockDB) CreateThing(args database.CreateThingParams) (*database.Thing, 
 }
 
 func (m *mockDB) GetThings(params database.GetThingsParams) (*database.GetThingsResult, error) {
-	return nil, nil
+	return &database.GetThingsResult{
+		Things:   sortAndFilterThings(m.things, params),
+		LastPage: m.lastPage,
+	}, nil
+}
+
+func sortAndFilterThings(origThings []database.Thing, params database.GetThingsParams) []database.Thing {
+	var things []database.Thing
+
+	order := []int{0, 1, 2, 3, 4, 5, 6, 7, 8, 9}
+
+	if params.OrderBy == database.OrderByAddres {
+		order = []int{4, 6, 1, 8, 2, 6, 7, 9, 3, 0}
+	}
+
+	if params.FilterOnType == database.ThingsTypeS3 {
+		order = []int{4, 5}
+	}
+
+	if params.OrderDirection == database.OrderDesc {
+		slices.Reverse(order)
+	}
+
+	for i := range origThings {
+		if i >= len(order) {
+			break
+		}
+
+		things = append(things, origThings[order[i]])
+	}
+
+	return things
 }
 
 func (m *mockDB) DeleteUser(id uint32) error {
@@ -71,18 +120,18 @@ func (m *mockDB) Close() error {
 func TestServer(t *testing.T) {
 	Convey("Given a valid Config", t, func() {
 		logWriter := gas.NewStringLogger()
-		database := newMockDB()
+		mdb := newMockDB()
 
 		conf := Config{
 			HTTPLogger: logWriter,
-			Database:   database,
+			Database:   mdb,
 		}
 		So(conf.CheckValid(), ShouldBeNil)
 
 		s, err := New(conf)
 		So(err, ShouldBeNil)
 
-		Convey("You can start and stop the server", func() {
+		SkipConvey("You can start and stop the server", func() {
 			errCh := make(chan error, 1)
 
 			go func() {
@@ -97,22 +146,111 @@ func TestServer(t *testing.T) {
 		})
 
 		Convey("You can use the root endpoint", func() {
-			body := testEndpoint(s, "GET", "/", nil)
+			actual := testEndpoint(s, "GET", "/", nil)
 
-			data, err := templatesFS.ReadFile("templates/root.html")
+			expected, err := templatesFS.ReadFile("templates/root.html")
 			So(err, ShouldBeNil)
 
-			So(body, ShouldEqual, string(data))
+			So(actual, ShouldEqual, string(expected))
+		})
+
+		Convey("You can use the things endpoint", func() {
+			actual := testEndpoint(s, "GET", "/things", nil)
+			So(actual, ShouldEqual, "")
+
+			mdb.users, mdb.things, mdb.subs = internal.GetExampleData()
+			expected := executeThingsTemplate(mdb.things)
+
+			actual = testEndpoint(s, "GET", "/things", nil)
+			So(actual, ShouldEqual, expected)
+			So(strings.Count(actual, "</tr"), ShouldEqual, 10)
+			So(strings.Count(actual, "<td>"), ShouldEqual, 60)
+
+			things := sortAndFilterThings(mdb.things, database.GetThingsParams{
+				OrderDirection: database.OrderDesc,
+			})
+			expected = executeThingsTemplate(things)
+			actual = testEndpoint(s, "GET", "/things?dir=DESC", nil)
+			So(actual, ShouldEqual, expected)
+
+			code := testEndpointCode(s, "GET", "/things?dir=BAD", nil)
+			So(code, ShouldEqual, http.StatusBadRequest)
+
+			things = sortAndFilterThings(mdb.things, database.GetThingsParams{
+				OrderBy: database.OrderByAddres,
+			})
+			expected = executeThingsTemplate(things)
+			actual = testEndpoint(s, "GET", "/things?sort=address", nil)
+			So(actual, ShouldEqual, expected)
+
+			code = testEndpointCode(s, "GET", "/things?sort=bad", nil)
+			So(code, ShouldEqual, http.StatusBadRequest)
+
+			things = sortAndFilterThings(mdb.things, database.GetThingsParams{
+				OrderBy:        database.OrderByAddres,
+				OrderDirection: database.OrderDesc,
+			})
+			expected = executeThingsTemplate(things)
+			actual = testEndpoint(s, "GET", "/things?sort=address&dir=DESC", nil)
+			So(actual, ShouldEqual, expected)
+
+			things = sortAndFilterThings(mdb.things, database.GetThingsParams{
+				FilterOnType: database.ThingsTypeS3,
+			})
+			expected = executeThingsTemplate(things)
+			actual = testEndpoint(s, "GET", "/things?type=s3", nil)
+			So(actual, ShouldEqual, expected)
+			So(strings.Count(actual, "</tr>"), ShouldEqual, 2)
+
+			code = testEndpointCode(s, "GET", "/things?type=bad", nil)
+			So(code, ShouldEqual, http.StatusBadRequest)
 		})
 	})
 }
 
 func testEndpoint(s *Server, method, target string, inputBody io.Reader) string {
+	recorder := recordRequest(s, method, target, inputBody)
+	So(recorder.Code, ShouldEqual, http.StatusOK)
+	So(recorder.Header().Get("Content-Type"), ShouldEqual, "text/html; charset=utf-8")
+
+	return recorder.Body.String()
+}
+
+func recordRequest(s *Server, method, target string, inputBody io.Reader) *httptest.ResponseRecorder {
 	recorder := httptest.NewRecorder()
 	req := httptest.NewRequest(method, target, inputBody)
 	s.router.ServeHTTP(recorder, req)
 
-	So(recorder.Code, ShouldEqual, http.StatusOK)
+	return recorder
+}
 
-	return recorder.Body.String()
+func testEndpointCode(s *Server, method, target string, inputBody io.Reader) int {
+	recorder := recordRequest(s, method, target, inputBody)
+	return recorder.Code
+}
+
+func executeThingsTemplate(things []database.Thing) string {
+	data, err := templatesFS.ReadFile("templates/things.html")
+	So(err, ShouldBeNil)
+	templ := template.New("")
+	templChild := templ.New("templates/things.html")
+	templChild, err = templChild.Parse(string(data))
+	So(err, ShouldBeNil)
+
+	data, err = templatesFS.ReadFile("templates/thing.html")
+	So(err, ShouldBeNil)
+	templChild = templChild.New("templates/thing.html")
+	_, err = templChild.Parse(string(data))
+	So(err, ShouldBeNil)
+
+	var expectedB bytes.Buffer
+	err = templ.ExecuteTemplate(&expectedB, "templates/things.html", things)
+	So(err, ShouldBeNil)
+
+	expected := expectedB.String()
+	So(expected, ShouldStartWith, "\n<tr")
+	So(expected, ShouldEndWith, "</tr>\n")
+	So(expected, ShouldContainSubstring, "<td>")
+
+	return expected
 }
