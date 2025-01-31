@@ -94,6 +94,18 @@ func sortAndFilterThings(origThings []database.Thing, params database.GetThingsP
 		slices.Reverse(order)
 	}
 
+	if params.ThingsPerPage > 0 {
+		low := (params.Page - 1) * params.ThingsPerPage
+		if low >= len(order) {
+			order = []int{}
+		}
+		high := low + params.ThingsPerPage
+		if high > len(order) {
+			high = len(order)
+		}
+		order = order[low:high]
+	}
+
 	for i := range origThings {
 		if i >= len(order) {
 			break
@@ -204,6 +216,31 @@ func TestServer(t *testing.T) {
 
 			code = testEndpointCode(s, "GET", "/things?type=bad", nil)
 			So(code, ShouldEqual, http.StatusBadRequest)
+
+			perPage := 3
+			things = sortAndFilterThings(mdb.things, database.GetThingsParams{
+				Page:          1,
+				ThingsPerPage: perPage,
+			})
+			expected = executeThingsTemplate(things)
+			actual = testEndpoint(s, "GET", "/things?page=1&per_page=3", nil)
+			So(actual, ShouldEqual, expected)
+			So(strings.Count(actual, "</tr>"), ShouldEqual, perPage)
+			So(actual, ShouldContainSubstring, "<td>j</td>")
+			So(actual, ShouldContainSubstring, "<td>c</td>")
+			So(actual, ShouldContainSubstring, "<td>e</td>")
+
+			things = sortAndFilterThings(mdb.things, database.GetThingsParams{
+				Page:          2,
+				ThingsPerPage: perPage,
+			})
+			expected = executeThingsTemplate(things)
+			actual = testEndpoint(s, "GET", "/things?page=2&per_page=3", nil)
+			So(actual, ShouldEqual, expected)
+			So(strings.Count(actual, "</tr>"), ShouldEqual, perPage)
+			So(actual, ShouldContainSubstring, "<td>i</td>")
+			So(actual, ShouldContainSubstring, "<td>a</td>")
+			So(actual, ShouldContainSubstring, "<td>f</td>")
 		})
 	})
 }

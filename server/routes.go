@@ -33,12 +33,28 @@ import (
 	"github.com/wtsi-hgi/tt/database"
 )
 
-const perPage = 50
+const (
+	defaultPage    = 1
+	defaultPerPage = 50
+)
 
+// pageRoot takes no user input; it's for the overall main html page at /.
 func (s *Server) pageRoot(c *gin.Context) {
 	c.HTML(http.StatusOK, "templates/root.html", nil)
 }
 
+// getThings returns table rows for each Thing in the database. User can supply
+// url query values to /things? to alter which and how these are returned:
+//
+// sort=[address|type|reason|remove] : sort by chosen field in Thing, default
+// remove
+//
+// dir=[ASC|DESC] : sort direction, default ascending
+//
+// type=[dir|file|irods|openstack|s3] : filter to only show this type of thing
+//
+// page=<int>&per_page=<int> : get a particular page of results, where each page
+// has per_page Things. Page defaults to 1, and per_page defaults to 50
 func (s *Server) getThings(c *gin.Context) {
 	orderBy, err := database.NewOrderBy(c.Query("sort"))
 	if err != nil {
@@ -54,16 +70,21 @@ func (s *Server) getThings(c *gin.Context) {
 		return
 	}
 
-	page, err := strconv.Atoi(c.DefaultQuery("page", "1"))
-	if err != nil || page < 1 {
-		page = 1
-	}
-
 	thingType, err := database.NewThingsType(c.Query("type"))
 	if err != nil {
 		c.AbortWithError(http.StatusBadRequest, err)
 
 		return
+	}
+
+	page, err := strconv.Atoi(c.Query("page"))
+	if err != nil || page < 1 {
+		page = defaultPage
+	}
+
+	perPage, err := strconv.Atoi(c.Query("per_page"))
+	if err != nil || perPage < 1 {
+		perPage = defaultPerPage
 	}
 
 	result, err := s.db.GetThings(database.GetThingsParams{
@@ -82,6 +103,12 @@ func (s *Server) getThings(c *gin.Context) {
 	c.HTML(http.StatusOK, "templates/things.html", result.Things)
 }
 
+// postThing posts all required fields of a Thing to /things, along with Creator
+// as the username of the person making this thing, and creates a new Thing
+// and Subscriber in the database.
+//
+// Afterwards, it broadcasts the new Thing to all listeners of /things/listen
+// using SSE.
 func (s *Server) postThing(c *gin.Context) {
 	var postedThing database.CreateThingParams
 
@@ -115,6 +142,8 @@ func (s *Server) postThing(c *gin.Context) {
 	c.Status(http.StatusOK)
 }
 
+// deleteThing deletes the thing with the id in the url /things/id from the
+// database.
 func (s *Server) deleteThing(c *gin.Context) {
 	thingID, err := strconv.Atoi(c.Param("id"))
 	if err != nil {
