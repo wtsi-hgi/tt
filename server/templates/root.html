@@ -22,68 +22,76 @@
 </style>
 
 <body>
-	Username: <input class="uk-input" name="Creator" type="text" />
+	<div class="uk-container uk-flex uk-flex-right uk-padding-small">
+		<form>
+			<input class="uk-input uk-form-width-medium uk-form-small" name="Creator" type="text"
+				placeholder="username" />
+		</form>
+	</div>
 
-	<table class="uk-table uk-table-divider uk-table-striped uk-margin-left uk-margin-right">
-		<colgroup>
-			<col>
-			<col>
-			<col>
-			<col>
-			<col>
-			<col style="width: 300px;">
-		</colgroup>
+	<div class="uk-container">
+		<table class="uk-table uk-table-divider uk-table-striped uk-margin-left uk-margin-right">
+			<colgroup>
+				<col>
+				<col>
+				<col>
+				<col>
+				<col>
+				<col style="width: 300px;">
+			</colgroup>
 
-		<thead>
-			<tr hx-headers='{"Accept": "text/html"}' hx-trigger="click" hx-target="tbody#things-list">
-				<th>
-					Address<span uk-icon="arrow-up" hx-get="/things?sort=address&dir=DESC"></span><span
-						uk-icon="arrow-down" hx-get="/things?sort=address&dir=ASC"></span>
-				</th>
-				<th>
-					Type<span uk-icon="arrow-up" hx-get="/things?sort=type&dir=DESC"></span><span uk-icon="arrow-down"
-						hx-get="/things?sort=type&dir=ASC"></span>
-				</th>
-				<th>
-					Reason<span uk-icon="arrow-up" hx-get="/things?sort=reason&dir=DESC"></span><span
-						uk-icon="arrow-down" hx-get="/things?sort=reason&dir=ASC"></span>
-				</th>
-				<th>Description</th>
-				<th>
-					Removal Date<span uk-icon="arrow-up" hx-get="/things?sort=remove&dir=DESC"></span><span
-						uk-icon="arrow-down" hx-get="/things?sort=remove&dir=ASC"></span>
-				</th>
-				<th></th>
-			</tr>
-		</thead>
+			<thead>
+				<tr hx-headers='{"Accept": "text/html"}' hx-trigger="click" hx-target="tbody#things-list">
+					<th>
+						Address<span uk-icon="arrow-up" hx-get="/things?sort=address&dir=DESC"></span><span
+							uk-icon="arrow-down" hx-get="/things?sort=address&dir=ASC"></span>
+					</th>
+					<th>
+						Type<span uk-icon="arrow-up" hx-get="/things?sort=type&dir=DESC"></span><span
+							uk-icon="arrow-down" hx-get="/things?sort=type&dir=ASC"></span>
+					</th>
+					<th>
+						Reason<span uk-icon="arrow-up" hx-get="/things?sort=reason&dir=DESC"></span><span
+							uk-icon="arrow-down" hx-get="/things?sort=reason&dir=ASC"></span>
+					</th>
+					<th>Description</th>
+					<th>
+						Removal Date<span uk-icon="arrow-up" hx-get="/things?sort=remove&dir=DESC"></span><span
+							uk-icon="arrow-down" hx-get="/things?sort=remove&dir=ASC"></span>
+					</th>
+					<th></th>
+				</tr>
+			</thead>
 
-		<tbody>
-			<form hx-post="/things" hx-include="[name='Creator']" hx-swap="none" hx-on::after-request="this.reset()">
-				<td>
-					<input class="uk-input" name="Address" type="text" required>
-				</td>
-				<td>
-					<input class="uk-input" name="Type" type="text" required>
-				</td>
-				<td>
-					<input class="uk-input" name="Reason" type="text" required>
-				</td>
-				<td>
-					<input class="uk-input" name="Description" type="text">
-				</td>
-				<td>
-					<input class="uk-input" name="Remove" type="date" required>
-				</td>
-				<td>
-					<button type="submit" class="uk-button uk-button-primary">Add Thing</button>
-				</td>
-			</form>
-		</tbody>
+			<tbody>
+				<form hx-post="/things" hx-include="[name='Creator']" hx-swap="none"
+					hx-on::after-request="this.reset()">
+					<td>
+						<input class="uk-input" name="Address" type="text" required>
+					</td>
+					<td>
+						<input class="uk-input" name="Type" type="text" required>
+					</td>
+					<td>
+						<input class="uk-input" name="Reason" type="text" required>
+					</td>
+					<td>
+						<input class="uk-input" name="Description" type="text">
+					</td>
+					<td>
+						<input class="uk-input" name="Remove" type="date" required>
+					</td>
+					<td>
+						<button type="submit" class="uk-button uk-button-primary">Add Thing</button>
+					</td>
+				</form>
+			</tbody>
 
-		<tbody hx-get="/things" hx-headers='{"Accept": "text/html"}' hx-trigger="load" id="things-list" hx-ext="sse"
-			sse-connect="/things/listen" sse-swap="newThing" hx-swap="afterbegin">
-		</tbody>
-	</table>
+			<tbody hx-get="/things" hx-headers='{"Accept": "text/html"}' hx-trigger="load" id="things-list" hx-ext="sse"
+				sse-connect="/things/listen" sse-swap="newThing" hx-swap="afterbegin">
+			</tbody>
+		</table>
+	</div>
 </body>
 
 </html>
