@@ -24,6 +24,10 @@ the TT_ENV environment variable to "test" or "production" to select the
 environment to use. (`.env` files will still be loaded when TT_ENV is set, but
 at a lower precedence than the local files.)
 
+To start the server you'll need a certificate and key file, and to specify the
+bind address. You can also define these as environment variables TT_SERVER_URL,
+TT_SERVER_CERT and TT_SERVER_KEY in an env file.
+
 ## Development
 
 Put your MySQL connection detail export statements in a `.env.development.local`
@@ -47,6 +51,8 @@ go install github.com/air-verse/air@latest
 Then you can bring up a development server that logs to STDERR like this:
 
 ```
+openssl req -x509 -newkey rsa:4096 -keyout key.pem -out cert.pem -sha256 -days 365 -subj '/CN=yourhost' -addext "subjectAltName = DNS:yourhost" -nodes
+
 export TT_ENV=development
-air server --url :4563 --logfile /root/uncreatable-file-path
+air server --url :4563 --cert cert.pem --key key.pem --logfile /root/uncreatable-file-path
 ```

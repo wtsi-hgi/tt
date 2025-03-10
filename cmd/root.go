@@ -34,15 +34,22 @@ import (
 
 	"github.com/inconshreveable/log15"
 	"github.com/spf13/cobra"
+	"github.com/wtsi-hgi/tt/database/mysql"
 )
 
 // appLogger is used for logging events in our commands.
 var appLogger = log15.New()
 
-const serverURLEnvKey = "TT_SERVER_URL"
+const (
+	serverURLEnvKey  = "TT_SERVER_URL"
+	serverCertEnvKey = "TT_SERVER_CERT"
+	serverKeyEnvKey  = "TT_SERVER_KEY"
+)
 
 // global options.
 var serverURL string
+var serverKey string
+var serverCert string
 
 // RootCmd represents the base command when called without any subcommands.
 var RootCmd = &cobra.Command{
@@ -67,15 +74,29 @@ func init() {
 	// set up logging to stderr
 	appLogger.SetHandler(log15.LvlFilterHandler(log15.LvlInfo, log15.StderrHandler))
 
+	mysql.ConfigFromEnv()
+
 	// global flags
 	RootCmd.PersistentFlags().StringVar(&serverURL, "url", os.Getenv(serverURLEnvKey),
 		"tt server URL in the form host:port")
+	RootCmd.PersistentFlags().StringVar(&serverCert, "cert", os.Getenv(serverCertEnvKey),
+		"path to server certificate file")
+	RootCmd.PersistentFlags().StringVar(&serverKey, "key", os.Getenv(serverKeyEnvKey),
+		"path to server key file")
 }
 
-// ensureURLandCert dies if --url or --cert have not been set.
-func ensureURLandCert() {
+// ensureServerArgs dies if --url or --cert or --key have not been set.
+func ensureServerArgs() {
 	if serverURL == "" {
 		die("you must supply --url")
+	}
+
+	if serverCert == "" {
+		die("you must supply --cert")
+	}
+
+	if serverKey == "" {
+		die("you must supply --key")
 	}
 }
 

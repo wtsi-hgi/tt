@@ -46,6 +46,7 @@ type mockDB struct {
 	users    []database.User
 	things   []database.Thing
 	subs     []database.Subscriber
+	thingID  uint32
 	lastPage int
 }
 
@@ -67,7 +68,17 @@ func (m *mockDB) CreateUser(name, email string) (*database.User, error) {
 }
 
 func (m *mockDB) CreateThing(args database.CreateThingParams) (*database.Thing, error) {
-	return nil, nil
+	id := m.thingID
+	m.thingID++
+
+	thing := database.Thing{
+		ID:      id,
+		Address: args.Address,
+	}
+
+	m.things = append(m.things, thing)
+
+	return &thing, nil
 }
 
 func (m *mockDB) GetThings(params database.GetThingsParams) (*database.GetThingsResult, error) {
@@ -122,6 +133,12 @@ func (m *mockDB) DeleteUser(id uint32) error {
 }
 
 func (m *mockDB) DeleteThing(id uint32) error {
+	for i, thing := range m.things {
+		if thing.ID == id {
+			m.things = append(m.things[:i], m.things[i+1:]...)
+		}
+	}
+
 	return nil
 }
 
@@ -147,7 +164,7 @@ func TestServer(t *testing.T) {
 			errCh := make(chan error, 1)
 
 			go func() {
-				errCh <- s.Start(":0")
+				errCh <- s.Start(":0", "", "")
 			}()
 
 			<-time.After(1 * time.Second)
@@ -166,7 +183,7 @@ func TestServer(t *testing.T) {
 			So(actual, ShouldEqual, string(expected))
 		})
 
-		Convey("You can use the things endpoint", func() {
+		Convey("You can GET the things endpoint", func() {
 			actual := testEndpoint(s, "GET", "/things", nil)
 			So(actual, ShouldEqual, "")
 
@@ -242,6 +259,14 @@ func TestServer(t *testing.T) {
 			So(actual, ShouldContainSubstring, "<td>a</td>")
 			So(actual, ShouldContainSubstring, "<td>f</td>")
 		})
+
+		Convey("You can POST to the things endpoint and listen for SSE updates", func() {
+			actual := testEndpoint(s, "POST", "/things", nil)
+			So(actual, ShouldEqual, "")
+
+			So(len(mdb.things), ShouldEqual, 1)
+			So(mdb.things[0].Address, ShouldEqual, "test1")
+		})
 	})
 }
 
@@ -256,7 +281,7 @@ func testEndpoint(s *Server, method, target string, inputBody io.Reader) string 
 func recordRequest(s *Server, method, target string, inputBody io.Reader) *httptest.ResponseRecorder {
 	recorder := httptest.NewRecorder()
 	req := httptest.NewRequest(method, target, inputBody)
-	s.router.ServeHTTP(recorder, req)
+	s.Router().ServeHTTP(recorder, req)
 
 	return recorder
 }

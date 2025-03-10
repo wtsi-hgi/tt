@@ -38,7 +38,6 @@ import (
 
 // options for this cmd.
 var serverLogPath string
-var serverKey string
 var serverLDAPFQDN string
 var serverLDAPBindDN string
 
@@ -52,8 +51,10 @@ The tt web server is used to present a web interface to a MySQL database that
 can record information about temporary things.
 
 Your --url (in this context, think of it as the bind address) should include the
-port; you probably need to specify it as fqdn:port. --url defaults to the
-TT_SERVER_URL env var.
+port, and for it to work with your --cert, you probably need to specify it as
+fqdn:port. --url defaults to the TT_SERVER_URL env var. --cert and --key (both
+required) defaults to the TT_SERVER_CERT and TT_SERVER_KEY env vars
+respectively.
 
 You will also need your database connection details in env vars:
 export TT_SQL_HOST=localhost
@@ -86,6 +87,8 @@ ctrl-z; bg. Or better yet, use the daemonize program to daemonize this.
 			die("failed to get database config: %s", err)
 		}
 
+		ensureServerArgs()
+
 		database, err := mysql.New(config)
 		if err != nil {
 			die("error opening database: %s", err)
@@ -105,7 +108,7 @@ ctrl-z; bg. Or better yet, use the daemonize program to daemonize this.
 
 		sayStarted()
 
-		err = s.Start(serverURL)
+		err = s.Start(serverURL, serverCert, serverKey)
 		if err != nil {
 			die("non-graceful stop: %s", err)
 		}
