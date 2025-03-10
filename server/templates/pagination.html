@@ -1,0 +1,58 @@
+{{ $url := index . 0 }}{{ $currentPage := sub (index . 1) 1 }}{{ $maxPages := sub (index . 2) 1 }}{{ $ends := index . 3
+}}{{ $surround := index . 4 }}
+<nav aria-label="Pagination">
+	<ul class="uk-pagination uk-flex-right uk-padding-small">
+		<li>
+			{{ if eq $currentPage 0 }}
+			{{ else }}
+			<a href="{{ $url }}{{ $currentPage }}"><span uk-pagination-previous></span></a>
+			{{ end }}
+		</li>
+		{{- range $page, $_ := rangenum (add $maxPages 1) }}{{- if
+		or
+		(or
+		(or
+		(or
+		(lt $page $ends)
+		(ge $page (sub $maxPages $ends))
+		)
+		(and
+		(or
+		(gt $surround $page)
+		(ge $page (sub $currentPage $surround))
+		)
+		(le $page (add $currentPage $surround))
+		)
+		)
+		(and
+		(gt $ends 0)
+		(and
+		(eq (sub (sub $currentPage $surround) 1) $ends)
+		(eq $page $ends)
+		)
+		)
+		)
+		(and
+		(eq (add (add $currentPage $surround) 1) (sub $maxPages $ends))
+		(eq $page (sub $maxPages $ends))
+		)
+		}}
+		{{ if eq $page $currentPage }}
+		<li class="uk-active"><span aria-current="page">{{ add $page 1 }}</span></li>
+		{{ else }}
+		<li><a href="{{ $url }}{{ add $page 1 }}">{{ add $page 1 }}</a></li>
+		{{ end }}
+		{{- else if or
+		(eq $page (sub (sub $currentPage $surround) 1))
+		(eq $page (add (add $currentPage $surround) 1))
+		}}
+		<li class="uk-disabled"><span>…</span></li>
+		{{- end}}{{ end }}
+		<li>
+			{{ if eq $currentPage $maxPages }}
+			{{ else }}
+			<a href="{{$url}}{{ add $currentPage 2 }}"><span uk-pagination-next></span></a>
+			{{ end }}
+		</li>
+	</ul>
+</nav>

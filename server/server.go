@@ -152,6 +152,8 @@ func ginLogger() gin.HandlerFunc {
 func (s *Server) addEndPoints() error {
 	s.rootTemplate = template.New("")
 
+	s.rootTemplate.Funcs(template.FuncMap{"args": func(args ...any) []any { return args }, "add": func(a, b int) int { return a + b }, "sub": func(a, b int) int { return a - b }, "rangenum": func(n int) []struct{} { return make([]struct{}, n) }})
+
 	err := s.loadAllTemplates("templates/.*")
 	if err != nil {
 		return err
