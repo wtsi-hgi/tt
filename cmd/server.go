@@ -81,8 +81,8 @@ This command will block forever in the foreground; you can background it with
 ctrl-z; bg. Or better yet, use the daemonize program to daemonize this.
 `,
 	Run: func(cmd *cobra.Command, args []string) {
-		if serverLogPath != "" && serverLogStdErr == true {
-			die("can not use both --logfile and --logstderr flags at the same time")
+		if serverLogPath != "" && serverLogStdErr {
+			die("cannot use both --logfile and --logstderr flags at the same time")
 		}
 		logWriter := setServerLogger(serverLogPath, serverLogStdErr)
 
