@@ -81,6 +81,9 @@ This command will block forever in the foreground; you can background it with
 ctrl-z; bg. Or better yet, use the daemonize program to daemonize this.
 `,
 	Run: func(cmd *cobra.Command, args []string) {
+		if serverLogPath != "" && serverLogStdErr == true {
+			die("can not use both --logfile and --logstderr flags at the same time")
+		}
 		logWriter := setServerLogger(serverLogPath, serverLogStdErr)
 
 		config, err := mysql.ConfigFromEnv()
@@ -131,7 +134,7 @@ func init() {
 // otherwise to syslog. Returns an io.Writer version of our appLogger for the
 // server to log to.
 func setServerLogger(path string, stdErrMode bool) io.Writer {
-	if stdErrMode == true {
+	if stdErrMode {
 		logToStdErr()
 	} else {
 		if path == "" {
