@@ -40,6 +40,7 @@ import (
 var serverLogPath string
 var serverLDAPFQDN string
 var serverLDAPBindDN string
+var serverLogStdErr bool
 
 // serverCmd represents the server command.
 var serverCmd = &cobra.Command{
@@ -80,7 +81,7 @@ This command will block forever in the foreground; you can background it with
 ctrl-z; bg. Or better yet, use the daemonize program to daemonize this.
 `,
 	Run: func(cmd *cobra.Command, args []string) {
-		logWriter := setServerLogger(serverLogPath)
+		logWriter := setServerLogger(serverLogPath, serverLogStdErr)
 
 		config, err := mysql.ConfigFromEnv()
 		if err != nil {
@@ -121,16 +122,23 @@ func init() {
 	// flags specific to this sub-command
 	serverCmd.Flags().StringVar(&serverLogPath, "logfile", "",
 		"log to this file instead of syslog")
+	serverCmd.Flags().BoolVar(&serverLogStdErr, "logstderr", false,
+		"log to stderr instead of syslog")
+
 }
 
 // setServerLogger makes our appLogger log to the given path if non-blank,
 // otherwise to syslog. Returns an io.Writer version of our appLogger for the
 // server to log to.
-func setServerLogger(path string) io.Writer {
-	if path == "" {
-		logToSyslog()
+func setServerLogger(path string, stdErrMode bool) io.Writer {
+	if stdErrMode == true {
+		logToStdErr()
 	} else {
-		logToFile(path)
+		if path == "" {
+			logToSyslog()
+		} else {
+			logToFile(path)
+		}
 	}
 
 	lw := &log15Writer{logger: appLogger}

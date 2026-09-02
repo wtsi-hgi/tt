@@ -112,6 +112,12 @@ func logToFile(path string) {
 	appLogger.SetHandler(fh)
 }
 
+func logToStdErr() {
+	fh := log15.StderrHandler
+
+	appLogger.SetHandler(fh)
+}
+
 // cliPrint outputs the message to STDOUT.
 func cliPrint(msg string, a ...interface{}) {
 	fmt.Fprintf(os.Stdout, msg, a...)
