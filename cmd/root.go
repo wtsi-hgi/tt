@@ -112,6 +112,7 @@ func logToFile(path string) {
 	appLogger.SetHandler(fh)
 }
 
+// logToStdErr logs to stderr.
 func logToStdErr() {
 	fh := log15.StderrHandler
 

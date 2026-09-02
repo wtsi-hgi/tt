@@ -130,9 +130,9 @@ func init() {
 
 }
 
-// setServerLogger makes our appLogger log to the given path if non-blank,
-// otherwise to syslog. Returns an io.Writer version of our appLogger for the
-// server to log to.
+// setServerLogger makes our appLogger log to stderr if our stdErrMode is true,
+// otherwise logs to the given path if path is non-blank, otherwise to syslog.
+// Returns an io.Writer version of our appLogger for the server to log to.
 func setServerLogger(path string, stdErrMode bool) io.Writer {
 	if stdErrMode {
 		logToStdErr()
