@@ -25,3 +25,5 @@ go.work.sum
 
 # env files
 .env*
+cert.pem
+key.pem
