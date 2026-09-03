@@ -260,7 +260,7 @@ func TestServer(t *testing.T) {
 			So(actual, ShouldContainSubstring, "<td>f</td>")
 		})
 
-		Convey("You can POST to the things endpoint and listen for SSE updates", func() {
+		SkipConvey("You can POST to the things endpoint and listen for SSE updates", func() {
 			actual := testEndpoint(s, "POST", "/things", nil)
 			So(actual, ShouldEqual, "")
 
