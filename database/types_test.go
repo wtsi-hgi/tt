@@ -41,6 +41,10 @@ func TestNewThingsTypes(t *testing.T) {
 		So(err, ShouldBeNil)
 		So(tt, ShouldEqual, ThingsTypeDir)
 
+		tt, err = NewThingsType("resource")
+		So(err, ShouldBeNil)
+		So(tt, ShouldEqual, ThingsTypeResource)
+
 		tt, err = NewThingsType("file")
 		So(err, ShouldBeNil)
 		So(tt, ShouldEqual, ThingsTypeFile)

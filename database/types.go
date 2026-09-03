@@ -50,6 +50,7 @@ const (
 	ThingsTypeIrods     ThingsType = "irods"
 	ThingsTypeOpenstack ThingsType = "openstack"
 	ThingsTypeS3        ThingsType = "s3"
+	ThingsTypeResource  ThingsType = "resource"
 )
 
 func ThingsTypes() []ThingsType {
@@ -59,6 +60,7 @@ func ThingsTypes() []ThingsType {
 		ThingsTypeIrods,
 		ThingsTypeOpenstack,
 		ThingsTypeS3,
+		ThingsTypeResource,
 	}
 }
 
@@ -80,6 +82,8 @@ func NewThingsType(str string) (ThingsType, error) {
 		thingsType = ThingsTypeOpenstack
 	case ThingsTypeS3:
 		thingsType = ThingsTypeS3
+	case ThingsTypeResource:
+		thingsType = ThingsTypeResource
 	default:
 		return "", ErrBadType
 	}
