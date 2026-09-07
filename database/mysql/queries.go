@@ -114,9 +114,9 @@ func (m *MySQLDB) GetUserByName(name string) (*database.User, error) {
 
 const createThing = `
 INSERT INTO things (
-  address, type, created, description, reason, remove
+  address, type, created, description, reason, remove, license, version, name, url, download_method, request_source, creation_date
 ) VALUES (
-  ?, ?, ?, ?, ?, ?
+  ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?
 )
 `
 
@@ -152,6 +152,13 @@ func (m *MySQLDB) CreateThing(args database.CreateThingParams) (*database.Thing,
 		args.Description,
 		args.Reason,
 		args.Remove,
+		args.License,
+		args.Version,
+		args.Name,
+		args.URL,
+		args.DownloadMethod,
+		args.RequestSource,
+		args.CreationDate,
 	)
 	if err != nil {
 		tx.Rollback()
@@ -172,18 +179,25 @@ func (m *MySQLDB) CreateThing(args database.CreateThingParams) (*database.Thing,
 	}
 
 	return &database.Thing{
-		ID:          uint32(id),
-		Address:     args.Address,
-		Type:        args.Type,
-		Created:     created,
-		Description: args.Description,
-		Reason:      args.Reason,
-		Remove:      args.Remove,
+		ID:             uint32(id),
+		Address:        args.Address,
+		Type:           args.Type,
+		Created:        created,
+		Description:    args.Description,
+		Reason:         args.Reason,
+		Remove:         args.Remove,
+		License:        args.License,
+		Version:        args.Version,
+		Name:           args.Name,
+		URL:            args.URL,
+		DownloadMethod: args.DownloadMethod,
+		RequestSource:  args.RequestSource,
+		CreationDate:   args.CreationDate,
 	}, nil
 }
 
 const getThings = `
-SELECT things.id, address, type, created, description, reason, remove, warned1, warned2, removed
+SELECT things.id, address, type, created, description, reason, remove, warned1, warned2, removed, license, version, name, url, download_method, request_source, creation_date
 FROM things
 `
 
@@ -218,6 +232,13 @@ func (m *MySQLDB) GetThings(params database.GetThingsParams) (*database.GetThing
 			&thing.Warned1,
 			&thing.Warned2,
 			&thing.Removed,
+			&thing.License,
+			&thing.Version,
+			&thing.Name,
+			&thing.URL,
+			&thing.DownloadMethod,
+			&thing.RequestSource,
+			&thing.CreationDate,
 		); err != nil {
 			return nil, err
 		}

@@ -29,6 +29,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/guregu/null/v5"
 	"github.com/wtsi-hgi/tt/database"
 )
 
@@ -120,7 +121,7 @@ func GetExampleResourceData() (database.User, database.Thing, database.Subscribe
 		URL:            "example.com",
 		DownloadMethod: "command line",
 		RequestSource:  "Jira",
-		CreationDate:   dateFromYear(uint32(1970)),
+		CreationDate:   null.TimeFrom(dateFromYear(uint32(1970))),
 	}
 
 	creator := exampleUser(1)

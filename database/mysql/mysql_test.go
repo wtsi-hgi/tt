@@ -492,18 +492,21 @@ func TestMySQL(t *testing.T) {
 			})
 
 			Convey("You can then add a user and a resource", func() {
-				expectedUser, et, expectedSub := internal.GetExampleResourceData()
+				expectedUser, et, _ := internal.GetExampleResourceData()
 
 				creator, err := db.CreateUser(expectedUser.Name, expectedUser.Email)
 				So(err, ShouldBeNil)
 				So(creator, ShouldResemble, &expectedUser)
 
-				So(expectedSub, ShouldNotBeNil)
-
 				thing, err := db.CreateThing(et.ToCreateParams(expectedUser))
 				So(err, ShouldBeNil)
+				thing.Created = time.Time{}
+				So(thing, ShouldResemble, &et)
 
-				So(thing, ShouldResemble, et)
+				result, err := db.GetThings(database.GetThingsParams{})
+				So(err, ShouldBeNil)
+				result.Things[0].Created = time.Time{}
+				So(result.Things[0], ShouldResemble, et)
 			})
 		})
 	})
