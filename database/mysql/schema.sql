@@ -19,6 +19,13 @@ CREATE TABLE things (
     warned1 date,
     warned2 date,
     removed bool NOT NULL default 0,
+    license text(4096),
+    version tinytext,
+    name tinytext, 
+    url text(4096),
+    download_method text(4096),
+    request_source text(4096),
+    creation_date date, 
     UNIQUE(address(170), type)
 ) ENGINE=INNODB;
 

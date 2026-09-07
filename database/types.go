@@ -186,8 +186,8 @@ type CreateThingParams struct {
 	URL            string
 	DownloadMethod string
 	RequestSource  string
-	CreationDate   time.Time
-	Creator        string // Creator must correspond to the Name of a User.
+	CreationDate   null.Time `time_format:"2006-01-02"`
+	Creator        string    // Creator must correspond to the Name of a User.
 }
 
 type Thing struct {
@@ -234,7 +234,7 @@ type Thing struct {
 	RequestSource string
 	// CreationDate is the date the real thing was created (as opposed to
 	// Created, which is when the thing was added to the database).
-	CreationDate time.Time
+	CreationDate null.Time
 }
 
 // ToCreateParams converts thing Thing to a CreateThingParams with given user

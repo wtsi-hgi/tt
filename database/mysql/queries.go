@@ -115,9 +115,9 @@ func (m *DB) GetUserByName(name string) (*database.User, error) {
 
 const createThing = `
 INSERT INTO things (
-  address, type, created, description, reason, remove
+  address, type, created, description, reason, remove, license, version, name, url, download_method, request_source, creation_date
 ) VALUES (
-  ?, ?, ?, ?, ?, ?
+  ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?
 )
 `
 
@@ -153,6 +153,13 @@ func (m *DB) CreateThing(args database.CreateThingParams) (*database.Thing, erro
 		args.Description,
 		args.Reason,
 		args.Remove,
+		args.License,
+		args.Version,
+		args.Name,
+		args.URL,
+		args.DownloadMethod,
+		args.RequestSource,
+		args.CreationDate,
 	)
 	if err != nil {
 		errRollback := tx.Rollback()
@@ -173,18 +180,25 @@ func (m *DB) CreateThing(args database.CreateThingParams) (*database.Thing, erro
 	}
 
 	return &database.Thing{
-		ID:          id,
-		Address:     args.Address,
-		Type:        args.Type,
-		Created:     created,
-		Description: args.Description,
-		Reason:      args.Reason,
-		Remove:      args.Remove,
+		ID:             uint32(id),
+		Address:        args.Address,
+		Type:           args.Type,
+		Created:        created,
+		Description:    args.Description,
+		Reason:         args.Reason,
+		Remove:         args.Remove,
+		License:        args.License,
+		Version:        args.Version,
+		Name:           args.Name,
+		URL:            args.URL,
+		DownloadMethod: args.DownloadMethod,
+		RequestSource:  args.RequestSource,
+		CreationDate:   args.CreationDate,
 	}, nil
 }
 
 const getThings = `
-SELECT things.id, address, type, created, description, reason, remove, warned1, warned2, removed
+SELECT things.id, address, type, created, description, reason, remove, warned1, warned2, removed, license, version, name, url, download_method, request_source, creation_date
 FROM things
 `
 
@@ -202,7 +216,7 @@ func (m *DB) GetThings(params database.GetThingsParams) (*database.GetThingsResu
 	for rows.Next() {
 		var thing database.Thing
 
-		if errs := rows.Scan(
+		if err := rows.Scan(
 			&thing.ID,
 			&thing.Address,
 			&thing.Type,
@@ -213,8 +227,15 @@ func (m *DB) GetThings(params database.GetThingsParams) (*database.GetThingsResu
 			&thing.Warned1,
 			&thing.Warned2,
 			&thing.Removed,
-		); errs != nil {
-			return nil, errs
+			&thing.License,
+			&thing.Version,
+			&thing.Name,
+			&thing.URL,
+			&thing.DownloadMethod,
+			&thing.RequestSource,
+			&thing.CreationDate,
+		); err != nil {
+			return nil, err
 		}
 
 		things = append(things, thing)
