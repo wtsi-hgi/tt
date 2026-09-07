@@ -270,15 +270,8 @@ func TestMySQL(t *testing.T) {
 					} else {
 						creator = expectedUsers[1]
 					}
+					thing, err := db.CreateThing(et.ToCreateParams(creator))
 
-					thing, err := db.CreateThing(database.CreateThingParams{
-						Address:     et.Address,
-						Type:        et.Type,
-						Description: et.Description,
-						Reason:      et.Reason,
-						Remove:      et.Remove,
-						Creator:     creator.Name,
-					})
 					So(err, ShouldBeNil)
 
 					after := time.Now()
@@ -289,14 +282,8 @@ func TestMySQL(t *testing.T) {
 					So(thing, ShouldResemble, &et)
 				}
 
-				_, err = db.CreateThing(database.CreateThingParams{
-					Address:     "addr",
-					Type:        database.ThingsTypeIrods,
-					Description: "desc",
-					Reason:      "reason",
-					Remove:      expectedThings[0].Remove,
-					Creator:     "invalid",
-				})
+				_, err = db.CreateThing(expectedThings[0].ToCreateParams(database.User{Name: "invalid"})) //unsure if passed correct index
+
 				So(err, ShouldNotBeNil)
 				So(err, ShouldEqual, ErrNoUser)
 
@@ -502,6 +489,21 @@ func TestMySQL(t *testing.T) {
 					So(err, ShouldBeNil)
 					So(count, ShouldEqual, (numThings/2)-1)
 				})
+			})
+
+			Convey("You can then add a user and a resource", func() {
+				expectedUser, et, expectedSub := internal.GetExampleResourceData()
+
+				creator, err := db.CreateUser(expectedUser.Name, expectedUser.Email)
+				So(err, ShouldBeNil)
+				So(creator, ShouldResemble, &expectedUser)
+
+				So(expectedSub, ShouldNotBeNil)
+
+				thing, err := db.CreateThing(et.ToCreateParams(expectedUser))
+				So(err, ShouldBeNil)
+
+				So(thing, ShouldResemble, et)
 			})
 		})
 	})

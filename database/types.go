@@ -175,25 +175,86 @@ type User struct {
 }
 
 type CreateThingParams struct {
-	Address     string
-	Type        ThingsType
-	Description string
-	Reason      string
-	Remove      time.Time `time_format:"2006-01-02"`
-	Creator     string    // Creator must correspond to the Name of a User.
+	Address        string
+	Type           ThingsType
+	Description    string
+	Reason         string
+	Remove         time.Time `time_format:"2006-01-02"`
+	License        string
+	Version        string
+	Name           string
+	URL            string
+	DownloadMethod string
+	RequestSource  string
+	CreationDate   time.Time
+	Creator        string // Creator must correspond to the Name of a User.
 }
 
 type Thing struct {
-	ID          uint32
-	Address     string
-	Type        ThingsType
-	Created     time.Time
+	// ID is the unique (auto-increment) id of the temporary thing.
+	ID uint32
+	// Address is the location of the resource, such as absolute file path on
+	// disk or URL.
+	Address string
+	// Type is the type of thing.
+	Type ThingsType
+	// Created is the time that the thing was added to the database.
+	Created time.Time
+	// Description is a description of the thing.
 	Description string
-	Reason      string
-	Remove      time.Time
-	Warned1     null.Time
-	Warned2     null.Time
-	Removed     bool
+	// Reason is the reason why this is a temporary thing.
+	Reason string
+	// Remove is the date that the removal will take place. Even "immortal"
+	// resources get a date to ensure we are reviewing usage; it might just be
+	// set many years from creation.
+	Remove time.Time
+	// Warned1 is the date that subscribers were successfully sent their first
+	// warning.
+	Warned1 null.Time
+	// Warned2 is the date that subscribers were successfully sent their second
+	// warning.
+	Warned2 null.Time
+	// Removed is whether or not removal has taken place.
+	Removed bool
+	// License is the licensing of the thing, such as MIT, or details of more
+	// restrictive ones.
+	License string
+	// Version is the version of the thing.
+	Version string
+	// Name is a friendly short name for the thing.
+	Name string
+	// URL is specific to resources retrieved from a URL, such as downloaded
+	// resources.
+	URL string
+	// DownloadMethod is the way in which the thing was downloaded for users to
+	// use.
+	DownloadMethod string
+	// RequestSource is where the request for the thing was made, such as a JIRA
+	// ticket.
+	RequestSource string
+	// CreationDate is the date the real thing was created (as opposed to
+	// Created, which is when the thing was added to the database).
+	CreationDate time.Time
+}
+
+// ToCreateParams converts thing Thing to a CreateThingParams with given user
+// name.
+func (t Thing) ToCreateParams(u User) CreateThingParams {
+	return CreateThingParams{
+		Address:        t.Address,
+		Type:           t.Type,
+		Description:    t.Description,
+		Reason:         t.Reason,
+		Remove:         t.Remove,
+		Version:        t.Version,
+		License:        t.License,
+		Name:           t.Name,
+		URL:            t.URL,
+		DownloadMethod: t.DownloadMethod,
+		RequestSource:  t.RequestSource,
+		CreationDate:   t.CreationDate,
+		Creator:        u.Name,
+	}
 }
 
 type Subscriber struct {
