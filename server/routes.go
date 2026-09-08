@@ -54,25 +54,25 @@ func (s *Server) pageRoot(c *gin.Context) {
 // type=[dir|file|irods|openstack|s3] : filter to only show this type of thing
 //
 // page=<int>&per_page=<int> : get a particular page of results, where each page
-// has per_page Things. Page defaults to 1, and per_page defaults to 50
+// has per_page Things. Page defaults to 1, and per_page defaults to 50.
 func (s *Server) getThings(c *gin.Context) {
 	orderBy, err := database.NewOrderBy(c.Query("sort"))
 	if err != nil {
-		c.AbortWithError(http.StatusBadRequest, err)
+		c.AbortWithError(http.StatusBadRequest, err) //nolint: errcheck
 
 		return
 	}
 
 	orderDirection, err := database.NewOrderDirection(c.Query("dir"))
 	if err != nil {
-		c.AbortWithError(http.StatusBadRequest, err)
+		c.AbortWithError(http.StatusBadRequest, err) //nolint: errcheck
 
 		return
 	}
 
 	thingType, err := database.NewThingsType(c.Query("type"))
 	if err != nil {
-		c.AbortWithError(http.StatusBadRequest, err)
+		c.AbortWithError(http.StatusBadRequest, err) //nolint: errcheck
 
 		return
 	}
@@ -95,7 +95,7 @@ func (s *Server) getThings(c *gin.Context) {
 		ThingsPerPage:  perPage,
 	})
 	if err != nil {
-		c.AbortWithError(http.StatusInternalServerError, err)
+		c.AbortWithError(http.StatusInternalServerError, err) //nolint: errcheck
 
 		return
 	}
@@ -113,28 +113,28 @@ func (s *Server) postThing(c *gin.Context) {
 	var postedThing database.CreateThingParams
 
 	if err := c.ShouldBind(&postedThing); err != nil {
-		c.AbortWithError(http.StatusBadRequest, err)
+		c.AbortWithError(http.StatusBadRequest, err) //nolint: errcheck
 
 		return
 	}
 
 	_, err := database.NewThingsType(string(postedThing.Type))
 	if err != nil {
-		c.AbortWithError(http.StatusBadRequest, err)
+		c.AbortWithError(http.StatusBadRequest, err) //nolint: errcheck
 
 		return
 	}
 
 	thing, err := s.db.CreateThing(postedThing)
 	if err != nil {
-		c.AbortWithError(http.StatusBadRequest, err)
+		c.AbortWithError(http.StatusBadRequest, err) //nolint: errcheck
 
 		return
 	}
 
 	err = s.broadcastNewThing(thing)
 	if err != nil {
-		c.AbortWithError(http.StatusInternalServerError, err)
+		c.AbortWithError(http.StatusInternalServerError, err) //nolint: errcheck
 
 		return
 	}
@@ -147,14 +147,14 @@ func (s *Server) postThing(c *gin.Context) {
 func (s *Server) deleteThing(c *gin.Context) {
 	thingID, err := strconv.Atoi(c.Param("id"))
 	if err != nil {
-		c.AbortWithError(http.StatusBadRequest, err)
+		c.AbortWithError(http.StatusBadRequest, err) //nolint: errcheck
 
 		return
 	}
 
 	err = s.db.DeleteThing(uint32(thingID))
 	if err != nil {
-		c.AbortWithError(http.StatusBadRequest, err)
+		c.AbortWithError(http.StatusBadRequest, err) //nolint: errcheck
 
 		return
 	}

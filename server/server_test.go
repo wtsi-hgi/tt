@@ -51,9 +51,11 @@ type mockDB struct {
 }
 
 func newMockDB() *mockDB {
-	var users []database.User
-	var things []database.Thing
-	var subs []database.Subscriber
+	var (
+		users  []database.User
+		things []database.Thing
+		subs   []database.Subscriber
+	)
 
 	return &mockDB{
 		users:    users,
@@ -110,10 +112,12 @@ func sortAndFilterThings(origThings []database.Thing, params database.GetThingsP
 		if low >= len(order) {
 			order = []int{}
 		}
+
 		high := low + params.ThingsPerPage
 		if high > len(order) {
 			high = len(order)
 		}
+
 		order = order[low:high]
 	}
 
@@ -170,6 +174,7 @@ func TestServer(t *testing.T) {
 			<-time.After(1 * time.Second)
 
 			s.Stop()
+
 			err = <-errCh
 			So(err, ShouldBeNil)
 		})
@@ -288,12 +293,14 @@ func recordRequest(s *Server, method, target string, inputBody io.Reader) *httpt
 
 func testEndpointCode(s *Server, method, target string, inputBody io.Reader) int {
 	recorder := recordRequest(s, method, target, inputBody)
+
 	return recorder.Code
 }
 
 func executeThingsTemplate(things []database.Thing) string {
 	data, err := templatesFS.ReadFile("templates/things.html")
 	So(err, ShouldBeNil)
+
 	templ := template.New("")
 	templChild := templ.New("templates/things.html")
 	templChild, err = templChild.Parse(string(data))
@@ -301,11 +308,13 @@ func executeThingsTemplate(things []database.Thing) string {
 
 	data, err = templatesFS.ReadFile("templates/thing.html")
 	So(err, ShouldBeNil)
+
 	templChild = templChild.New("templates/thing.html")
 	_, err = templChild.Parse(string(data))
 	So(err, ShouldBeNil)
 
 	var expectedB bytes.Buffer
+
 	err = templ.ExecuteTemplate(&expectedB, "templates/things.html", things)
 	So(err, ShouldBeNil)
 

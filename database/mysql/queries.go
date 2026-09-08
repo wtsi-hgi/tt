@@ -27,6 +27,7 @@ package mysql
 
 import (
 	"database/sql"
+	"errors"
 	"math"
 	"strconv"
 	"strings"
@@ -154,16 +155,16 @@ func (m *MySQLDB) CreateThing(args database.CreateThingParams) (*database.Thing,
 		args.Remove,
 	)
 	if err != nil {
-		tx.Rollback()
+		errRollback := tx.Rollback()
 
-		return nil, err
+		return nil, errors.Join(err, errRollback)
 	}
 
 	_, err = tx.Exec(createSubscription, user.ID, id, 1)
 	if err != nil {
-		tx.Rollback()
+		errRollback := tx.Rollback()
 
-		return nil, err
+		return nil, errors.Join(err, errRollback)
 	}
 
 	err = tx.Commit()

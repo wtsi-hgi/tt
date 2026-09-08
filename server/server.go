@@ -127,19 +127,24 @@ func (s *Server) loadAllTemplates(pattern string) error {
 			return walkErr
 		}
 
-		if matched, _ := regexp.MatchString(pattern, path); !d.IsDir() && matched {
-			data, err := templatesFS.ReadFile(path)
-			if err != nil {
-				return err
-			}
-
-			t := s.rootTemplate.New(path).Funcs(s.Router().FuncMap)
-			if _, err = t.Parse(string(data)); err != nil {
-				return err
-			}
+		matched, err := regexp.MatchString(pattern, path)
+		if err != nil {
+			return err
 		}
 
-		return nil
+		if !matched || d.IsDir() {
+			return nil
+		}
+
+		data, err := templatesFS.ReadFile(path)
+		if err != nil {
+			return err
+		}
+
+		t := s.rootTemplate.New(path).Funcs(s.Router().FuncMap)
+		_, err = t.Parse(string(data))
+
+		return err
 	})
 }
 

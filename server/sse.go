@@ -48,5 +48,6 @@ func (s *Server) broadcastNewThing(thing *database.Thing) error {
 
 	err = s.SSEBroadcast(sseThingsEventName, renderedOutput.String())
 	s.Logger.Printf("broadcastNewThing called, got err %s sending %s", err, renderedOutput.String())
+
 	return err
 }

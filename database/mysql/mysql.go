@@ -28,6 +28,7 @@ package mysql
 import (
 	"database/sql"
 	_ "embed"
+	"errors"
 	"fmt"
 	"os"
 	"regexp"
@@ -88,8 +89,8 @@ func ConfigFromEnv(dir ...string) (*gsdmysql.Config, error) {
 	}
 
 	env := os.Getenv(envVarEnv)
-	godotenv.Load(parentDir + ".env." + env + ".local")
-	godotenv.Load(parentDir + ".env")
+	godotenv.Load(parentDir + ".env." + env + ".local") //nolint: errcheck
+	godotenv.Load(parentDir + ".env")                   //nolint: errcheck
 
 	user := os.Getenv(envVarUser)
 	pass := os.Getenv(envVarPass)
@@ -145,9 +146,9 @@ func (m *MySQLDB) Reset() error {
 	for _, stmt := range statements {
 		_, err = tx.Exec(stmt)
 		if err != nil {
-			tx.Rollback()
+			errRollback := tx.Rollback()
 
-			return err
+			return errors.Join(err, errRollback)
 		}
 	}
 

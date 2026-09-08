@@ -74,7 +74,10 @@ func init() {
 	// set up logging to stderr
 	appLogger.SetHandler(log15.LvlFilterHandler(log15.LvlInfo, log15.StderrHandler))
 
-	mysql.ConfigFromEnv()
+	_, err := mysql.ConfigFromEnv()
+	if err != nil {
+		die("%s", err.Error())
+	}
 
 	// global flags
 	RootCmd.PersistentFlags().StringVar(&serverURL, "url", os.Getenv(serverURLEnvKey),

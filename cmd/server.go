@@ -84,6 +84,7 @@ ctrl-z; bg. Or better yet, use the daemonize program to daemonize this.
 		if serverLogPath != "" && serverLogStdErr {
 			die("cannot use both --logfile and --logstderr flags at the same time")
 		}
+
 		logWriter := setServerLogger(serverLogPath, serverLogStdErr)
 
 		config, err := mysql.ConfigFromEnv()
@@ -127,7 +128,6 @@ func init() {
 		"log to this file instead of syslog")
 	serverCmd.Flags().BoolVar(&serverLogStdErr, "logstderr", false,
 		"log to stderr instead of syslog")
-
 }
 
 // setServerLogger makes our appLogger log to stderr if our stdErrMode is true,
