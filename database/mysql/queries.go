@@ -42,7 +42,7 @@ const createUser = `INSERT INTO users (name, email) VALUES (?, ?)`
 
 // CreateUser creates a new user with the given name and email. The returned
 // user will have its ID set.
-func (m *MySQLDB) CreateUser(name, email string) (*database.User, error) {
+func (m *DB) CreateUser(name, email string) (*database.User, error) {
 	id, err := createRow(m.pool, createUser, name, email)
 	if err != nil {
 		return nil, err
@@ -80,7 +80,7 @@ WHERE name = ?
 `
 
 // GetUserByName returns the user with the given name.
-func (m *MySQLDB) GetUserByName(name string) (*database.User, error) {
+func (m *DB) GetUserByName(name string) (*database.User, error) {
 	rows, err := m.pool.Query(getUserByName, name)
 	if err != nil {
 		return nil, err
@@ -133,7 +133,7 @@ INSERT INTO subscribers (
 // will have its ID set to an auto-increment value, and Created time set to now.
 // The supplied Creator must match the Name of an existing User, and will be
 // recored as a Subscriber of the new Thing.
-func (m *MySQLDB) CreateThing(args database.CreateThingParams) (*database.Thing, error) {
+func (m *DB) CreateThing(args database.CreateThingParams) (*database.Thing, error) {
 	created := time.Now()
 
 	user, err := m.GetUserByName(args.Creator)
@@ -173,7 +173,7 @@ func (m *MySQLDB) CreateThing(args database.CreateThingParams) (*database.Thing,
 	}
 
 	return &database.Thing{
-		ID:          uint32(id),
+		ID:          id,
 		Address:     args.Address,
 		Type:        args.Type,
 		Created:     created,
@@ -190,7 +190,7 @@ FROM things
 
 // GetThings returns things that match the given parameters. Also in the result
 // is the last page that would return things if Page and ThingsPerPage are > 0.
-func (m *MySQLDB) GetThings(params database.GetThingsParams) (*database.GetThingsResult, error) {
+func (m *DB) GetThings(params database.GetThingsParams) (*database.GetThingsResult, error) {
 	rows, err := m.runGetThingsQuery(params)
 	if err != nil {
 		return nil, err
@@ -238,7 +238,7 @@ func (m *MySQLDB) GetThings(params database.GetThingsParams) (*database.GetThing
 		LastPage: lastPage,
 	}, nil
 }
-func (m *MySQLDB) runGetThingsQuery(params database.GetThingsParams) (*sql.Rows, error) {
+func (m *DB) runGetThingsQuery(params database.GetThingsParams) (*sql.Rows, error) {
 	var sql strings.Builder
 
 	sql.WriteString(getThings)
@@ -301,7 +301,7 @@ func limitSQL(params database.GetThingsParams, sql *strings.Builder) {
 
 const countThings = `SELECT COUNT(*) FROM things`
 
-func (m *MySQLDB) calculateLastPage(params database.GetThingsParams) (int, error) {
+func (m *DB) calculateLastPage(params database.GetThingsParams) (int, error) {
 	if params.Page < 1 || params.ThingsPerPage < 1 {
 		return 0, nil
 	}
@@ -327,7 +327,7 @@ const deleteUser = `DELETE FROM users WHERE id = ?`
 
 // DeleteUser deletes the user with the given ID. This will also delete any
 // subscriptions the user had (but not any Things the user created).
-func (m *MySQLDB) DeleteUser(id uint32) error {
+func (m *DB) DeleteUser(id uint32) error {
 	_, err := m.pool.Exec(deleteUser, id)
 
 	return err
@@ -336,7 +336,7 @@ func (m *MySQLDB) DeleteUser(id uint32) error {
 const deleteThing = `DELETE FROM things WHERE id = ?`
 
 // DeleteThing deletes the thing with the given ID.
-func (m *MySQLDB) DeleteThing(id uint32) error {
+func (m *DB) DeleteThing(id uint32) error {
 	_, err := m.pool.Exec(deleteThing, id)
 
 	return err

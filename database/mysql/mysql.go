@@ -122,15 +122,15 @@ func getEnvs(dir ...string) (user, pass, host, port, dbname string, err error) {
 	return //nolint:nakedret
 }
 
-// MySQLDB implements the database interface by storing and retrieving info
+// DB implements the database interface by storing and retrieving info
 // about things and users from a MySQL database.
-type MySQLDB struct {
+type DB struct {
 	pool *sql.DB
 }
 
 // New connects to the configured mysql server and returns a new MySQLDB that
 // can perform queries for things and users.
-func New(config *gsdmysql.Config) (*MySQLDB, error) {
+func New(config *gsdmysql.Config) (*DB, error) {
 	pool, err := sql.Open(sqlDriverName, config.FormatDSN())
 	if err != nil {
 		return nil, err
@@ -140,11 +140,11 @@ func New(config *gsdmysql.Config) (*MySQLDB, error) {
 	pool.SetMaxOpenConns(maxOpenConns)
 	pool.SetMaxIdleConns(maxIdleConns)
 
-	return &MySQLDB{pool: pool}, pool.Ping()
+	return &DB{pool: pool}, pool.Ping()
 }
 
 // Reset drops all tables and recreates them. Use with extreme caution!
-func (m *MySQLDB) Reset() error {
+func (m *DB) Reset() error {
 	statements := regexp.MustCompile(`\n\s*\n`).Split(schemaSQL, -1)
 
 	tx, err := m.pool.Begin()
@@ -165,6 +165,6 @@ func (m *MySQLDB) Reset() error {
 }
 
 // Close closes the database connection. Not strictly necessary to call this.
-func (m *MySQLDB) Close() error {
+func (m *DB) Close() error {
 	return m.pool.Close()
 }

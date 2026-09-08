@@ -28,7 +28,6 @@ package server
 import (
 	"bytes"
 	"html/template"
-	"io"
 	"net/http"
 	"net/http/httptest"
 	"slices"
@@ -66,7 +65,7 @@ func newMockDB() *mockDB {
 }
 
 func (m *mockDB) CreateUser(name, email string) (*database.User, error) {
-	return nil, nil
+	return nil, nil //nolint: nilnil
 }
 
 func (m *mockDB) CreateThing(args database.CreateThingParams) (*database.Thing, error) {
@@ -178,7 +177,7 @@ func TestServer(t *testing.T) {
 		})
 
 		Convey("You can use the root endpoint", func() {
-			actual := testEndpoint(s, "GET", "/", nil)
+			actual := testEndpoint(s, "GET", "/")
 
 			expected, err := templatesFS.ReadFile("templates/root.html")
 			So(err, ShouldBeNil)
@@ -187,13 +186,13 @@ func TestServer(t *testing.T) {
 		})
 
 		Convey("You can GET the things endpoint", func() {
-			actual := testEndpoint(s, "GET", "/things", nil)
+			actual := testEndpoint(s, "GET", "/things")
 			So(actual, ShouldEqual, "")
 
 			mdb.users, mdb.things, mdb.subs = internal.GetExampleData()
 			expected := executeThingsTemplate(mdb.things)
 
-			actual = testEndpoint(s, "GET", "/things", nil)
+			actual = testEndpoint(s, "GET", "/things")
 			So(actual, ShouldEqual, expected)
 			So(strings.Count(actual, "</tr"), ShouldEqual, 10)
 			So(strings.Count(actual, "<td>"), ShouldEqual, 60)
@@ -202,20 +201,20 @@ func TestServer(t *testing.T) {
 				OrderDirection: database.OrderDesc,
 			})
 			expected = executeThingsTemplate(things)
-			actual = testEndpoint(s, "GET", "/things?dir=DESC", nil)
+			actual = testEndpoint(s, "GET", "/things?dir=DESC")
 			So(actual, ShouldEqual, expected)
 
-			code := testEndpointCode(s, "GET", "/things?dir=BAD", nil)
+			code := testEndpointCode(s, "GET", "/things?dir=BAD")
 			So(code, ShouldEqual, http.StatusBadRequest)
 
 			things = sortAndFilterThings(mdb.things, database.GetThingsParams{
 				OrderBy: database.OrderByAddress,
 			})
 			expected = executeThingsTemplate(things)
-			actual = testEndpoint(s, "GET", "/things?sort=address", nil)
+			actual = testEndpoint(s, "GET", "/things?sort=address")
 			So(actual, ShouldEqual, expected)
 
-			code = testEndpointCode(s, "GET", "/things?sort=bad", nil)
+			code = testEndpointCode(s, "GET", "/things?sort=bad")
 			So(code, ShouldEqual, http.StatusBadRequest)
 
 			things = sortAndFilterThings(mdb.things, database.GetThingsParams{
@@ -223,18 +222,18 @@ func TestServer(t *testing.T) {
 				OrderDirection: database.OrderDesc,
 			})
 			expected = executeThingsTemplate(things)
-			actual = testEndpoint(s, "GET", "/things?sort=address&dir=DESC", nil)
+			actual = testEndpoint(s, "GET", "/things?sort=address&dir=DESC")
 			So(actual, ShouldEqual, expected)
 
 			things = sortAndFilterThings(mdb.things, database.GetThingsParams{
 				FilterOnType: database.ThingsTypeS3,
 			})
 			expected = executeThingsTemplate(things)
-			actual = testEndpoint(s, "GET", "/things?type=s3", nil)
+			actual = testEndpoint(s, "GET", "/things?type=s3")
 			So(actual, ShouldEqual, expected)
 			So(strings.Count(actual, "</tr>"), ShouldEqual, 2)
 
-			code = testEndpointCode(s, "GET", "/things?type=bad", nil)
+			code = testEndpointCode(s, "GET", "/things?type=bad")
 			So(code, ShouldEqual, http.StatusBadRequest)
 
 			perPage := 3
@@ -243,7 +242,7 @@ func TestServer(t *testing.T) {
 				ThingsPerPage: perPage,
 			})
 			expected = executeThingsTemplate(things)
-			actual = testEndpoint(s, "GET", "/things?page=1&per_page=3", nil)
+			actual = testEndpoint(s, "GET", "/things?page=1&per_page=3")
 			So(actual, ShouldEqual, expected)
 			So(strings.Count(actual, "</tr>"), ShouldEqual, perPage)
 			So(actual, ShouldContainSubstring, "<td>j</td>")
@@ -255,7 +254,7 @@ func TestServer(t *testing.T) {
 				ThingsPerPage: perPage,
 			})
 			expected = executeThingsTemplate(things)
-			actual = testEndpoint(s, "GET", "/things?page=2&per_page=3", nil)
+			actual = testEndpoint(s, "GET", "/things?page=2&per_page=3")
 			So(actual, ShouldEqual, expected)
 			So(strings.Count(actual, "</tr>"), ShouldEqual, perPage)
 			So(actual, ShouldContainSubstring, "<td>i</td>")
@@ -264,7 +263,7 @@ func TestServer(t *testing.T) {
 		})
 
 		Convey("You can POST to the things endpoint and listen for SSE updates", func() {
-			actual := testEndpoint(s, "POST", "/things", nil)
+			actual := testEndpoint(s, "POST", "/things")
 			So(actual, ShouldEqual, "")
 
 			So(len(mdb.things), ShouldEqual, 1)
@@ -273,24 +272,24 @@ func TestServer(t *testing.T) {
 	})
 }
 
-func testEndpoint(s *Server, method, target string, inputBody io.Reader) string {
-	recorder := recordRequest(s, method, target, inputBody)
+func testEndpoint(s *Server, method, target string) string {
+	recorder := recordRequest(s, method, target)
 	So(recorder.Code, ShouldEqual, http.StatusOK)
 	So(recorder.Header().Get("Content-Type"), ShouldEqual, "text/html; charset=utf-8")
 
 	return recorder.Body.String()
 }
 
-func recordRequest(s *Server, method, target string, inputBody io.Reader) *httptest.ResponseRecorder {
+func recordRequest(s *Server, method, target string) *httptest.ResponseRecorder {
 	recorder := httptest.NewRecorder()
-	req := httptest.NewRequest(method, target, inputBody)
+	req := httptest.NewRequest(method, target, nil)
 	s.Router().ServeHTTP(recorder, req)
 
 	return recorder
 }
 
-func testEndpointCode(s *Server, method, target string, inputBody io.Reader) int {
-	recorder := recordRequest(s, method, target, inputBody)
+func testEndpointCode(s *Server, method, target string) int {
+	recorder := recordRequest(s, method, target)
 
 	return recorder.Code
 }

@@ -80,7 +80,7 @@ If --logfile is supplied, logs to that file instead of syslog.
 This command will block forever in the foreground; you can background it with
 ctrl-z; bg. Or better yet, use the daemonize program to daemonize this.
 `,
-	Run: func(cmd *cobra.Command, args []string) {
+	Run: func(cmd *cobra.Command, args []string) { //nolint: revive
 		if serverLogPath != "" && serverLogStdErr {
 			die("cannot use both --logfile and --logstderr flags at the same time")
 		}

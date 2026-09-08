@@ -56,13 +56,13 @@ func (s *Server) pageRoot(c *gin.Context) {
 // page=<int>&per_page=<int> : get a particular page of results, where each page
 // has per_page Things. Page defaults to 1, and per_page defaults to 50.
 func (s *Server) getThings(c *gin.Context) {
-
 	orderBy, orderDirection, thingType, page, perPage, err := parseGetThingsParams(c)
 	if err != nil {
 		c.AbortWithError(http.StatusBadRequest, err) //nolint: errcheck
 
 		return
 	}
+
 	result, err := s.db.GetThings(database.GetThingsParams{
 		FilterOnType:   thingType,
 		OrderBy:        orderBy,
