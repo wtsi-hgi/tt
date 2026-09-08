@@ -114,9 +114,7 @@ func sortAndFilterThings(origThings []database.Thing, params database.GetThingsP
 		}
 
 		high := low + params.ThingsPerPage
-		if high > len(order) {
-			high = len(order)
-		}
+		high = min(high, len(order))
 
 		order = order[low:high]
 	}

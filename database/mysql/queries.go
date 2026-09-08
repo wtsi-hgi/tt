@@ -70,7 +70,7 @@ func createRow(db executor, sql string, args ...any) (uint32, error) {
 		return 0, err
 	}
 
-	return uint32(id), nil
+	return uint32(id), nil //nolint: gosec // sql is a 32bit int
 }
 
 const getUserByName = `
@@ -191,16 +191,10 @@ FROM things
 // GetThings returns things that match the given parameters. Also in the result
 // is the last page that would return things if Page and ThingsPerPage are > 0.
 func (m *MySQLDB) GetThings(params database.GetThingsParams) (*database.GetThingsResult, error) {
-	var sql strings.Builder
-
-	sql.WriteString(getThings)
-	getThingsParamsToSQL(params, &sql)
-
-	rows, err := m.pool.Query(sql.String())
+	rows, err := m.runGetThingsQuery(params)
 	if err != nil {
 		return nil, err
 	}
-
 	defer rows.Close()
 
 	var things []database.Thing
@@ -244,7 +238,19 @@ func (m *MySQLDB) GetThings(params database.GetThingsParams) (*database.GetThing
 		LastPage: lastPage,
 	}, nil
 }
+func (m *MySQLDB) runGetThingsQuery(params database.GetThingsParams) (*sql.Rows, error) {
+	var sql strings.Builder
 
+	sql.WriteString(getThings)
+	getThingsParamsToSQL(params, &sql)
+
+	rows, err := m.pool.Query(sql.String())
+	if err != nil {
+		return nil, err
+	}
+
+	return rows, nil
+}
 func getThingsParamsToSQL(params database.GetThingsParams, sql *strings.Builder) {
 	whereSQL(params, sql)
 	orderSQL(params, sql)

@@ -531,7 +531,7 @@ func TestMySQL(t *testing.T) {
 func countTableRows(pool *sql.DB, table string, where ...string) (int64, error) {
 	var count int64
 
-	sql := "SELECT COUNT(*) FROM " + table
+	sql := "SELECT COUNT(*) FROM " + table //nolint:gosec
 
 	if len(where) == 1 {
 		sql += " WHERE " + where[0]

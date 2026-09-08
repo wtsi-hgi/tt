@@ -50,7 +50,7 @@ const (
 
 	envVarEnv    = "TT_ENV"
 	envVarUser   = "TT_SQL_USER"
-	envVarPass   = "TT_SQL_PASS"
+	envVarPass   = "TT_SQL_PASS" //nolint:gosec
 	envVarHost   = "TT_SQL_HOST"
 	envVarPort   = "TT_SQL_PORT"
 	envVarDBName = "TT_SQL_DB"
@@ -83,23 +83,9 @@ const ErrMissingEnvs = Error("missing required environment variables")
 //
 // Optionally supply a directory to look for the .env* files in.
 func ConfigFromEnv(dir ...string) (*gsdmysql.Config, error) {
-	var parentDir string
-	if len(dir) == 1 {
-		parentDir = dir[0] + string(os.PathSeparator)
-	}
-
-	env := os.Getenv(envVarEnv)
-	godotenv.Load(parentDir + ".env." + env + ".local") //nolint: errcheck
-	godotenv.Load(parentDir + ".env")                   //nolint: errcheck
-
-	user := os.Getenv(envVarUser)
-	pass := os.Getenv(envVarPass)
-	host := os.Getenv(envVarHost)
-	port := os.Getenv(envVarPort)
-	dbname := os.Getenv(envVarDBName)
-
-	if user == "" || pass == "" || host == "" || port == "" || dbname == "" {
-		return nil, ErrMissingEnvs
+	user, pass, host, port, dbname, err := getEnvs(dir...)
+	if err != nil {
+		return nil, err
 	}
 
 	conf := gsdmysql.NewConfig()
@@ -111,6 +97,29 @@ func ConfigFromEnv(dir ...string) (*gsdmysql.Config, error) {
 	conf.ParseTime = true
 
 	return conf, nil
+}
+
+func getEnvs(dir ...string) (user, pass, host, port, dbname string, err error) {
+	var parentDir string
+	if len(dir) == 1 {
+		parentDir = dir[0] + string(os.PathSeparator)
+	}
+
+	env := os.Getenv(envVarEnv)
+	godotenv.Load(parentDir + ".env." + env + ".local") //nolint: errcheck
+	godotenv.Load(parentDir + ".env")                   //nolint: errcheck
+
+	user = os.Getenv(envVarUser)
+	pass = os.Getenv(envVarPass)
+	host = os.Getenv(envVarHost)
+	port = os.Getenv(envVarPort)
+	dbname = os.Getenv(envVarDBName)
+
+	if user == "" || pass == "" || host == "" || port == "" || dbname == "" {
+		err = ErrMissingEnvs
+	}
+
+	return //nolint:nakedret
 }
 
 // MySQLDB implements the database interface by storing and retrieving info
