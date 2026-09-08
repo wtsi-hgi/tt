@@ -71,7 +71,7 @@ func TestConfig(t *testing.T) {
 		Convey("Without a full set of env vars, ConfigFromEnv fails", func() {
 			os.Setenv(envVarUser, "")
 
-			config, err := ConfigFromEnv()
+			config, err = ConfigFromEnv()
 			So(err, ShouldEqual, ErrMissingEnvs)
 			So(config, ShouldBeNil)
 		})
@@ -284,7 +284,7 @@ func TestMySQL(t *testing.T) {
 						creator = expectedUsers[1]
 					}
 
-					thing, err := db.CreateThing(database.CreateThingParams{
+					thing, errc := db.CreateThing(database.CreateThingParams{
 						Address:     et.Address,
 						Type:        et.Type,
 						Description: et.Description,
@@ -292,7 +292,7 @@ func TestMySQL(t *testing.T) {
 						Remove:      et.Remove,
 						Creator:     creator.Name,
 					})
-					So(err, ShouldBeNil)
+					So(errc, ShouldBeNil)
 
 					after := time.Now()
 					created := thing.Created
@@ -335,7 +335,9 @@ func TestMySQL(t *testing.T) {
 				So(count, ShouldEqual, numThings/2)
 
 				Convey("Then you can get things with desired sorting, pagination and filtering", func() {
-					result, err := db.GetThings(database.GetThingsParams{})
+					var result *database.GetThingsResult
+
+					result, err = db.GetThings(database.GetThingsParams{})
 					So(err, ShouldBeNil)
 					So(len(result.Things), ShouldEqual, numThings)
 					So(result.LastPage, ShouldEqual, 0)

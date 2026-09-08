@@ -208,7 +208,7 @@ func (m *MySQLDB) GetThings(params database.GetThingsParams) (*database.GetThing
 	for rows.Next() {
 		var thing database.Thing
 
-		if err := rows.Scan(
+		if errs := rows.Scan(
 			&thing.ID,
 			&thing.Address,
 			&thing.Type,
@@ -219,24 +219,24 @@ func (m *MySQLDB) GetThings(params database.GetThingsParams) (*database.GetThing
 			&thing.Warned1,
 			&thing.Warned2,
 			&thing.Removed,
-		); err != nil {
-			return nil, err
+		); errs != nil {
+			return nil, errs
 		}
 
 		things = append(things, thing)
 	}
 
-	if err := rows.Close(); err != nil {
+	if err = rows.Close(); err != nil {
 		return nil, err
 	}
 
-	if err := rows.Err(); err != nil {
+	if err = rows.Err(); err != nil {
 		return nil, err
 	}
 
-	lastPage, err := m.calculateLastPage(params)
-	if err != nil {
-		return nil, err
+	lastPage, errc := m.calculateLastPage(params)
+	if errc != nil {
+		return nil, errc
 	}
 
 	return &database.GetThingsResult{
