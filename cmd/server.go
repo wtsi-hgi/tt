@@ -26,6 +26,8 @@
 package cmd
 
 import (
+	"errors"
+	"fmt"
 	"io"
 	"log/syslog"
 	"time"
@@ -80,23 +82,26 @@ If --logfile is supplied, logs to that file instead of syslog.
 This command will block forever in the foreground; you can background it with
 ctrl-z; bg. Or better yet, use the daemonize program to daemonize this.
 `,
-	Run: func(cmd *cobra.Command, args []string) { //nolint: revive
+	RunE: func(cmd *cobra.Command, args []string) error { //nolint: revive
 		if serverLogPath != "" && serverLogStdErr {
-			die("cannot use both --logfile and --logstderr flags at the same time")
+			return errors.New("cannot use both --logfile and --logstderr flags at the same time")
 		}
 
 		logWriter := setServerLogger(serverLogPath, serverLogStdErr)
 
 		config, err := mysql.ConfigFromEnv()
 		if err != nil {
-			die("failed to get database config: %s", err)
+			return fmt.Errorf("failed to get database config: %s", err)
 		}
 
-		ensureServerArgs()
+		err = ensureServerArgs()
+		if err != nil {
+			return err
+		}
 
 		database, err := mysql.New(config)
 		if err != nil {
-			die("error opening database: %s", err)
+			return fmt.Errorf("error opening database: %s", err)
 		}
 
 		conf := server.Config{
@@ -106,7 +111,7 @@ ctrl-z; bg. Or better yet, use the daemonize program to daemonize this.
 
 		s, err := server.New(conf)
 		if err != nil {
-			die("failed to configure server: %s", err)
+			return fmt.Errorf("failed to configure server: %s", err)
 		}
 
 		defer s.Stop()
@@ -115,8 +120,10 @@ ctrl-z; bg. Or better yet, use the daemonize program to daemonize this.
 
 		err = s.Start(serverURL, serverCert, serverKey)
 		if err != nil {
-			die("non-graceful stop: %s", err)
+			return fmt.Errorf("non-graceful stop: %s", err)
 		}
+
+		return nil
 	},
 }
 
@@ -152,7 +159,7 @@ func setServerLogger(path string, stdErrMode bool) io.Writer {
 func logToSyslog() {
 	fh, err := log15.SyslogHandler(syslog.LOG_INFO|syslog.LOG_DAEMON, "tt-server", log15.LogfmtFormat())
 	if err != nil {
-		die("failed to log to syslog: %s", err)
+		errorMsg("failed to log to syslog: %s", err)
 	}
 
 	appLogger.SetHandler(fh)

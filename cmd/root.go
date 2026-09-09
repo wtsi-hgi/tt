@@ -38,6 +38,10 @@ import (
 	"github.com/wtsi-hgi/tt/database/mysql"
 )
 
+// osexit is used during die(); can be overriden in tests to avoid actually
+// exiting
+var osexit = os.Exit
+
 // appLogger is used for logging events in our commands.
 var appLogger = log15.New()
 
@@ -67,7 +71,7 @@ TODO: help text
 // the rootCmd.
 func Execute() {
 	if err := RootCmd.Execute(); err != nil {
-		die("%s", err.Error())
+		errorMsg("%s", err.Error())
 	}
 }
 
@@ -77,7 +81,7 @@ func init() {
 
 	_, err := mysql.ConfigFromEnv()
 	if err != nil && !errors.Is(err, mysql.ErrMissingEnvs) {
-		die("%s", err.Error())
+		errorMsg("%s", err.Error())
 	}
 
 	// global flags
@@ -90,18 +94,20 @@ func init() {
 }
 
 // ensureServerArgs dies if --url or --cert or --key have not been set.
-func ensureServerArgs() {
+func ensureServerArgs() error {
 	if serverURL == "" {
-		die("you must supply --url")
+		return errors.New("you must supply --url")
 	}
 
 	if serverCert == "" {
-		die("you must supply --cert")
+		return errors.New("you must supply --cert")
 	}
 
 	if serverKey == "" {
-		die("you must supply --key")
+		return errors.New("you must supply --key")
 	}
+
+	return nil
 }
 
 // logToFile logs to the given file.
@@ -144,8 +150,7 @@ func warn(msg string, a ...interface{}) {
 	appLogger.Warn(fmt.Sprintf(msg, a...))
 }
 
-// die is a convenience to log a message at the Error level and exit non zero.
-func die(msg string, a ...interface{}) {
+// errorMsg is a convenience to log a message at the Error level.
+func errorMsg(msg string, a ...interface{}) {
 	appLogger.Error(fmt.Sprintf(msg, a...))
-	os.Exit(1)
 }
