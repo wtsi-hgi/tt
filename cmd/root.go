@@ -29,6 +29,7 @@
 package cmd
 
 import (
+	"errors"
 	"fmt"
 	"os"
 
@@ -75,7 +76,7 @@ func init() {
 	appLogger.SetHandler(log15.LvlFilterHandler(log15.LvlInfo, log15.StderrHandler))
 
 	_, err := mysql.ConfigFromEnv()
-	if err != nil && err != mysql.ErrMissingEnvs {
+	if err != nil && !errors.Is(err, mysql.ErrMissingEnvs) {
 		die("%s", err.Error())
 	}
 
