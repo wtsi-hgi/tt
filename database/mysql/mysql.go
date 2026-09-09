@@ -128,7 +128,7 @@ type DB struct {
 	pool *sql.DB
 }
 
-// New connects to the configured mysql server and returns a new MySQLDB that
+// New connects to the configured MySQL server and returns a new DB that
 // can perform queries for things and users.
 func New(config *gsdmysql.Config) (*DB, error) {
 	pool, err := sql.Open(sqlDriverName, config.FormatDSN())
