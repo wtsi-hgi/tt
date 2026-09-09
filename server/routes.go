@@ -154,14 +154,14 @@ func (s *Server) postThing(c *gin.Context) {
 // deleteThing deletes the thing with the id in the url /things/id from the
 // database.
 func (s *Server) deleteThing(c *gin.Context) {
-	thingID, err := strconv.Atoi(c.Param("id"))
+	thingID, err := strconv.ParseUint(c.Param("id"), 10, 32)
 	if err != nil {
 		c.AbortWithError(http.StatusBadRequest, err) //nolint: errcheck
 
 		return
 	}
 
-	err = s.db.DeleteThing(uint32(thingID)) //nolint: gosec // sql is a 32bit int
+	err = s.db.DeleteThing(uint32(thingID))
 	if err != nil {
 		c.AbortWithError(http.StatusBadRequest, err) //nolint: errcheck
 
