@@ -53,6 +53,5 @@ Then you can bring up a development server that logs to STDERR like this:
 ```
 openssl req -x509 -newkey rsa:4096 -keyout key.pem -out cert.pem -sha256 -days 365 -subj '/CN=yourhost' -addext "subjectAltName = DNS:yourhost" -nodes
 
-export TT_ENV=development
-air server --url :4563 --cert cert.pem --key key.pem --logfile /root/uncreatable-file-path
+make dev
 ```

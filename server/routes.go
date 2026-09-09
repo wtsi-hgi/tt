@@ -54,37 +54,13 @@ func (s *Server) pageRoot(c *gin.Context) {
 // type=[dir|file|irods|openstack|s3] : filter to only show this type of thing
 //
 // page=<int>&per_page=<int> : get a particular page of results, where each page
-// has per_page Things. Page defaults to 1, and per_page defaults to 50
+// has per_page Things. Page defaults to 1, and per_page defaults to 50.
 func (s *Server) getThings(c *gin.Context) {
-	orderBy, err := database.NewOrderBy(c.Query("sort"))
+	orderBy, orderDirection, thingType, page, perPage, err := parseGetThingsParams(c)
 	if err != nil {
-		c.AbortWithError(http.StatusBadRequest, err)
+		c.AbortWithError(http.StatusBadRequest, err) //nolint: errcheck
 
 		return
-	}
-
-	orderDirection, err := database.NewOrderDirection(c.Query("dir"))
-	if err != nil {
-		c.AbortWithError(http.StatusBadRequest, err)
-
-		return
-	}
-
-	thingType, err := database.NewThingsType(c.Query("type"))
-	if err != nil {
-		c.AbortWithError(http.StatusBadRequest, err)
-
-		return
-	}
-
-	page, err := strconv.Atoi(c.Query("page"))
-	if err != nil || page < 1 {
-		page = defaultPage
-	}
-
-	perPage, err := strconv.Atoi(c.Query("per_page"))
-	if err != nil || perPage < 1 {
-		perPage = defaultPerPage
 	}
 
 	result, err := s.db.GetThings(database.GetThingsParams{
@@ -95,12 +71,45 @@ func (s *Server) getThings(c *gin.Context) {
 		ThingsPerPage:  perPage,
 	})
 	if err != nil {
-		c.AbortWithError(http.StatusInternalServerError, err)
+		c.AbortWithError(http.StatusInternalServerError, err) //nolint: errcheck
 
 		return
 	}
 
 	c.HTML(http.StatusOK, "templates/things.html", result.Things)
+}
+
+func parseGetThingsParams(c *gin.Context) (orderBy database.OrderBy,
+	orderDirection database.OrderDirection, thingsType database.ThingsType, page int, perPage int, err error) {
+	orderBy, err = database.NewOrderBy(c.Query("sort"))
+	if err != nil {
+		return //nolint:nakedret
+	}
+
+	orderDirection, err = database.NewOrderDirection(c.Query("dir"))
+	if err != nil {
+		return //nolint:nakedret
+	}
+
+	thingsType, err = database.NewThingsType(c.Query("type"))
+	if err != nil {
+		return //nolint:nakedret
+	}
+
+	page = atoiWithDefault(c.Query("page"), defaultPage)
+	perPage = atoiWithDefault(c.Query("per_page"), defaultPerPage)
+
+	return //nolint:nakedret
+}
+
+func atoiWithDefault(text string, defaultVal int) int {
+	num, err := strconv.Atoi(text)
+
+	if err != nil || num < 1 {
+		return defaultVal
+	}
+
+	return num
 }
 
 // postThing posts all required fields of a Thing to /things, along with Creator
@@ -113,28 +122,28 @@ func (s *Server) postThing(c *gin.Context) {
 	var postedThing database.CreateThingParams
 
 	if err := c.ShouldBind(&postedThing); err != nil {
-		c.AbortWithError(http.StatusBadRequest, err)
+		c.AbortWithError(http.StatusBadRequest, err) //nolint: errcheck
 
 		return
 	}
 
 	_, err := database.NewThingsType(string(postedThing.Type))
 	if err != nil {
-		c.AbortWithError(http.StatusBadRequest, err)
+		c.AbortWithError(http.StatusBadRequest, err) //nolint: errcheck
 
 		return
 	}
 
 	thing, err := s.db.CreateThing(postedThing)
 	if err != nil {
-		c.AbortWithError(http.StatusBadRequest, err)
+		c.AbortWithError(http.StatusBadRequest, err) //nolint: errcheck
 
 		return
 	}
 
 	err = s.broadcastNewThing(thing)
 	if err != nil {
-		c.AbortWithError(http.StatusInternalServerError, err)
+		c.AbortWithError(http.StatusInternalServerError, err) //nolint: errcheck
 
 		return
 	}
@@ -145,16 +154,16 @@ func (s *Server) postThing(c *gin.Context) {
 // deleteThing deletes the thing with the id in the url /things/id from the
 // database.
 func (s *Server) deleteThing(c *gin.Context) {
-	thingID, err := strconv.Atoi(c.Param("id"))
+	thingID, err := strconv.ParseUint(c.Param("id"), 10, 32)
 	if err != nil {
-		c.AbortWithError(http.StatusBadRequest, err)
+		c.AbortWithError(http.StatusBadRequest, err) //nolint: errcheck
 
 		return
 	}
 
 	err = s.db.DeleteThing(uint32(thingID))
 	if err != nil {
-		c.AbortWithError(http.StatusBadRequest, err)
+		c.AbortWithError(http.StatusBadRequest, err) //nolint: errcheck
 
 		return
 	}

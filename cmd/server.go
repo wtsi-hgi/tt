@@ -80,10 +80,11 @@ If --logfile is supplied, logs to that file instead of syslog.
 This command will block forever in the foreground; you can background it with
 ctrl-z; bg. Or better yet, use the daemonize program to daemonize this.
 `,
-	Run: func(cmd *cobra.Command, args []string) {
+	Run: func(cmd *cobra.Command, args []string) { //nolint: revive
 		if serverLogPath != "" && serverLogStdErr {
 			die("cannot use both --logfile and --logstderr flags at the same time")
 		}
+
 		logWriter := setServerLogger(serverLogPath, serverLogStdErr)
 
 		config, err := mysql.ConfigFromEnv()
@@ -127,21 +128,19 @@ func init() {
 		"log to this file instead of syslog")
 	serverCmd.Flags().BoolVar(&serverLogStdErr, "logstderr", false,
 		"log to stderr instead of syslog")
-
 }
 
 // setServerLogger makes our appLogger log to stderr if our stdErrMode is true,
 // otherwise logs to the given path if path is non-blank, otherwise to syslog.
 // Returns an io.Writer version of our appLogger for the server to log to.
 func setServerLogger(path string, stdErrMode bool) io.Writer {
-	if stdErrMode {
+	switch {
+	case stdErrMode:
 		logToStdErr()
-	} else {
-		if path == "" {
-			logToSyslog()
-		} else {
-			logToFile(path)
-		}
+	case path != "":
+		logToFile(path)
+	default:
+		logToSyslog()
 	}
 
 	lw := &log15Writer{logger: appLogger}

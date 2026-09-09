@@ -28,6 +28,7 @@ package mysql
 import (
 	"database/sql"
 	_ "embed"
+	"errors"
 	"fmt"
 	"os"
 	"regexp"
@@ -49,7 +50,7 @@ const (
 
 	envVarEnv    = "TT_ENV"
 	envVarUser   = "TT_SQL_USER"
-	envVarPass   = "TT_SQL_PASS"
+	envVarPass   = "TT_SQL_PASS" //nolint:gosec
 	envVarHost   = "TT_SQL_HOST"
 	envVarPort   = "TT_SQL_PORT"
 	envVarDBName = "TT_SQL_DB"
@@ -82,23 +83,9 @@ const ErrMissingEnvs = Error("missing required environment variables")
 //
 // Optionally supply a directory to look for the .env* files in.
 func ConfigFromEnv(dir ...string) (*gsdmysql.Config, error) {
-	var parentDir string
-	if len(dir) == 1 {
-		parentDir = dir[0] + string(os.PathSeparator)
-	}
-
-	env := os.Getenv(envVarEnv)
-	godotenv.Load(parentDir + ".env." + env + ".local")
-	godotenv.Load(parentDir + ".env")
-
-	user := os.Getenv(envVarUser)
-	pass := os.Getenv(envVarPass)
-	host := os.Getenv(envVarHost)
-	port := os.Getenv(envVarPort)
-	dbname := os.Getenv(envVarDBName)
-
-	if user == "" || pass == "" || host == "" || port == "" || dbname == "" {
-		return nil, ErrMissingEnvs
+	user, pass, host, port, dbname, err := getEnvs(dir...)
+	if err != nil {
+		return nil, err
 	}
 
 	conf := gsdmysql.NewConfig()
@@ -112,15 +99,38 @@ func ConfigFromEnv(dir ...string) (*gsdmysql.Config, error) {
 	return conf, nil
 }
 
-// MySQLDB implements the database interface by storing and retrieving info
+func getEnvs(dir ...string) (user, pass, host, port, dbname string, err error) {
+	var parentDir string
+	if len(dir) == 1 {
+		parentDir = dir[0] + string(os.PathSeparator)
+	}
+
+	env := os.Getenv(envVarEnv)
+	godotenv.Load(parentDir + ".env." + env + ".local") //nolint: errcheck
+	godotenv.Load(parentDir + ".env")                   //nolint: errcheck
+
+	user = os.Getenv(envVarUser)
+	pass = os.Getenv(envVarPass)
+	host = os.Getenv(envVarHost)
+	port = os.Getenv(envVarPort)
+	dbname = os.Getenv(envVarDBName)
+
+	if user == "" || pass == "" || host == "" || port == "" || dbname == "" {
+		err = ErrMissingEnvs
+	}
+
+	return //nolint:nakedret
+}
+
+// DB implements the database interface by storing and retrieving info
 // about things and users from a MySQL database.
-type MySQLDB struct {
+type DB struct {
 	pool *sql.DB
 }
 
-// New connects to the configured mysql server and returns a new MySQLDB that
+// New connects to the configured MySQL server and returns a new DB that
 // can perform queries for things and users.
-func New(config *gsdmysql.Config) (*MySQLDB, error) {
+func New(config *gsdmysql.Config) (*DB, error) {
 	pool, err := sql.Open(sqlDriverName, config.FormatDSN())
 	if err != nil {
 		return nil, err
@@ -130,11 +140,11 @@ func New(config *gsdmysql.Config) (*MySQLDB, error) {
 	pool.SetMaxOpenConns(maxOpenConns)
 	pool.SetMaxIdleConns(maxIdleConns)
 
-	return &MySQLDB{pool: pool}, pool.Ping()
+	return &DB{pool: pool}, pool.Ping()
 }
 
 // Reset drops all tables and recreates them. Use with extreme caution!
-func (m *MySQLDB) Reset() error {
+func (m *DB) Reset() error {
 	statements := regexp.MustCompile(`\n\s*\n`).Split(schemaSQL, -1)
 
 	tx, err := m.pool.Begin()
@@ -145,9 +155,9 @@ func (m *MySQLDB) Reset() error {
 	for _, stmt := range statements {
 		_, err = tx.Exec(stmt)
 		if err != nil {
-			tx.Rollback()
+			errRollback := tx.Rollback()
 
-			return err
+			return errors.Join(err, errRollback)
 		}
 	}
 
@@ -155,6 +165,6 @@ func (m *MySQLDB) Reset() error {
 }
 
 // Close closes the database connection. Not strictly necessary to call this.
-func (m *MySQLDB) Close() error {
+func (m *DB) Close() error {
 	return m.pool.Close()
 }

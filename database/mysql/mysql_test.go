@@ -70,7 +70,8 @@ func TestConfig(t *testing.T) {
 
 		Convey("Without a full set of env vars, ConfigFromEnv fails", func() {
 			os.Setenv(envVarUser, "")
-			config, err := ConfigFromEnv()
+
+			config, err = ConfigFromEnv()
 			So(err, ShouldEqual, ErrMissingEnvs)
 			So(config, ShouldBeNil)
 		})
@@ -80,7 +81,10 @@ func TestConfig(t *testing.T) {
 			So(err, ShouldBeNil)
 
 			defer func() {
-				os.Chdir(origDir)
+				errChdir := os.Chdir(origDir)
+				if errChdir != nil {
+					t.Log(errChdir)
+				}
 			}()
 
 			dir := t.TempDir()
@@ -101,24 +105,28 @@ func TestConfig(t *testing.T) {
 
 			os.Unsetenv(envVarEnv)
 			os.Unsetenv(envVarUser)
+
 			_, err = ConfigFromEnv()
 			So(err, ShouldNotBeNil)
 
 			os.Unsetenv(envVarEnv)
 			os.Unsetenv(envVarUser)
 			os.Setenv(envVarEnv, "development")
+
 			config, err = ConfigFromEnv()
 			So(err, ShouldBeNil)
 			So(config.User, ShouldEqual, "devuser")
 
 			os.Unsetenv(envVarUser)
 			os.Setenv(envVarEnv, "test")
+
 			config, err = ConfigFromEnv()
 			So(err, ShouldBeNil)
 			So(config.User, ShouldEqual, "testuser")
 
 			os.Unsetenv(envVarUser)
 			os.Setenv(envVarEnv, "production")
+
 			config, err = ConfigFromEnv()
 			So(err, ShouldBeNil)
 			So(config.User, ShouldEqual, "produser")
@@ -130,6 +138,7 @@ func TestConfig(t *testing.T) {
 			os.Unsetenv(envVarUser)
 			os.Unsetenv(envVarDBName)
 			os.Setenv(envVarEnv, "development")
+
 			config, err = ConfigFromEnv()
 			So(err, ShouldBeNil)
 			So(config.User, ShouldEqual, "devuser")
@@ -138,14 +147,17 @@ func TestConfig(t *testing.T) {
 			os.Unsetenv(envVarUser)
 			os.Unsetenv(envVarDBName)
 			os.Unsetenv(envVarEnv)
+
 			config, err = ConfigFromEnv()
 			So(err, ShouldBeNil)
 			So(config.User, ShouldEqual, "envuser")
 			So(config.DBName, ShouldEqual, "envdb")
 
-			os.Chdir(origDir)
+			err = os.Chdir(origDir)
+			So(err, ShouldBeNil)
 			os.Unsetenv(envVarUser)
 			os.Unsetenv(envVarDBName)
+
 			_, err = ConfigFromEnv()
 			So(err, ShouldNotBeNil)
 
@@ -211,6 +223,7 @@ func TestMySQL(t *testing.T) {
 	defer restore()
 
 	os.Setenv(envVarEnv, "development")
+
 	config, err := ConfigFromEnv("../..")
 	if os.Getenv(envVarDoTests) != "TABLES_WILL_BE_DROPPED" || err != nil {
 		SkipConvey("Skipping MySQL tests due to missing test env vars", t, func() {})
@@ -271,7 +284,7 @@ func TestMySQL(t *testing.T) {
 						creator = expectedUsers[1]
 					}
 
-					thing, err := db.CreateThing(database.CreateThingParams{
+					thing, errc := db.CreateThing(database.CreateThingParams{
 						Address:     et.Address,
 						Type:        et.Type,
 						Description: et.Description,
@@ -279,7 +292,7 @@ func TestMySQL(t *testing.T) {
 						Remove:      et.Remove,
 						Creator:     creator.Name,
 					})
-					So(err, ShouldBeNil)
+					So(errc, ShouldBeNil)
 
 					after := time.Now()
 					created := thing.Created
@@ -322,7 +335,9 @@ func TestMySQL(t *testing.T) {
 				So(count, ShouldEqual, numThings/2)
 
 				Convey("Then you can get things with desired sorting, pagination and filtering", func() {
-					result, err := db.GetThings(database.GetThingsParams{})
+					var result *database.GetThingsResult
+
+					result, err = db.GetThings(database.GetThingsParams{})
 					So(err, ShouldBeNil)
 					So(len(result.Things), ShouldEqual, numThings)
 					So(result.LastPage, ShouldEqual, 0)
@@ -516,7 +531,7 @@ func TestMySQL(t *testing.T) {
 func countTableRows(pool *sql.DB, table string, where ...string) (int64, error) {
 	var count int64
 
-	sql := "SELECT COUNT(*) FROM " + table
+	sql := "SELECT COUNT(*) FROM " + table //nolint:gosec
 
 	if len(where) == 1 {
 		sql += " WHERE " + where[0]
