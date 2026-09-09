@@ -75,7 +75,7 @@ func init() {
 	appLogger.SetHandler(log15.LvlFilterHandler(log15.LvlInfo, log15.StderrHandler))
 
 	_, err := mysql.ConfigFromEnv()
-	if err != nil {
+	if err != nil && err != mysql.ErrMissingEnvs {
 		die("%s", err.Error())
 	}
 

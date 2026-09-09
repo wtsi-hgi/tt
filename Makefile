@@ -36,4 +36,4 @@ clean:
 	@rm -f ./tt
 	@rm -f ./dist.zip
 
-.PHONY: test race bench lint build install clean
+.PHONY: test race bench lint build install clean dev default
