@@ -27,10 +27,17 @@ package cmd
 
 import (
 	"bytes"
+	"fmt"
+	"os"
+	"path/filepath"
 	"strings"
+	"syscall"
 	"testing"
+	"time"
 
+	"github.com/joho/godotenv"
 	. "github.com/smartystreets/goconvey/convey"
+	ttmysql "github.com/wtsi-hgi/tt/database/mysql"
 )
 
 func TestServer(t *testing.T) {
@@ -50,7 +57,107 @@ func TestServer(t *testing.T) {
 		So(output, ShouldContainSubstring, "failed to get database config")
 		So(output, ShouldContainSubstring, "missing required environment variables")
 	})
+
+	Convey("Given needed env vars", t, func() {
+		const envVarVal = "val"
+		os.Setenv(ttmysql.EnvVarHost, envVarVal)
+		os.Setenv(ttmysql.EnvVarPort, envVarVal)
+		os.Setenv(ttmysql.EnvVarUser, envVarVal)
+		os.Setenv(ttmysql.EnvVarPass, envVarVal)
+		os.Setenv(ttmysql.EnvVarDBName, envVarVal)
+
+		cliArgs := []string{"server"}
+
+		output, err := executeRootCommandForTest(t, cliArgs)
+		So(err, ShouldNotBeNil)
+		So(output, ShouldNotContainSubstring, "missing required environment variables")
+
+		Convey("You can't start a server without --url", func() {
+			So(output, ShouldContainSubstring, "you must supply --url")
+
+			Convey("Given URL", func() {
+				cliArgs = append(cliArgs, "--url", envVarVal)
+				output, err = executeRootCommandForTest(t, cliArgs)
+				So(err, ShouldNotBeNil)
+				So(output, ShouldNotContainSubstring, "you must supply --url")
+
+				Convey("You can't start a server without --cert", func() {
+					So(output, ShouldContainSubstring, "you must supply --cert")
+
+					Convey("Given cert", func() {
+						cliArgs = append(cliArgs, "--cert", envVarVal)
+						output, err = executeRootCommandForTest(t, cliArgs)
+						So(err, ShouldNotBeNil)
+						So(output, ShouldNotContainSubstring, "you must supply --cert")
+
+						Convey("You can't start a server without --key", func() {
+							So(output, ShouldContainSubstring, "you must supply --key")
+
+							Convey("Given key", func() {
+								cliArgs = append(cliArgs, "--key", envVarVal)
+								output, err = executeRootCommandForTest(t, cliArgs)
+								So(err, ShouldNotBeNil)
+								So(output, ShouldNotContainSubstring, "you must supply --key")
+
+								Convey("You can't start a server without valid db info", func() {
+									So(output, ShouldContainSubstring, "error opening database")
+									dir, err := os.Getwd()
+									So(err, ShouldBeNil)
+									parentDir := filepath.Dir(dir)
+									envFile := filepath.Join(parentDir, ".env.development.local")
+									_, err = os.Stat(envFile)
+
+									if err != nil {
+										SkipConvey("Skipping real server tests without "+envFile, func() {})
+										return
+									}
+
+									os.Unsetenv(ttmysql.EnvVarHost)
+									os.Unsetenv(ttmysql.EnvVarPort)
+									os.Unsetenv(ttmysql.EnvVarUser)
+									os.Unsetenv(ttmysql.EnvVarPass)
+									os.Unsetenv(ttmysql.EnvVarDBName)
+
+									err = godotenv.Load(envFile)
+									if err != nil {
+										SkipConvey(fmt.Sprintf("Skipping real server tests due to error reading file: %s", err), func() {})
+										return
+									}
+
+									Convey("Given real database details", func() {
+										outCh := make(chan string, 1)
+										errCh := make(chan error, 1)
+
+										go func() {
+											output, err = executeRootCommandForTest(t, cliArgs)
+											errCh <- err
+											outCh <- output
+										}()
+
+										time.Sleep(1 * time.Second)
+
+										p, err := os.FindProcess(os.Getpid())
+										So(err, ShouldBeNil)
+										p.Signal(syscall.SIGKILL) // sigkill or sigterm, not hangup
+										time.Sleep(1 * time.Second)
+
+										err = <-errCh
+										output = <-outCh
+
+										So(err, ShouldNotBeNil)
+										So(output, ShouldContainSubstring, "???")
+									})
+								})
+							})
+						})
+					})
+				})
+			})
+		})
+	})
 }
+
+// TODO: test env var defaults for persistent server flags
 
 func executeRootCommandForTest(t *testing.T, args []string) (string, error) {
 	t.Helper()

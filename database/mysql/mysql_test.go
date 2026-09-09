@@ -52,11 +52,11 @@ func TestConfig(t *testing.T) {
 		testPort := "1234"
 		testDBName := "db"
 
-		os.Setenv(envVarUser, testUser)
-		os.Setenv(envVarPass, testPass)
-		os.Setenv(envVarHost, testHost)
-		os.Setenv(envVarPort, testPort)
-		os.Setenv(envVarDBName, testDBName)
+		os.Setenv(EnvVarUser, testUser)
+		os.Setenv(EnvVarPass, testPass)
+		os.Setenv(EnvVarHost, testHost)
+		os.Setenv(EnvVarPort, testPort)
+		os.Setenv(EnvVarDBName, testDBName)
 
 		config, err := ConfigFromEnv()
 		So(err, ShouldBeNil)
@@ -69,7 +69,7 @@ func TestConfig(t *testing.T) {
 		So(config.ParseTime, ShouldBeTrue)
 
 		Convey("Without a full set of env vars, ConfigFromEnv fails", func() {
-			os.Setenv(envVarUser, "")
+			os.Setenv(EnvVarUser, "")
 
 			config, err = ConfigFromEnv()
 			So(err, ShouldEqual, ErrMissingEnvs)
@@ -92,61 +92,61 @@ func TestConfig(t *testing.T) {
 			So(err, ShouldBeNil)
 
 			err = os.WriteFile(".env.development.local",
-				[]byte(envVarUser+"=devuser\n"), filePerm)
+				[]byte(EnvVarUser+"=devuser\n"), filePerm)
 			So(err, ShouldBeNil)
 
 			err = os.WriteFile(".env.test.local",
-				[]byte(envVarUser+"=testuser\n"), filePerm)
+				[]byte(EnvVarUser+"=testuser\n"), filePerm)
 			So(err, ShouldBeNil)
 
 			err = os.WriteFile(".env.production.local",
-				[]byte(envVarUser+"=produser\n"), filePerm)
+				[]byte(EnvVarUser+"=produser\n"), filePerm)
 			So(err, ShouldBeNil)
 
-			os.Unsetenv(envVarEnv)
-			os.Unsetenv(envVarUser)
+			os.Unsetenv(EnvVarEnv)
+			os.Unsetenv(EnvVarUser)
 
 			_, err = ConfigFromEnv()
 			So(err, ShouldNotBeNil)
 
-			os.Unsetenv(envVarEnv)
-			os.Unsetenv(envVarUser)
-			os.Setenv(envVarEnv, "development")
+			os.Unsetenv(EnvVarEnv)
+			os.Unsetenv(EnvVarUser)
+			os.Setenv(EnvVarEnv, "development")
 
 			config, err = ConfigFromEnv()
 			So(err, ShouldBeNil)
 			So(config.User, ShouldEqual, "devuser")
 
-			os.Unsetenv(envVarUser)
-			os.Setenv(envVarEnv, "test")
+			os.Unsetenv(EnvVarUser)
+			os.Setenv(EnvVarEnv, "test")
 
 			config, err = ConfigFromEnv()
 			So(err, ShouldBeNil)
 			So(config.User, ShouldEqual, "testuser")
 
-			os.Unsetenv(envVarUser)
-			os.Setenv(envVarEnv, "production")
+			os.Unsetenv(EnvVarUser)
+			os.Setenv(EnvVarEnv, "production")
 
 			config, err = ConfigFromEnv()
 			So(err, ShouldBeNil)
 			So(config.User, ShouldEqual, "produser")
 
 			err = os.WriteFile(".env",
-				[]byte(envVarUser+"=envuser\n"+envVarDBName+"=envdb"), filePerm)
+				[]byte(EnvVarUser+"=envuser\n"+EnvVarDBName+"=envdb"), filePerm)
 			So(err, ShouldBeNil)
 
-			os.Unsetenv(envVarUser)
-			os.Unsetenv(envVarDBName)
-			os.Setenv(envVarEnv, "development")
+			os.Unsetenv(EnvVarUser)
+			os.Unsetenv(EnvVarDBName)
+			os.Setenv(EnvVarEnv, "development")
 
 			config, err = ConfigFromEnv()
 			So(err, ShouldBeNil)
 			So(config.User, ShouldEqual, "devuser")
 			So(config.DBName, ShouldEqual, "envdb")
 
-			os.Unsetenv(envVarUser)
-			os.Unsetenv(envVarDBName)
-			os.Unsetenv(envVarEnv)
+			os.Unsetenv(EnvVarUser)
+			os.Unsetenv(EnvVarDBName)
+			os.Unsetenv(EnvVarEnv)
 
 			config, err = ConfigFromEnv()
 			So(err, ShouldBeNil)
@@ -155,8 +155,8 @@ func TestConfig(t *testing.T) {
 
 			err = os.Chdir(origDir)
 			So(err, ShouldBeNil)
-			os.Unsetenv(envVarUser)
-			os.Unsetenv(envVarDBName)
+			os.Unsetenv(EnvVarUser)
+			os.Unsetenv(EnvVarDBName)
 
 			_, err = ConfigFromEnv()
 			So(err, ShouldNotBeNil)
@@ -172,48 +172,48 @@ func TestConfig(t *testing.T) {
 // restoreOrigEnvs returns a function you should defer to restore the original
 // env vars.
 func restoreOrigEnvs() func() {
-	origEnv, origEnvSet := os.LookupEnv(envVarEnv)
-	origUser, origUserSet := os.LookupEnv(envVarUser)
-	origPass, origPassSet := os.LookupEnv(envVarPass)
-	origHost, origHostSet := os.LookupEnv(envVarHost)
-	origPort, origPortSet := os.LookupEnv(envVarPort)
-	origDBName, origDBNameSet := os.LookupEnv(envVarDBName)
+	origEnv, origEnvSet := os.LookupEnv(EnvVarEnv)
+	origUser, origUserSet := os.LookupEnv(EnvVarUser)
+	origPass, origPassSet := os.LookupEnv(EnvVarPass)
+	origHost, origHostSet := os.LookupEnv(EnvVarHost)
+	origPort, origPortSet := os.LookupEnv(EnvVarPort)
+	origDBName, origDBNameSet := os.LookupEnv(EnvVarDBName)
 
 	return func() {
 		if origEnvSet {
-			os.Setenv(envVarEnv, origEnv)
+			os.Setenv(EnvVarEnv, origEnv)
 		} else {
-			os.Unsetenv(envVarEnv)
+			os.Unsetenv(EnvVarEnv)
 		}
 
 		if origUserSet {
-			os.Setenv(envVarUser, origUser)
+			os.Setenv(EnvVarUser, origUser)
 		} else {
-			os.Unsetenv(envVarUser)
+			os.Unsetenv(EnvVarUser)
 		}
 
 		if origPassSet {
-			os.Setenv(envVarPass, origPass)
+			os.Setenv(EnvVarPass, origPass)
 		} else {
-			os.Unsetenv(envVarPass)
+			os.Unsetenv(EnvVarPass)
 		}
 
 		if origHostSet {
-			os.Setenv(envVarHost, origHost)
+			os.Setenv(EnvVarHost, origHost)
 		} else {
-			os.Unsetenv(envVarHost)
+			os.Unsetenv(EnvVarHost)
 		}
 
 		if origPortSet {
-			os.Setenv(envVarPort, origPort)
+			os.Setenv(EnvVarPort, origPort)
 		} else {
-			os.Unsetenv(envVarPort)
+			os.Unsetenv(EnvVarPort)
 		}
 
 		if origDBNameSet {
-			os.Setenv(envVarDBName, origDBName)
+			os.Setenv(EnvVarDBName, origDBName)
 		} else {
-			os.Unsetenv(envVarDBName)
+			os.Unsetenv(EnvVarDBName)
 		}
 	}
 }
@@ -222,7 +222,7 @@ func TestMySQL(t *testing.T) {
 	restore := restoreOrigEnvs()
 	defer restore()
 
-	os.Setenv(envVarEnv, "development")
+	os.Setenv(EnvVarEnv, "development")
 
 	config, err := ConfigFromEnv("../..")
 	if os.Getenv(envVarDoTests) != "TABLES_WILL_BE_DROPPED" || err != nil {
