@@ -38,10 +38,6 @@ import (
 	"github.com/wtsi-hgi/tt/database/mysql"
 )
 
-// osexit is used during die(); can be overriden in tests to avoid actually
-// exiting
-var osexit = os.Exit
-
 // appLogger is used for logging events in our commands.
 var appLogger = log15.New()
 
@@ -50,11 +46,6 @@ const (
 	serverCertEnvKey = "TT_SERVER_CERT"
 	serverKeyEnvKey  = "TT_SERVER_KEY"
 )
-
-// global options.
-var serverURL string
-var serverKey string
-var serverCert string
 
 // RootCmd represents the base command when called without any subcommands.
 var RootCmd = &cobra.Command{
@@ -85,16 +76,16 @@ func init() {
 	}
 
 	// global flags
-	RootCmd.PersistentFlags().StringVar(&serverURL, "url", os.Getenv(serverURLEnvKey),
+	RootCmd.PersistentFlags().String("url", os.Getenv(serverURLEnvKey),
 		"tt server URL in the form host:port")
-	RootCmd.PersistentFlags().StringVar(&serverCert, "cert", os.Getenv(serverCertEnvKey),
+	RootCmd.PersistentFlags().String("cert", os.Getenv(serverCertEnvKey),
 		"path to server certificate file")
-	RootCmd.PersistentFlags().StringVar(&serverKey, "key", os.Getenv(serverKeyEnvKey),
+	RootCmd.PersistentFlags().String("key", os.Getenv(serverKeyEnvKey),
 		"path to server key file")
 }
 
 // ensureServerArgs dies if --url or --cert or --key have not been set.
-func ensureServerArgs() error {
+func ensureServerArgs(serverURL, serverCert, serverKey string) error {
 	if serverURL == "" {
 		return errors.New("you must supply --url")
 	}

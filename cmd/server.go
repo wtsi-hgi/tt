@@ -38,12 +38,6 @@ import (
 	"github.com/wtsi-hgi/tt/server"
 )
 
-// options for this cmd.
-var serverLogPath string
-var serverLDAPFQDN string
-var serverLDAPBindDN string
-var serverLogStdErr bool
-
 // serverCmd represents the server command.
 var serverCmd = &cobra.Command{
 	Use:   "server",
@@ -83,6 +77,31 @@ This command will block forever in the foreground; you can background it with
 ctrl-z; bg. Or better yet, use the daemonize program to daemonize this.
 `,
 	RunE: func(cmd *cobra.Command, args []string) error { //nolint: revive
+		serverURL, err := cmd.Flags().GetString("url")
+		if err != nil {
+			return err
+		}
+
+		serverCert, err := cmd.Flags().GetString("cert")
+		if err != nil {
+			return err
+		}
+
+		serverKey, err := cmd.Flags().GetString("key")
+		if err != nil {
+			return err
+		}
+
+		serverLogPath, err := cmd.Flags().GetString("logfile")
+		if err != nil {
+			return err
+		}
+
+		serverLogStdErr, err := cmd.Flags().GetBool("logstderr")
+		if err != nil {
+			return err
+		}
+
 		if serverLogPath != "" && serverLogStdErr {
 			return errors.New("cannot use both --logfile and --logstderr flags at the same time")
 		}
@@ -94,7 +113,7 @@ ctrl-z; bg. Or better yet, use the daemonize program to daemonize this.
 			return fmt.Errorf("failed to get database config: %s", err)
 		}
 
-		err = ensureServerArgs()
+		err = ensureServerArgs(serverURL, serverCert, serverKey)
 		if err != nil {
 			return err
 		}
@@ -114,14 +133,14 @@ ctrl-z; bg. Or better yet, use the daemonize program to daemonize this.
 			return fmt.Errorf("failed to configure server: %s", err)
 		}
 
-		defer s.Stop()
-
-		sayStarted()
+		go sayStarted()
 
 		err = s.Start(serverURL, serverCert, serverKey)
 		if err != nil {
 			return fmt.Errorf("non-graceful stop: %s", err)
 		}
+
+		s.Stop()
 
 		return nil
 	},
@@ -131,9 +150,9 @@ func init() {
 	RootCmd.AddCommand(serverCmd)
 
 	// flags specific to this sub-command
-	serverCmd.Flags().StringVar(&serverLogPath, "logfile", "",
+	serverCmd.Flags().String("logfile", "",
 		"log to this file instead of syslog")
-	serverCmd.Flags().BoolVar(&serverLogStdErr, "logstderr", false,
+	serverCmd.Flags().Bool("logstderr", false,
 		"log to stderr instead of syslog")
 }
 

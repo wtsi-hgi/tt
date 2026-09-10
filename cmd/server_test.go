@@ -28,15 +28,16 @@ package cmd
 import (
 	"bytes"
 	"fmt"
+	"net"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
-	"syscall"
 	"testing"
-	"time"
 
 	"github.com/joho/godotenv"
 	. "github.com/smartystreets/goconvey/convey"
+	gas "github.com/wtsi-hgi/go-authserver"
 	ttmysql "github.com/wtsi-hgi/tt/database/mysql"
 )
 
@@ -59,6 +60,20 @@ func TestServer(t *testing.T) {
 	})
 
 	Convey("Given needed env vars", t, func() {
+		Reset(func() {
+			flags := RootCmd.PersistentFlags()
+
+			for _, name := range []string{"url", "cert", "key"} {
+				flag := flags.Lookup(name)
+				if flag == nil {
+					continue
+				}
+
+				_ = flags.Set(name, flag.DefValue)
+				flag.Changed = false
+			}
+		})
+
 		const envVarVal = "val"
 		os.Setenv(ttmysql.EnvVarHost, envVarVal)
 		os.Setenv(ttmysql.EnvVarPort, envVarVal)
@@ -125,27 +140,56 @@ func TestServer(t *testing.T) {
 									}
 
 									Convey("Given real database details", func() {
-										outCh := make(chan string, 1)
-										errCh := make(chan error, 1)
+										Convey("You can't start a server with invalid cert files", func() {
+											output, err := executeRootCommandForTest(t, cliArgs)
+											So(err, ShouldNotBeNil)
+											So(output, ShouldContainSubstring, "non-graceful stop: open val: no such file or directory")
+										})
 
-										go func() {
-											output, err = executeRootCommandForTest(t, cliArgs)
-											errCh <- err
-											outCh <- output
-										}()
+										Convey("Given real cert files", func() {
+											cert, key, err := gas.CreateTestCert(t)
+											So(err, ShouldBeNil)
 
-										time.Sleep(1 * time.Second)
+											Convey("You can't start a server with an invalid url", func() {
+												cliArgs = []string{"server", "--url", "invalid", "--cert", cert, "--key", key}
+												output, err := executeRootCommandForTest(t, cliArgs)
+												So(err, ShouldNotBeNil)
+												So(output, ShouldContainSubstring, "non-graceful stop: listen tcp: address invalid: missing port in address")
+											})
 
-										p, err := os.FindProcess(os.Getpid())
-										So(err, ShouldBeNil)
-										p.Signal(syscall.SIGKILL) // sigkill or sigterm, not hangup
-										time.Sleep(1 * time.Second)
+											Convey("You can start a server with an valid url", func() {
+												url, err := getTestServerAddress()
+												So(err, ShouldBeNil)
+												cliArgs = []string{"server", "--url", url, "--cert", cert, "--key", key}
+												output, err := executeRootCommandForTest(t, cliArgs)
+												So(err, ShouldBeNil)
+												So(output, ShouldContainSubstring, "server started")
+											})
+										})
 
-										err = <-errCh
-										output = <-outCh
+										// outCh := make(chan string, 1)
+										// errCh := make(chan error, 1)
 
-										So(err, ShouldNotBeNil)
-										So(output, ShouldContainSubstring, "???")
+										// waitTime := 1 * time.Second
+
+										// go func() {
+										// 	p, err := os.FindProcess(os.Getpid())
+										// 	if err != nil {
+										// 		errCh <- err
+										// 		outCh <- ""
+
+										// 		return
+										// 	}
+
+										// 	go func() {
+										// 		time.Sleep(waitTime)
+										// 		p.Signal(syscall.SIGKILL)
+										// 	}()
+										// 	errCh <- err
+										// 	outCh <- output
+										// }()
+
+										// time.Sleep(waitTime * 2)
 									})
 								})
 							})
@@ -157,7 +201,19 @@ func TestServer(t *testing.T) {
 	})
 }
 
+func getTestServerAddress() (string, error) {
+	l, err := net.Listen("tcp", "localhost:0")
+	if err != nil {
+		return "", err
+	}
+
+	defer l.Close()
+
+	return net.JoinHostPort("localhost", strconv.Itoa(l.Addr().(*net.TCPAddr).Port)), nil //nolint:forcetypeassert
+}
+
 // TODO: test env var defaults for persistent server flags
+// TODO: real server test, including kill behaviour
 
 func executeRootCommandForTest(t *testing.T, args []string) (string, error) {
 	t.Helper()
