@@ -136,6 +136,7 @@ ctrl-z; bg. Or better yet, use the daemonize program to daemonize this.
 		go sayStarted()
 
 		err = s.Start(serverURL, serverCert, serverKey)
+		fmt.Println("/n hi")
 		if err != nil {
 			return fmt.Errorf("non-graceful stop: %s", err)
 		}
