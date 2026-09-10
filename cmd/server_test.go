@@ -163,6 +163,7 @@ func TestServer(t *testing.T) {
 												cliArgs = []string{"server", "--url", url, "--cert", cert, "--key", key}
 												output, err := executeRootCommandForTest(t, cliArgs)
 												So(err, ShouldBeNil)
+
 												So(output, ShouldContainSubstring, "server started")
 											})
 										})
