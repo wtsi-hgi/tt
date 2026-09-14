@@ -31,11 +31,14 @@ import (
 	"crypto/tls"
 	"errors"
 	"fmt"
+	"io"
 	"net"
+	"net/http"
 	"os"
 	"os/exec"
 	"os/signal"
 	"path/filepath"
+	"regexp"
 	"strconv"
 	"strings"
 	"sync"
@@ -49,10 +52,9 @@ import (
 )
 
 var (
-	testRootDir      string //nolint:gochecknoglobals
-	testBinaryPath   string //nolint:gochecknoglobals
-	testPSBinaryPath string //nolint:gochecknoglobals
-	app              = "tt" //nolint:gochecknoglobals
+	testRootDir    string //nolint:gochecknoglobals
+	testBinaryPath string //nolint:gochecknoglobals
+	app            = "tt" //nolint:gochecknoglobals
 )
 
 func TestMain(m *testing.M) {
@@ -149,7 +151,7 @@ type testServer struct {
 	stderr *bytes.Buffer
 }
 
-func NewTestServer(t *testing.T) (*testServer, error) {
+func NewTestServer(t *testing.T, args []string) (*testServer, error) {
 	t.Helper()
 
 	s := new(testServer)
@@ -171,7 +173,7 @@ func NewTestServer(t *testing.T) (*testServer, error) {
 		return nil, err
 	}
 
-	s.startServer()
+	s.startServer(args)
 
 	Reset(func() {
 		if err := s.Shutdown(); err != nil {
@@ -193,8 +195,9 @@ func getTestServerAddress() (string, error) {
 	return net.JoinHostPort("localhost", strconv.Itoa(l.Addr().(*net.TCPAddr).Port)), nil //nolint:forcetypeassert
 }
 
-func (s *testServer) startServer() {
-	args := []string{"server", "--url", s.url, "--cert", s.cert, "--key", s.key, "--logstderr"}
+func (s *testServer) startServer(additionalServerArgs []string) {
+	args := []string{"server", "--url", s.url, "--cert", s.cert, "--key", s.key}
+	args = append(args, additionalServerArgs...)
 
 	s.stopped = false
 	s.cmd = exec.Command(testBinaryPath, args...) //nolint:gosec,noctx
@@ -229,6 +232,7 @@ func (s *testServer) waitForServer() {
 		time.Sleep(10 * time.Millisecond)
 	}
 }
+
 func (s *testServer) Shutdown() error {
 	if s.stopped {
 		return nil
@@ -247,61 +251,118 @@ func (s *testServer) Shutdown() error {
 	}
 }
 
-// func (s *testServer) runBinary(t *testing.T, args ...string) (int, string) {
-// 	t.Helper()
+func runBinary(t *testing.T, args ...string) (int, string) {
+	t.Helper()
+	cmd := exec.Command(testBinaryPath, args...) //nolint:gosec,noctx
 
-// 	fullArgs := append([]string{"--url", s.url, "--cert", s.cert}, args...)
-// 	exitCode, out := runCLI(t, s.env, "", fullArgs...)
+	std, err := cmd.CombinedOutput()
+	if err != nil {
+		t.Log(err)
+	}
 
-// 	return exitCode, out
-// }
-
-// func (s *testServer) runBinaryWithNoLogging(t *testing.T, args ...string) (int, string) {
-// 	t.Helper()
-
-// 	fullArgs := append([]string{"--url", s.url, "--cert", s.cert}, args...)
-
-// 	return runCLI(t, s.env, "", fullArgs...)
-// }
-
-// func (s *testServer) confirmOutput(t *testing.T, args []string, expectedCode int, expected string) {
-// 	t.Helper()
-
-// 	exitCode, actual := s.runBinary(t, args...)
-
-// 	So(exitCode, ShouldEqual, expectedCode)
-// 	So(actual, ShouldEqual, expected)
-// }
-
-// func (s *testServer) confirmOutputContains(t *testing.T, args []string, expectedCode int, expected string) {
-// 	t.Helper()
-
-// 	exitCode, actual := s.runBinaryWithNoLogging(t, args...)
-
-// 	So(exitCode, ShouldEqual, expectedCode)
-// 	So(actual, ShouldContainSubstring, expected)
-// }
+	return cmd.ProcessState.ExitCode(), string(std)
+}
 
 func TestServer(t *testing.T) {
-	Convey("You can start a real server from the built tt binary", t, func() {
-		fmt.Println(testBinaryPath)
-		s, err := NewTestServer(t)
+	Convey("You can start a real server from the built tt binary that logs to stderr", t, func() {
+		s, err := NewTestServer(t, []string{"--logstderr"})
 		So(err, ShouldBeNil)
-		// <-time.After(5 * time.Second)
 		So(s.stdout.String(), ShouldBeBlank)
 
-		deadline := time.Now().Add(5 * time.Second)
-		for time.Now().Before(deadline) {
-			if s.stderr.String() != "" {
-				return
-			}
-
-			time.Sleep(10 * time.Millisecond)
-		}
+		waitForSomething(func() bool {
+			return s.stderr.String() != ""
+		})
 
 		So(s.stderr.String(), ShouldContainSubstring, "server started")
+
+		Convey("You can access the webpage", func() {
+			html, err := getHTML("https://" + s.url)
+
+			So(err, ShouldBeNil)
+			So(html, ShouldContainSubstring, "title>Temporary Things</title>")
+
+			Convey("You can kill the server and it dies gracefully", func() {
+				err := s.Shutdown()
+				So(err, ShouldBeNil)
+				So(s.stderr.String(), ShouldContainSubstring, "gracefully shut down")
+			})
+		})
+	})
+
+	Convey("You can start a real server that logs to a file", t, func() {
+		dir := t.TempDir()
+		logFilePath := filepath.Join(dir, "log")
+		s, err := NewTestServer(t, []string{"--logfile", logFilePath})
+		So(err, ShouldBeNil)
+		So(s.stdout.String(), ShouldBeBlank)
+
+		waitForSomething(func() bool {
+			_, err := os.Stat(logFilePath)
+
+			return err != nil
+		})
+
+		contents, err := os.ReadFile(logFilePath)
+		So(err, ShouldBeNil)
+		So(string(contents), ShouldContainSubstring, "server started")
+	})
+
+	// NB: no test for logging to syslog, because we don't have root to check...
+}
+
+func TestServerHelp(t *testing.T) {
+	Convey("The server has defaults from environment variables", t, func() {
+		exit, std := runBinary(t, "server", "-h")
+		So(exit, ShouldBeZeroValue)
+		So(std, ShouldContainSubstring, "--url")
+		So(std, ShouldNotContainSubstring, "(default")
+
+		os.Setenv("TT_SERVER_URL", "testURL")
+		os.Setenv("TT_SERVER_CERT", "testCert")
+		os.Setenv("TT_SERVER_KEY", "testKey")
+		exit, std = runBinary(t, "server", "-h")
+		So(exit, ShouldBeZeroValue)
+		So(std, ShouldContainSubstring, "(default \"testURL\")")
+		So(std, ShouldContainSubstring, "(default \"testCert\")")
+		So(std, ShouldContainSubstring, "(default \"testKey\")")
+	})
+}
+func TestVersion(t *testing.T) {
+	Convey("The version sub command tells you the version", t, func() {
+		exit, std := runBinary(t, "version")
+		So(exit, ShouldBeZeroValue)
+		So(std, ShouldNotBeBlank)
+
+		match, err := regexp.MatchString(`^[0-9A-Za-z-]+\n$`, std)
+		So(err, ShouldBeNil)
+		So(match, ShouldBeTrue)
 	})
 }
 
-// TODO: test env var defaults for persistent server flags
-// TODO: real server test, including kill behaviour
+func waitForSomething(something func() bool) {
+	deadline := time.Now().Add(5 * time.Second)
+	for time.Now().Before(deadline) {
+		if something() {
+			break
+		}
+
+		time.Sleep(10 * time.Millisecond)
+	}
+}
+
+func getHTML(url string) (string, error) {
+	client := http.Client{Transport: &http.Transport{TLSClientConfig: &tls.Config{InsecureSkipVerify: true}}}
+	res, err := client.Get(url)
+	if err != nil {
+		return "", err
+	}
+
+	html, err := io.ReadAll(res.Body)
+	if err != nil {
+		return "", err
+	}
+
+	res.Body.Close()
+
+	return string(html), nil
+}
