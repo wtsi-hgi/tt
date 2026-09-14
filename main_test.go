@@ -266,6 +266,9 @@ func runBinary(t *testing.T, args ...string) (int, string) {
 func TestServer(t *testing.T) {
 	Convey("You can start a real server from the built tt binary that logs to stderr", t, func() {
 		s, err := NewTestServer(t, []string{"--logstderr"})
+		if err != nil {
+			return
+		}
 		So(err, ShouldBeNil)
 		So(s.stdout.String(), ShouldBeBlank)
 
@@ -293,6 +296,10 @@ func TestServer(t *testing.T) {
 		dir := t.TempDir()
 		logFilePath := filepath.Join(dir, "log")
 		s, err := NewTestServer(t, []string{"--logfile", logFilePath})
+		if err != nil {
+			return
+		}
+
 		So(err, ShouldBeNil)
 		So(s.stdout.String(), ShouldBeBlank)
 
