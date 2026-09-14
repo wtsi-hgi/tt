@@ -76,6 +76,7 @@ If --logfile is supplied, logs to that file instead of syslog.
 This command will block forever in the foreground; you can background it with
 ctrl-z; bg. Or better yet, use the daemonize program to daemonize this.
 `,
+
 	RunE: func(cmd *cobra.Command, args []string) error { //nolint: revive
 		serverURL, err := cmd.Flags().GetString("url")
 		if err != nil {
@@ -136,7 +137,7 @@ ctrl-z; bg. Or better yet, use the daemonize program to daemonize this.
 		go sayStarted()
 
 		err = s.Start(serverURL, serverCert, serverKey)
-		fmt.Println("/n hi")
+
 		if err != nil {
 			return fmt.Errorf("non-graceful stop: %s", err)
 		}
@@ -205,4 +206,5 @@ func sayStarted() {
 	<-time.After(1 * time.Second)
 
 	info("server started")
+
 }

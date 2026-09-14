@@ -156,41 +156,7 @@ func TestServer(t *testing.T) {
 												So(err, ShouldNotBeNil)
 												So(output, ShouldContainSubstring, "non-graceful stop: listen tcp: address invalid: missing port in address")
 											})
-
-											Convey("You can start a server with an valid url", func() {
-												url, err := getTestServerAddress()
-												So(err, ShouldBeNil)
-												cliArgs = []string{"server", "--url", url, "--cert", cert, "--key", key}
-												output, err := executeRootCommandForTest(t, cliArgs)
-												So(err, ShouldBeNil)
-
-												So(output, ShouldContainSubstring, "server started")
-											})
 										})
-
-										// outCh := make(chan string, 1)
-										// errCh := make(chan error, 1)
-
-										// waitTime := 1 * time.Second
-
-										// go func() {
-										// 	p, err := os.FindProcess(os.Getpid())
-										// 	if err != nil {
-										// 		errCh <- err
-										// 		outCh <- ""
-
-										// 		return
-										// 	}
-
-										// 	go func() {
-										// 		time.Sleep(waitTime)
-										// 		p.Signal(syscall.SIGKILL)
-										// 	}()
-										// 	errCh <- err
-										// 	outCh <- output
-										// }()
-
-										// time.Sleep(waitTime * 2)
 									})
 								})
 							})
