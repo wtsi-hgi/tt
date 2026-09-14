@@ -98,7 +98,7 @@ func TestMain(m *testing.M) {
 	createdRoot, err := os.MkdirTemp("", "tt-tests-")
 	if err != nil {
 		exitCode = 1
-		fmt.Println(err.Error()) //nolgitint: forbidigo
+		fmt.Println(err.Error()) //nolgitint:forbidigo
 
 		return
 	}
@@ -163,6 +163,9 @@ func NewTestServer(t *testing.T, args []string) (*testServer, error) {
 	}
 
 	err = godotenv.Load(envFile)
+	if err != nil {
+		return nil, err
+	}
 
 	s.cert, s.key, err = gas.CreateTestCert(t)
 	if err != nil {
@@ -193,7 +196,7 @@ func getTestServerAddress() (string, error) {
 
 	defer l.Close()
 
-	return net.JoinHostPort("localhost", strconv.Itoa(l.Addr().(*net.TCPAddr).Port)), nil //nolint:forcetypeassert
+	return net.JoinHostPort("localhost", strconv.Itoa(l.Addr().(*net.TCPAddr).Port)), nil //nolint:forcetypeassert,errcheck
 }
 
 func (s *testServer) startServer(additionalServerArgs []string) {
@@ -201,7 +204,7 @@ func (s *testServer) startServer(additionalServerArgs []string) {
 	args = append(args, additionalServerArgs...)
 
 	s.stopped = false
-	s.cmd = exec.Command(testBinaryPath, args...) //nolint:gosec,noctx
+	s.cmd = exec.Command(testBinaryPath, args...) //nolint:noctx
 	s.stdout = new(bytes.Buffer)
 	s.stderr = new(bytes.Buffer)
 	s.cmd.Stdout = s.stdout
@@ -257,7 +260,7 @@ func (s *testServer) Shutdown() error {
 func runBinary(t *testing.T, args ...string) (int, string) {
 	t.Helper()
 
-	cmd := exec.Command(testBinaryPath, args...) //nolint:gosec,noctx
+	cmd := exec.Command(testBinaryPath, args...) //nolint:noctx
 
 	std, err := cmd.CombinedOutput()
 	if err != nil {
@@ -274,7 +277,6 @@ func TestServer(t *testing.T) {
 			SkipConvey("Skipping real server tests without .env.development.local", func() {})
 
 			return
-
 		}
 
 		So(err, ShouldBeNil)
@@ -314,7 +316,7 @@ func TestServer(t *testing.T) {
 		So(s.stdout.String(), ShouldBeBlank)
 
 		waitForSomething(func() bool {
-			_, err := os.Stat(logFilePath)
+			_, err := os.Stat(logFilePath) //nolint:govet
 
 			return err != nil
 		})

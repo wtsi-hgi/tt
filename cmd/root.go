@@ -87,6 +87,7 @@ func init() {
 // ensureServerArgs dies if --url or --cert or --key have not been set.
 func ensureServerArgs(serverURL, serverCert, serverKey string) error {
 	if serverURL == "" {
+
 		return errors.New("you must supply --url")
 	}
 

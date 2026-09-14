@@ -111,7 +111,7 @@ ctrl-z; bg. Or better yet, use the daemonize program to daemonize this.
 
 		config, err := mysql.ConfigFromEnv()
 		if err != nil {
-			return fmt.Errorf("failed to get database config: %s", err)
+			return fmt.Errorf("failed to get database config: %w", err)
 		}
 
 		err = ensureServerArgs(serverURL, serverCert, serverKey)
@@ -121,7 +121,7 @@ ctrl-z; bg. Or better yet, use the daemonize program to daemonize this.
 
 		database, err := mysql.New(config)
 		if err != nil {
-			return fmt.Errorf("error opening database: %s", err)
+			return fmt.Errorf("error opening database: %w", err)
 		}
 
 		conf := server.Config{
@@ -131,14 +131,14 @@ ctrl-z; bg. Or better yet, use the daemonize program to daemonize this.
 
 		s, err := server.New(conf)
 		if err != nil {
-			return fmt.Errorf("failed to configure server: %s", err)
+			return fmt.Errorf("failed to configure server: %w", err)
 		}
 
 		go sayStarted()
 
 		err = s.Start(serverURL, serverCert, serverKey)
 		if err != nil {
-			return fmt.Errorf("non-graceful stop: %s", err)
+			return fmt.Errorf("non-graceful stop: %w", err)
 		}
 
 		s.Stop()

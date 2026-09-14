@@ -79,7 +79,7 @@ func GetExampleData() ([]database.User, []database.Thing, []database.Subscriber)
 				creator = user2
 			}
 
-			remove, _ := time.Parse(time.DateOnly, fmt.Sprintf("%d-01-02", year+i))
+			remove, _ := time.Parse(time.DateOnly, fmt.Sprintf("%d-01-02", year+i)) //nolint:errcheck
 
 			expectedThing := database.Thing{
 				ID:          i + 1,

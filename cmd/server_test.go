@@ -67,7 +67,7 @@ func TestServer(t *testing.T) {
 					continue
 				}
 
-				_ = flags.Set(name, flag.DefValue)
+				flags.Set(name, flag.DefValue) //nolint:errcheck
 				flag.Changed = false
 			}
 		})
