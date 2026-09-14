@@ -125,6 +125,7 @@ func TestServer(t *testing.T) {
 									_, err = os.Stat(envFile)
 									if err != nil {
 										SkipConvey("Skipping real server tests without "+envFile, func() {})
+
 										return
 									}
 
@@ -137,6 +138,7 @@ func TestServer(t *testing.T) {
 									err = godotenv.Load(envFile)
 									if err != nil {
 										SkipConvey(fmt.Sprintf("Skipping real server tests due to error reading file: %s", err), func() {})
+
 										return
 									}
 

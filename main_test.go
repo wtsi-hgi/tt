@@ -98,8 +98,7 @@ func TestMain(m *testing.M) {
 	createdRoot, err := os.MkdirTemp("", "tt-tests-")
 	if err != nil {
 		exitCode = 1
-
-		fmt.Println(err.Error())
+		fmt.Println(err.Error()) //nolint: forbidigo
 
 		return
 	}
@@ -132,7 +131,7 @@ func buildSelf() func() {
 	)
 
 	if out, err := cmd.CombinedOutput(); err != nil {
-		fmt.Printf("build failed: %s\n%s", err, strings.TrimSpace(string(out)))
+		fmt.Printf("build failed: %s\n%s", err, strings.TrimSpace(string(out))) //nolint: forbidigo
 
 		return nil
 	}
