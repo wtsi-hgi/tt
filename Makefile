@@ -1,3 +1,7 @@
+PKG := github.com/wtsi-hgi/tt
+VERSION := $(shell git describe --tags --always --long --dirty)
+LDFLAGS = -ldflags "-X ${PKG}/cmd.Version=${VERSION}"
+
 export GOPATH := $(shell go env GOPATH)
 
 # We require CGO_ENABLED=1 for getting group information to work properly; the
@@ -8,11 +12,11 @@ export CGO_ENABLED = 1
 default: install
 
 build:
-	go build -tags netgo
+	go build -tags netgo ${LDFLAGS}
 
 install:
 	@rm -f ${GOPATH}/bin/tt
-	@go install -tags netgo
+	@go install -tags netgo ${LDFLAGS}
 	@echo installed to ${GOPATH}/bin/tt
 
 dev: export TT_ENV = development
