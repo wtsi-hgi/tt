@@ -98,7 +98,7 @@ func TestMain(m *testing.M) {
 	createdRoot, err := os.MkdirTemp("", "tt-tests-")
 	if err != nil {
 		exitCode = 1
-		fmt.Println(err.Error()) //nolint: forbidigo
+		fmt.Println(err.Error()) //nolgitint: forbidigo
 
 		return
 	}
@@ -271,7 +271,10 @@ func TestServer(t *testing.T) {
 	Convey("You can start a real server from the built tt binary that logs to stderr", t, func() {
 		s, err := NewTestServer(t, []string{"--logstderr"})
 		if err != nil {
+			SkipConvey("Skipping real server tests without .env.development.local", func() {})
+
 			return
+
 		}
 
 		So(err, ShouldBeNil)
@@ -303,6 +306,7 @@ func TestServer(t *testing.T) {
 
 		s, err := NewTestServer(t, []string{"--logfile", logFilePath})
 		if err != nil {
+			SkipConvey("Skipping real server tests without .env.development.local", func() {})
 			return
 		}
 
