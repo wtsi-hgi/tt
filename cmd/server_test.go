@@ -28,10 +28,8 @@ package cmd
 import (
 	"bytes"
 	"fmt"
-	"net"
 	"os"
 	"path/filepath"
-	"strconv"
 	"strings"
 	"testing"
 
@@ -167,20 +165,6 @@ func TestServer(t *testing.T) {
 		})
 	})
 }
-
-func getTestServerAddress() (string, error) {
-	l, err := net.Listen("tcp", "localhost:0")
-	if err != nil {
-		return "", err
-	}
-
-	defer l.Close()
-
-	return net.JoinHostPort("localhost", strconv.Itoa(l.Addr().(*net.TCPAddr).Port)), nil //nolint:forcetypeassert
-}
-
-// TODO: test env var defaults for persistent server flags
-// TODO: real server test, including kill behaviour
 
 func executeRootCommandForTest(t *testing.T, args []string) (string, error) {
 	t.Helper()
