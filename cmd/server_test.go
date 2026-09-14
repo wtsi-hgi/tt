@@ -114,12 +114,15 @@ func TestServer(t *testing.T) {
 
 								Convey("You can't start a server without valid db info", func() {
 									So(output, ShouldContainSubstring, "error opening database")
+
 									dir, err := os.Getwd()
+
 									So(err, ShouldBeNil)
+
 									parentDir := filepath.Dir(dir)
 									envFile := filepath.Join(parentDir, ".env.development.local")
-									_, err = os.Stat(envFile)
 
+									_, err = os.Stat(envFile)
 									if err != nil {
 										SkipConvey("Skipping real server tests without "+envFile, func() {})
 										return

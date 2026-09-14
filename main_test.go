@@ -157,12 +157,14 @@ func NewTestServer(t *testing.T, args []string) (*testServer, error) {
 	s := new(testServer)
 
 	envFile := ".env.development.local"
+
 	_, err := os.Stat(envFile)
 	if err != nil {
 		return nil, err
 	}
 
 	err = godotenv.Load(envFile)
+
 	s.cert, s.key, err = gas.CreateTestCert(t)
 	if err != nil {
 		return nil, err
@@ -241,8 +243,10 @@ func (s *testServer) Shutdown() error {
 	s.stopped = true
 
 	err := s.cmd.Process.Signal(os.Interrupt)
+
 	errCh := make(chan error, 1)
 	go func() { errCh <- s.cmd.Wait() }()
+
 	select {
 	case errb := <-errCh:
 		return errors.Join(err, errb)
@@ -253,6 +257,7 @@ func (s *testServer) Shutdown() error {
 
 func runBinary(t *testing.T, args ...string) (int, string) {
 	t.Helper()
+
 	cmd := exec.Command(testBinaryPath, args...) //nolint:gosec,noctx
 
 	std, err := cmd.CombinedOutput()
@@ -269,6 +274,7 @@ func TestServer(t *testing.T) {
 		if err != nil {
 			return
 		}
+
 		So(err, ShouldBeNil)
 		So(s.stdout.String(), ShouldBeBlank)
 
@@ -295,6 +301,7 @@ func TestServer(t *testing.T) {
 	Convey("You can start a real server that logs to a file", t, func() {
 		dir := t.TempDir()
 		logFilePath := filepath.Join(dir, "log")
+
 		s, err := NewTestServer(t, []string{"--logfile", logFilePath})
 		if err != nil {
 			return
@@ -327,6 +334,7 @@ func TestServerHelp(t *testing.T) {
 		os.Setenv("TT_SERVER_URL", "testURL")
 		os.Setenv("TT_SERVER_CERT", "testCert")
 		os.Setenv("TT_SERVER_KEY", "testKey")
+
 		exit, std = runBinary(t, "server", "-h")
 		So(exit, ShouldBeZeroValue)
 		So(std, ShouldContainSubstring, "(default \"testURL\")")
@@ -359,6 +367,7 @@ func waitForSomething(something func() bool) {
 
 func getHTML(url string) (string, error) {
 	client := http.Client{Transport: &http.Transport{TLSClientConfig: &tls.Config{InsecureSkipVerify: true}}}
+
 	res, err := client.Get(url)
 	if err != nil {
 		return "", err

@@ -137,7 +137,6 @@ ctrl-z; bg. Or better yet, use the daemonize program to daemonize this.
 		go sayStarted()
 
 		err = s.Start(serverURL, serverCert, serverKey)
-
 		if err != nil {
 			return fmt.Errorf("non-graceful stop: %s", err)
 		}
@@ -206,5 +205,4 @@ func sayStarted() {
 	<-time.After(1 * time.Second)
 
 	info("server started")
-
 }
