@@ -28,9 +28,13 @@
 package main
 
 import (
+	"os"
+
 	"github.com/wtsi-hgi/tt/cmd"
 )
 
 func main() {
-	cmd.Execute()
+	if !cmd.Execute() {
+		os.Exit(1)
+	}
 }
