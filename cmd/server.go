@@ -38,6 +38,8 @@ import (
 	"github.com/wtsi-hgi/tt/server"
 )
 
+var ErrLogFlag = errors.New("cannot use both --logfile and --logstderr flags at the same time")
+
 // serverCmd represents the server command.
 var serverCmd = &cobra.Command{
 	Use:   "server",
@@ -104,7 +106,7 @@ ctrl-z; bg. Or better yet, use the daemonize program to daemonize this.
 		}
 
 		if serverLogPath != "" && serverLogStdErr {
-			return errors.New("cannot use both --logfile and --logstderr flags at the same time")
+			return ErrLogFlag
 		}
 
 		logWriter := setServerLogger(serverLogPath, serverLogStdErr)

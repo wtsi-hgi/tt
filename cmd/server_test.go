@@ -51,7 +51,7 @@ func TestServer(t *testing.T) {
 	})
 
 	Convey("You can't start a server without all needed env vars", t, func() {
-		output, err := executeRootCommandForTest(t, []string{"server"})
+		output, err := executeRootCommandForTest(t, []string{"server"}) //nolint:goconst
 		So(err, ShouldNotBeNil)
 		So(output, ShouldContainSubstring, "failed to get database config")
 		So(output, ShouldContainSubstring, "missing required environment variables")
@@ -157,7 +157,7 @@ func TestServer(t *testing.T) {
 												cliArgs = []string{"server", "--url", "invalid", "--cert", cert, "--key", key}
 												output, err := executeRootCommandForTest(t, cliArgs)
 												So(err, ShouldNotBeNil)
-												So(output, ShouldContainSubstring, "non-graceful stop: listen tcp: address invalid: missing port in address")
+												So(output, ShouldContainSubstring, "non-graceful stop: listen tcp: address invalid: missing port in address") //nolint:lll
 											})
 										})
 									})

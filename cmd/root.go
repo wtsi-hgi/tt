@@ -40,6 +40,9 @@ import (
 
 // appLogger is used for logging events in our commands.
 var appLogger = log15.New()
+var ErrURL = errors.New("you must supply --url")
+var ErrCert = errors.New("you must supply --cert")
+var ErrKey = errors.New("you must supply --key")
 
 const (
 	serverURLEnvKey  = "TT_SERVER_URL"
@@ -66,6 +69,7 @@ func Execute() bool {
 
 		return false
 	}
+
 	return true
 }
 
@@ -90,16 +94,15 @@ func init() {
 // ensureServerArgs dies if --url or --cert or --key have not been set.
 func ensureServerArgs(serverURL, serverCert, serverKey string) error {
 	if serverURL == "" {
-
-		return errors.New("you must supply --url")
+		return ErrURL
 	}
 
 	if serverCert == "" {
-		return errors.New("you must supply --cert")
+		return ErrCert
 	}
 
 	if serverKey == "" {
-		return errors.New("you must supply --key")
+		return ErrKey
 	}
 
 	return nil
@@ -125,27 +128,21 @@ func logToStdErr() {
 }
 
 // cliPrint outputs the message to STDOUT.
-func cliPrint(msg string, a ...interface{}) {
+func cliPrint(msg string, a ...any) {
 	fmt.Fprintf(os.Stdout, msg, a...)
 }
 
-// cliPrintRaw is like cliPrint, but does no interpretation of placeholders in
-// msg.
-func cliPrintRaw(msg string) {
-	fmt.Fprint(os.Stdout, msg)
-}
-
 // info is a convenience to log a message at the Info level.
-func info(msg string, a ...interface{}) {
+func info(msg string, a ...any) {
 	appLogger.Info(fmt.Sprintf(msg, a...))
 }
 
 // warn is a convenience to log a message at the Warn level.
-func warn(msg string, a ...interface{}) {
+func warn(msg string, a ...any) {
 	appLogger.Warn(fmt.Sprintf(msg, a...))
 }
 
 // errorMsg is a convenience to log a message at the Error level.
-func errorMsg(msg string, a ...interface{}) {
+func errorMsg(msg string, a ...any) {
 	appLogger.Error(fmt.Sprintf(msg, a...))
 }

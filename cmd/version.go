@@ -36,7 +36,7 @@ var versionCmd = &cobra.Command{
 	Use:   "version",
 	Short: "Print tt version",
 	Long:  `Print tt version.`,
-	Run: func(cmd *cobra.Command, args []string) {
+	Run: func(_ *cobra.Command, _ []string) {
 		cliPrint("%s\n", Version)
 	},
 }

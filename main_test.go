@@ -98,7 +98,8 @@ func TestMain(m *testing.M) {
 	createdRoot, err := os.MkdirTemp("", "tt-tests-")
 	if err != nil {
 		exitCode = 1
-		fmt.Println(err.Error()) //nolgitint:forbidigo
+
+		fmt.Println(err.Error()) //nolint:forbidigo
 
 		return
 	}
@@ -200,7 +201,7 @@ func getTestServerAddress() (string, error) {
 }
 
 func (s *testServer) startServer(additionalServerArgs []string) {
-	args := []string{"server", "--url", s.url, "--cert", s.cert, "--key", s.key}
+	args := []string{"server", "--url", s.url, "--cert", s.cert, "--key", s.key} //nolint:prealloc
 	args = append(args, additionalServerArgs...)
 
 	s.stopped = false
@@ -309,6 +310,7 @@ func TestServer(t *testing.T) {
 		s, err := NewTestServer(t, []string{"--logfile", logFilePath})
 		if err != nil {
 			SkipConvey("Skipping real server tests without .env.development.local", func() {})
+
 			return
 		}
 
@@ -370,7 +372,7 @@ func waitForSomething(something func() bool) {
 }
 
 func getHTML(url string) (string, error) {
-	client := http.Client{Transport: &http.Transport{TLSClientConfig: &tls.Config{InsecureSkipVerify: true}}}
+	client := http.Client{Transport: &http.Transport{TLSClientConfig: &tls.Config{InsecureSkipVerify: true}}} //nolint:gosec,lll
 
 	res, err := client.Get(url)
 	if err != nil {

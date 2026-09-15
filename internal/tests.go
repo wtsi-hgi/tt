@@ -35,7 +35,7 @@ import (
 // GetExampleData returns 2 users and a selection of Things that they created,
 // 2 things per ThingsType, and with property values that would all sort
 // differently to each other.
-func GetExampleData() ([]database.User, []database.Thing, []database.Subscriber) {
+func GetExampleData() ([]database.User, []database.Thing, []database.Subscriber) { //nolint:funlen
 	emailSuffix := "@example.com"
 	u1 := "user1"
 	u2 := "user2"
@@ -47,13 +47,13 @@ func GetExampleData() ([]database.User, []database.Thing, []database.Subscriber)
 	}
 
 	user2 := database.User{
-		ID:    2,
+		ID:    2, //nolint:mnd
 		Name:  u2,
 		Email: u2 + emailSuffix,
 	}
 
 	i := uint32(0)
-	year := uint32(1970)
+	year := uint32(1970) //nolint:mnd
 	thingsTypes := []database.ThingsType{
 		database.ThingsTypeIrods,
 		database.ThingsTypeDir,
