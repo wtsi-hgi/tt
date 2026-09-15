@@ -81,14 +81,6 @@ func init() {
 	if err != nil && !errors.Is(err, mysql.ErrMissingEnvs) {
 		errorMsg("%s", err.Error())
 	}
-
-	// global flags
-	RootCmd.PersistentFlags().String("url", os.Getenv(serverURLEnvKey),
-		"tt server URL in the form host:port")
-	RootCmd.PersistentFlags().String("cert", os.Getenv(serverCertEnvKey),
-		"path to server certificate file")
-	RootCmd.PersistentFlags().String("key", os.Getenv(serverKeyEnvKey),
-		"path to server key file")
 }
 
 // ensureServerArgs dies if --url or --cert or --key have not been set.

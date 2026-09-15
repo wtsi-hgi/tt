@@ -26,10 +26,10 @@
 package cmd
 
 import (
-	"errors"
 	"fmt"
 	"io"
 	"log/syslog"
+	"os"
 	"time"
 
 	"github.com/inconshreveable/log15"
@@ -37,8 +37,6 @@ import (
 	"github.com/wtsi-hgi/tt/database/mysql"
 	"github.com/wtsi-hgi/tt/server"
 )
-
-var ErrLogFlag = errors.New("cannot use both --logfile and --logstderr flags at the same time")
 
 // serverCmd represents the server command.
 var serverCmd = &cobra.Command{
@@ -105,20 +103,11 @@ ctrl-z; bg. Or better yet, use the daemonize program to daemonize this.
 			return err
 		}
 
-		if serverLogPath != "" && serverLogStdErr {
-			return ErrLogFlag
-		}
-
 		logWriter := setServerLogger(serverLogPath, serverLogStdErr)
 
 		config, err := mysql.ConfigFromEnv()
 		if err != nil {
 			return fmt.Errorf("failed to get database config: %w", err)
-		}
-
-		err = ensureServerArgs(serverURL, serverCert, serverKey)
-		if err != nil {
-			return err
 		}
 
 		database, err := mysql.New(config)
@@ -157,6 +146,16 @@ func init() {
 		"log to this file instead of syslog")
 	serverCmd.Flags().Bool("logstderr", false,
 		"log to stderr instead of syslog")
+	serverCmd.Flags().String("url", os.Getenv(serverURLEnvKey),
+		"tt server URL in the form host:port")
+	serverCmd.Flags().String("cert", os.Getenv(serverCertEnvKey),
+		"path to server certificate file")
+	serverCmd.Flags().String("key", os.Getenv(serverKeyEnvKey),
+		"path to server key file")
+	serverCmd.MarkFlagsMutuallyExclusive("logfile", "logstderr")
+	serverCmd.MarkFlagRequired("url")
+	serverCmd.MarkFlagRequired("cert")
+	serverCmd.MarkFlagRequired("key")
 }
 
 // setServerLogger makes our appLogger log to stderr if our stdErrMode is true,
