@@ -126,7 +126,7 @@ func buildSelf() func() {
 	testBinaryPath = filepath.Join(testRootDir, app)
 
 	cmd := exec.CommandContext(ctx, "go", "build", "-tags", "netgo",
-		"-ldflags=-X github.com/wtsi-hgi/tt/cmd.Version=TEST",
+		"-ldflags=-X github.com/wtsi-hgi/tt/cmd.Version=v1.0.0-gasdf",
 		"-o", testBinaryPath,
 	)
 
@@ -352,8 +352,7 @@ func TestVersion(t *testing.T) {
 		exit, std := runBinary(t, "version")
 		So(exit, ShouldBeZeroValue)
 		So(std, ShouldNotBeBlank)
-
-		match, err := regexp.MatchString(`^[0-9A-Za-z-]+\n$`, std)
+		match, err := regexp.MatchString(`^[0-9A-Za-z.-]+\n$`, std)
 		So(err, ShouldBeNil)
 		So(match, ShouldBeTrue)
 	})
