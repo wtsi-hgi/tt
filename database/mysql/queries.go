@@ -115,7 +115,8 @@ func (m *DB) GetUserByName(name string) (*database.User, error) {
 
 const createThing = `
 INSERT INTO things (
-  address, type, created, description, reason, remove, license, version, name, url, download_method, request_source, creation_date
+  address, type, created, description, reason, remove, license, ` +
+	`version, name, url, download_method, request_source, creation_date
 ) VALUES (
   ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?
 )
@@ -180,7 +181,7 @@ func (m *DB) CreateThing(args database.CreateThingParams) (*database.Thing, erro
 	}
 
 	return &database.Thing{
-		ID:             uint32(id),
+		ID:             id,
 		Address:        args.Address,
 		Type:           args.Type,
 		Created:        created,
@@ -198,7 +199,8 @@ func (m *DB) CreateThing(args database.CreateThingParams) (*database.Thing, erro
 }
 
 const getThings = `
-SELECT things.id, address, type, created, description, reason, remove, warned1, warned2, removed, license, version, name, url, download_method, request_source, creation_date
+SELECT things.id, address, type, created, description, reason, remove, warned1, warned2, ` +
+	`removed, license, version, name, url, download_method, request_source, creation_date
 FROM things
 `
 
@@ -216,7 +218,7 @@ func (m *DB) GetThings(params database.GetThingsParams) (*database.GetThingsResu
 	for rows.Next() {
 		var thing database.Thing
 
-		if err := rows.Scan(
+		if err = rows.Scan(
 			&thing.ID,
 			&thing.Address,
 			&thing.Type,

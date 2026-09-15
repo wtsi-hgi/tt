@@ -283,8 +283,9 @@ func TestMySQL(t *testing.T) {
 					} else {
 						creator = expectedUsers[1]
 					}
-					thing, err := db.CreateThing(et.ToCreateParams(creator))
-					So(err, ShouldBeNil)
+
+					thing, errb := db.CreateThing(et.ToCreateParams(creator))
+					So(errb, ShouldBeNil)
 
 					after := time.Now()
 					created := thing.Created
@@ -294,7 +295,8 @@ func TestMySQL(t *testing.T) {
 					So(thing, ShouldResemble, &et)
 				}
 
-				_, err = db.CreateThing(expectedThings[0].ToCreateParams(database.User{Name: "invalid"})) //unsure if passed correct index
+				// unsure if passed correct index
+				_, err = db.CreateThing(expectedThings[0].ToCreateParams(database.User{Name: "invalid"}))
 
 				So(err, ShouldNotBeNil)
 				So(err, ShouldEqual, ErrNoUser)
@@ -514,11 +516,13 @@ func TestMySQL(t *testing.T) {
 
 				thing, err := db.CreateThing(et.ToCreateParams(expectedUser))
 				So(err, ShouldBeNil)
+
 				thing.Created = time.Time{}
 				So(thing, ShouldResemble, &et)
 
 				result, err := db.GetThings(database.GetThingsParams{})
 				So(err, ShouldBeNil)
+
 				result.Things[0].Created = time.Time{}
 				So(result.Things[0], ShouldResemble, et)
 			})

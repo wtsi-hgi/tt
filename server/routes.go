@@ -76,6 +76,12 @@ func (s *Server) getThings(c *gin.Context) {
 		return
 	}
 
+	if c.Request.Header.Get("Accept") == "application/json" {
+		c.JSON(http.StatusOK, result.Things)
+
+		return
+	}
+
 	c.HTML(http.StatusOK, "templates/things.html", result.Things)
 }
 
@@ -169,4 +175,14 @@ func (s *Server) deleteThing(c *gin.Context) {
 	}
 
 	c.Status(http.StatusOK)
+}
+
+func (s *Server) postUser(c *gin.Context) {
+	user := c.Query("user")
+	email := c.Query("email")
+
+	_, err := s.db.CreateUser(user, email)
+	if err != nil {
+		c.Error(err) //nolint:errcheck
+	}
 }

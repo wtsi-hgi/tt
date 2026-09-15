@@ -50,6 +50,7 @@ import (
 	"github.com/joho/godotenv"
 	. "github.com/smartystreets/goconvey/convey"
 	gas "github.com/wtsi-hgi/go-authserver"
+	"github.com/wtsi-hgi/tt/database/mysql"
 )
 
 var (
@@ -168,6 +169,14 @@ func NewTestServer(t *testing.T, args []string) (*testServer, error) {
 	if err != nil {
 		return nil, err
 	}
+
+	conf, err := mysql.ConfigFromEnv(envFile)
+	So(err, ShouldBeNil)
+
+	db, err := mysql.New(conf)
+	So(err, ShouldBeNil)
+
+	So(db.Reset(), ShouldBeNil)
 
 	s.cert, s.key, err = gas.CreateTestCert(t)
 	if err != nil {
@@ -357,6 +366,52 @@ func TestVersion(t *testing.T) {
 		So(err, ShouldBeNil)
 		So(match, ShouldBeTrue)
 	})
+}
+
+func TestCreateGet(t *testing.T) {
+	Convey("You can create a user, Create a Thing, and Get a Thing", t, func() {
+		s, err := NewTestServer(t, []string{})
+		if err != nil {
+			SkipConvey("Skipping real server tests without .env.development.local", func() {})
+
+			return
+		}
+
+		ec, out := runBinary(t, "createUser", "--url", s.url, "--cert", s.cert, "--user", "name", "--email", "name@something")
+		So(out, ShouldBeBlank)
+		So(ec, ShouldBeZeroValue)
+
+		args := []string{"create", "--url", s.url, "--cert", s.cert} //nolint:prealloc
+
+		args = append(args, createFlags(map[string]string{
+			"name":          "something",
+			"version":       "1.2",
+			"description":   "Some thing",
+			"type":          "s3",
+			"requestSource": "dfdf",
+			"address":       "s3://bucket/path",
+			"reason":        "just because",
+			"creator":       "name",
+		})...)
+
+		ec, out = runBinary(t, args...)
+		So(out, ShouldBeBlank)
+		So(ec, ShouldBeZeroValue)
+
+		ec, out = runBinary(t, "get", "--url", s.url, "--cert", s.cert)
+		So(out, ShouldEqual, "something\t1.2\n")
+		So(ec, ShouldBeZeroValue)
+	})
+}
+
+func createFlags(flags map[string]string) []string {
+	var f []string //nolint:prealloc
+
+	for flag, v := range flags {
+		f = append(f, "--"+flag, v)
+	}
+
+	return f
 }
 
 func waitForSomething(something func() bool) {

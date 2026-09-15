@@ -66,7 +66,7 @@ func ThingsTypes() []ThingsType {
 
 // NewThingsType converts the given str to a ThingsType, but only if it matches
 // one of the allowed ThingsType* constants. Returns an error if not.
-func NewThingsType(str string) (ThingsType, error) {
+func NewThingsType(str string) (ThingsType, error) { //nolint:gocyclo
 	var thingsType ThingsType
 
 	switch ThingsType(str) {

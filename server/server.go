@@ -123,6 +123,7 @@ func (s *Server) addEndPoints() error {
 	s.Router().GET("/things", s.getThings)
 	s.Router().GET("/things/listen", s.SSESender(sseThingsEventName))
 	s.Router().POST("/things", s.postThing)
+	s.Router().POST("/user", s.postUser)
 	s.Router().DELETE("/things/:id", s.deleteThing)
 
 	return nil

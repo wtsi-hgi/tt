@@ -36,9 +36,9 @@ import (
 // GetExampleData returns 2 users and a selection of Things that they created,
 // 2 things per ThingsType, and with property values that would all sort
 // differently to each other.
-func GetExampleData() ([]database.User, []database.Thing, []database.Subscriber) {
+func GetExampleData() ([]database.User, []database.Thing, []database.Subscriber) { //nolint:funlen
 	user1 := exampleUser(1)
-	user2 := exampleUser(2)
+	user2 := exampleUser(2) //nolint:mnd
 
 	i := uint32(0)
 	year := uint32(1970) //nolint:mnd
@@ -94,7 +94,7 @@ func GetExampleData() ([]database.User, []database.Thing, []database.Subscriber)
 }
 
 func dateFromYear(year uint32) time.Time {
-	remove, _ := time.Parse(time.DateOnly, fmt.Sprintf("%d-01-02", year))
+	remove, _ := time.Parse(time.DateOnly, fmt.Sprintf("%d-01-02", year)) //nolint:errcheck
 
 	return remove
 }
@@ -114,14 +114,14 @@ func GetExampleResourceData() (database.User, database.Thing, database.Subscribe
 		Type:           database.ThingsTypeResource,
 		Description:    "desc",
 		Reason:         "reason",
-		Remove:         dateFromYear(uint32(1971)),
+		Remove:         dateFromYear(uint32(1971)), //nolint:mnd
 		Version:        "2",
 		License:        "MIT",
 		Name:           "ResourceName",
 		URL:            "example.com",
 		DownloadMethod: "command line",
 		RequestSource:  "Jira",
-		CreationDate:   null.TimeFrom(dateFromYear(uint32(1970))),
+		CreationDate:   null.TimeFrom(dateFromYear(uint32(1970))), //nolint:mnd
 	}
 
 	creator := exampleUser(1)
