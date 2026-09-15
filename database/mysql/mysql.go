@@ -48,12 +48,12 @@ const (
 	maxOpenConns    = 10
 	maxIdleConns    = 10
 
-	envVarEnv    = "TT_ENV"
-	envVarUser   = "TT_SQL_USER"
-	envVarPass   = "TT_SQL_PASS" //nolint:gosec
-	envVarHost   = "TT_SQL_HOST"
-	envVarPort   = "TT_SQL_PORT"
-	envVarDBName = "TT_SQL_DB"
+	EnvVarEnv    = "TT_ENV"
+	EnvVarUser   = "TT_SQL_USER"
+	EnvVarPass   = "TT_SQL_PASS" //nolint:gosec
+	EnvVarHost   = "TT_SQL_HOST"
+	EnvVarPort   = "TT_SQL_PORT"
+	EnvVarDBName = "TT_SQL_DB"
 )
 
 type Error string
@@ -105,15 +105,15 @@ func getEnvs(dir ...string) (user, pass, host, port, dbname string, err error) {
 		parentDir = dir[0] + string(os.PathSeparator)
 	}
 
-	env := os.Getenv(envVarEnv)
+	env := os.Getenv(EnvVarEnv)
 	godotenv.Load(parentDir + ".env." + env + ".local") //nolint: errcheck
 	godotenv.Load(parentDir + ".env")                   //nolint: errcheck
 
-	user = os.Getenv(envVarUser)
-	pass = os.Getenv(envVarPass)
-	host = os.Getenv(envVarHost)
-	port = os.Getenv(envVarPort)
-	dbname = os.Getenv(envVarDBName)
+	user = os.Getenv(EnvVarUser)
+	pass = os.Getenv(EnvVarPass)
+	host = os.Getenv(EnvVarHost)
+	port = os.Getenv(EnvVarPort)
+	dbname = os.Getenv(EnvVarDBName)
 
 	if user == "" || pass == "" || host == "" || port == "" || dbname == "" {
 		err = ErrMissingEnvs

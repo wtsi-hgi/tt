@@ -27,3 +27,6 @@ go.work.sum
 .env*
 cert.pem
 key.pem
+
+# Vscode 
+.vscode

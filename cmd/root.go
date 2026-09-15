@@ -47,11 +47,6 @@ const (
 	serverKeyEnvKey  = "TT_SERVER_KEY"
 )
 
-// global options.
-var serverURL string
-var serverKey string
-var serverCert string
-
 // RootCmd represents the base command when called without any subcommands.
 var RootCmd = &cobra.Command{
 	Use:   "tt",
@@ -65,10 +60,14 @@ TODO: help text
 // Execute adds all child commands to the root command and sets flags
 // appropriately. This is called by main.main(). It only needs to happen once to
 // the rootCmd.
-func Execute() {
+func Execute() bool {
 	if err := RootCmd.Execute(); err != nil {
-		die("%s", err.Error())
+		errorMsg("%s", err.Error())
+
+		return false
 	}
+
+	return true
 }
 
 func init() {
@@ -77,30 +76,7 @@ func init() {
 
 	_, err := mysql.ConfigFromEnv()
 	if err != nil && !errors.Is(err, mysql.ErrMissingEnvs) {
-		die("%s", err.Error())
-	}
-
-	// global flags
-	RootCmd.PersistentFlags().StringVar(&serverURL, "url", os.Getenv(serverURLEnvKey),
-		"tt server URL in the form host:port")
-	RootCmd.PersistentFlags().StringVar(&serverCert, "cert", os.Getenv(serverCertEnvKey),
-		"path to server certificate file")
-	RootCmd.PersistentFlags().StringVar(&serverKey, "key", os.Getenv(serverKeyEnvKey),
-		"path to server key file")
-}
-
-// ensureServerArgs dies if --url or --cert or --key have not been set.
-func ensureServerArgs() {
-	if serverURL == "" {
-		die("you must supply --url")
-	}
-
-	if serverCert == "" {
-		die("you must supply --cert")
-	}
-
-	if serverKey == "" {
-		die("you must supply --key")
+		errorMsg("%s", err.Error())
 	}
 }
 
@@ -124,28 +100,21 @@ func logToStdErr() {
 }
 
 // cliPrint outputs the message to STDOUT.
-func cliPrint(msg string, a ...interface{}) {
+func cliPrint(msg string, a ...any) {
 	fmt.Fprintf(os.Stdout, msg, a...)
 }
 
-// cliPrintRaw is like cliPrint, but does no interpretation of placeholders in
-// msg.
-func cliPrintRaw(msg string) {
-	fmt.Fprint(os.Stdout, msg)
-}
-
 // info is a convenience to log a message at the Info level.
-func info(msg string, a ...interface{}) {
+func info(msg string, a ...any) {
 	appLogger.Info(fmt.Sprintf(msg, a...))
 }
 
 // warn is a convenience to log a message at the Warn level.
-func warn(msg string, a ...interface{}) {
+func warn(msg string, a ...any) {
 	appLogger.Warn(fmt.Sprintf(msg, a...))
 }
 
-// die is a convenience to log a message at the Error level and exit non zero.
-func die(msg string, a ...interface{}) {
+// errorMsg is a convenience to log a message at the Error level.
+func errorMsg(msg string, a ...any) {
 	appLogger.Error(fmt.Sprintf(msg, a...))
-	os.Exit(1)
 }

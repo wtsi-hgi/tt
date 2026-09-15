@@ -1,7 +1,8 @@
 /*******************************************************************************
- * Copyright (c) 2025 Genome Research Ltd.
+ * Copyright (c) 2026 Genome Research Ltd.
  *
  * Author: Sendu Bala <sb10@sanger.ac.uk>
+ *         Amber Faruque <af35@sanger.ac.uk>
  *
  * Permission is hereby granted, free of charge, to any person obtaining
  * a copy of this software and associated documentation files (the
@@ -23,18 +24,24 @@
  * SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  ******************************************************************************/
 
-// package main is the access point to our cmd package sub-commands.
+package cmd
 
-package main
+import "github.com/spf13/cobra"
 
-import (
-	"os"
+// Version gets set during build:
+// go build -ldflags "-X github.com/wtsi-hgi/tt/cmd.Version=`git describe --tags --always --long --dirty`" .
+var Version string
 
-	"github.com/wtsi-hgi/tt/cmd"
-)
+// versionCmd represents the version command.
+var versionCmd = &cobra.Command{
+	Use:   "version",
+	Short: "Print tt version",
+	Long:  `Print tt version.`,
+	Run: func(_ *cobra.Command, _ []string) {
+		cliPrint("%s\n", Version)
+	},
+}
 
-func main() {
-	if !cmd.Execute() {
-		os.Exit(1)
-	}
+func init() {
+	RootCmd.AddCommand(versionCmd)
 }

@@ -26,8 +26,10 @@
 package cmd
 
 import (
+	"fmt"
 	"io"
 	"log/syslog"
+	"os"
 	"time"
 
 	"github.com/inconshreveable/log15"
@@ -35,12 +37,6 @@ import (
 	"github.com/wtsi-hgi/tt/database/mysql"
 	"github.com/wtsi-hgi/tt/server"
 )
-
-// options for this cmd.
-var serverLogPath string
-var serverLDAPFQDN string
-var serverLDAPBindDN string
-var serverLogStdErr bool
 
 // serverCmd represents the server command.
 var serverCmd = &cobra.Command{
@@ -80,23 +76,43 @@ If --logfile is supplied, logs to that file instead of syslog.
 This command will block forever in the foreground; you can background it with
 ctrl-z; bg. Or better yet, use the daemonize program to daemonize this.
 `,
-	Run: func(cmd *cobra.Command, args []string) { //nolint: revive
-		if serverLogPath != "" && serverLogStdErr {
-			die("cannot use both --logfile and --logstderr flags at the same time")
+
+	RunE: func(cmd *cobra.Command, args []string) error { //nolint: revive
+		serverURL, err := cmd.Flags().GetString("url")
+		if err != nil {
+			return err
+		}
+
+		serverCert, err := cmd.Flags().GetString("cert")
+		if err != nil {
+			return err
+		}
+
+		serverKey, err := cmd.Flags().GetString("key")
+		if err != nil {
+			return err
+		}
+
+		serverLogPath, err := cmd.Flags().GetString("logfile")
+		if err != nil {
+			return err
+		}
+
+		serverLogStdErr, err := cmd.Flags().GetBool("logstderr")
+		if err != nil {
+			return err
 		}
 
 		logWriter := setServerLogger(serverLogPath, serverLogStdErr)
 
 		config, err := mysql.ConfigFromEnv()
 		if err != nil {
-			die("failed to get database config: %s", err)
+			return fmt.Errorf("failed to get database config: %w", err)
 		}
-
-		ensureServerArgs()
 
 		database, err := mysql.New(config)
 		if err != nil {
-			die("error opening database: %s", err)
+			return fmt.Errorf("error opening database: %w", err)
 		}
 
 		conf := server.Config{
@@ -106,17 +122,19 @@ ctrl-z; bg. Or better yet, use the daemonize program to daemonize this.
 
 		s, err := server.New(conf)
 		if err != nil {
-			die("failed to configure server: %s", err)
+			return fmt.Errorf("failed to configure server: %w", err)
 		}
 
-		defer s.Stop()
-
-		sayStarted()
+		go sayStarted()
 
 		err = s.Start(serverURL, serverCert, serverKey)
 		if err != nil {
-			die("non-graceful stop: %s", err)
+			return fmt.Errorf("non-graceful stop: %w", err)
 		}
+
+		s.Stop()
+
+		return nil
 	},
 }
 
@@ -124,10 +142,20 @@ func init() {
 	RootCmd.AddCommand(serverCmd)
 
 	// flags specific to this sub-command
-	serverCmd.Flags().StringVar(&serverLogPath, "logfile", "",
+	serverCmd.Flags().String("logfile", "",
 		"log to this file instead of syslog")
-	serverCmd.Flags().BoolVar(&serverLogStdErr, "logstderr", false,
+	serverCmd.Flags().Bool("logstderr", false,
 		"log to stderr instead of syslog")
+	serverCmd.Flags().String("url", os.Getenv(serverURLEnvKey),
+		"tt server URL in the form host:port")
+	serverCmd.Flags().String("cert", os.Getenv(serverCertEnvKey),
+		"path to server certificate file")
+	serverCmd.Flags().String("key", os.Getenv(serverKeyEnvKey),
+		"path to server key file")
+	serverCmd.MarkFlagsMutuallyExclusive("logfile", "logstderr")
+	serverCmd.MarkFlagRequired("url")  //nolint:errcheck
+	serverCmd.MarkFlagRequired("cert") //nolint:errcheck
+	serverCmd.MarkFlagRequired("key")  //nolint:errcheck
 }
 
 // setServerLogger makes our appLogger log to stderr if our stdErrMode is true,
@@ -152,7 +180,7 @@ func setServerLogger(path string, stdErrMode bool) io.Writer {
 func logToSyslog() {
 	fh, err := log15.SyslogHandler(syslog.LOG_INFO|syslog.LOG_DAEMON, "tt-server", log15.LogfmtFormat())
 	if err != nil {
-		die("failed to log to syslog: %s", err)
+		errorMsg("failed to log to syslog: %s", err)
 	}
 
 	appLogger.SetHandler(fh)

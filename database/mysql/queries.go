@@ -133,7 +133,7 @@ INSERT INTO subscribers (
 // will have its ID set to an auto-increment value, and Created time set to now.
 // The supplied Creator must match the Name of an existing User, and will be
 // recored as a Subscriber of the new Thing.
-func (m *DB) CreateThing(args database.CreateThingParams) (*database.Thing, error) {
+func (m *DB) CreateThing(args database.CreateThingParams) (*database.Thing, error) { //nolint:funlen
 	created := time.Now()
 
 	user, err := m.GetUserByName(args.Creator)
@@ -190,7 +190,7 @@ FROM things
 
 // GetThings returns things that match the given parameters. Also in the result
 // is the last page that would return things if Page and ThingsPerPage are > 0.
-func (m *DB) GetThings(params database.GetThingsParams) (*database.GetThingsResult, error) {
+func (m *DB) GetThings(params database.GetThingsParams) (*database.GetThingsResult, error) { //nolint:funlen
 	rows, err := m.runGetThingsQuery(params)
 	if err != nil {
 		return nil, err
@@ -342,49 +342,18 @@ func (m *DB) DeleteThing(id uint32) error {
 	return err
 }
 
-const extendRemoval = `
-UPDATE things
-SET remove = ?, warned1 = NULL, warned2 = NULL
-WHERE id = ?
-`
+const extendRemoval = `UPDATE things SET remove = ?, warned1 = NULL, warned2 = NULL WHERE id = ?;` //nolint:unused
 
-const updateDescription = `
-UPDATE things
-SET description = ?
-WHERE id = ?
-`
+const updateDescription = `UPDATE things SET description = ? WHERE id = ?;` //nolint:unused
 
-const firstWarningSent = `
-UPDATE things
-SET warned1 = ?
-WHERE id = ?
-`
+const firstWarningSent = `UPDATE things SET warned1 = ? WHERE id = ?;` //nolint:unused
 
-const secondWarningSent = `
-UPDATE things
-SET warned2 = ?
-WHERE id = ?
-`
+const secondWarningSent = `UPDATE things SET warned2 = ? WHERE id = ?;` //nolint:unused
 
-const subscribe = `
-INSERT INTO subscribers (
-  user_id, thing_id
-) VALUES (
-  ?, ?
-)
-`
+const subscribe = `INSERT INTO subscribers (user_id, thing_id) VALUES (?, ?);` //nolint:unused
 
-const unsubscribe = `
-DELETE FROM subscribers
-WHERE user_id = ? AND thing_id = ?
-`
+const unsubscribe = `DELETE FROM subscribers WHERE user_id = ? AND thing_id = ?;` //nolint:unused
 
-const listSubscribers = `
-SELECT user_id, thing_id FROM subscribers
-WHERE thing_id = ?
-`
+const listSubscribers = `SELECT user_id, thing_id FROM subscribers WHERE thing_id = ?;` //nolint:unused
 
-const listSubscriptions = `
-SELECT user_id, thing_id FROM subscribers
-WHERE user_id = ?
-`
+const listSubscriptions = `SELECT user_id, thing_id FROM subscribers WHERE user_id = ?;` //nolint:unused
