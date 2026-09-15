@@ -148,8 +148,8 @@ type testServer struct {
 	stopped bool
 
 	cmd    *exec.Cmd
-	stdout *bytes.Buffer
-	stderr *bytes.Buffer
+	stdout bytes.Buffer
+	stderr bytes.Buffer
 }
 
 func NewTestServer(t *testing.T, args []string) (*testServer, error) {
@@ -207,10 +207,8 @@ func (s *testServer) startServer(additionalServerArgs []string) {
 
 	s.stopped = false
 	s.cmd = exec.Command(testBinaryPath, args...) //nolint:noctx
-	s.stdout = new(bytes.Buffer)
-	s.stderr = new(bytes.Buffer)
-	s.cmd.Stdout = s.stdout
-	s.cmd.Stderr = s.stderr
+	s.cmd.Stdout = &s.stdout
+	s.cmd.Stderr = &s.stderr
 
 	err := s.cmd.Start()
 	So(err, ShouldBeNil)

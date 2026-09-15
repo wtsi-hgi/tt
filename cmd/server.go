@@ -153,9 +153,9 @@ func init() {
 	serverCmd.Flags().String("key", os.Getenv(serverKeyEnvKey),
 		"path to server key file")
 	serverCmd.MarkFlagsMutuallyExclusive("logfile", "logstderr")
-	serverCmd.MarkFlagRequired("url")
-	serverCmd.MarkFlagRequired("cert")
-	serverCmd.MarkFlagRequired("key")
+	serverCmd.MarkFlagRequired("url")  //nolint:errcheck
+	serverCmd.MarkFlagRequired("cert") //nolint:errcheck
+	serverCmd.MarkFlagRequired("key")  //nolint:errcheck
 }
 
 // setServerLogger makes our appLogger log to stderr if our stdErrMode is true,

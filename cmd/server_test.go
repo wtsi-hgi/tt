@@ -67,14 +67,13 @@ func TestServer(t *testing.T) {
 		})
 
 		Convey("You can't start a server without all needed env vars", func() {
-			output, err := executeRootCommandForTest(t, []string{"server", "--cert", "a", "--url", "w", "--key", "b"}) //nolint:goconst
+			output, err := executeRootCommandForTest(t, []string{"server", "--cert", "a", "--url", "w", "--key", "b"}) //nolint:goconst,lll
 			So(err, ShouldNotBeNil)
 			So(output, ShouldContainSubstring, "failed to get database config")
 			So(output, ShouldContainSubstring, "missing required environment variables")
 		})
 
 		Convey("Given needed env vars", func() {
-
 			const envVarVal = "val"
 			os.Setenv(ttmysql.EnvVarHost, envVarVal)
 			os.Setenv(ttmysql.EnvVarPort, envVarVal)

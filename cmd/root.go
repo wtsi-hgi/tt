@@ -40,9 +40,6 @@ import (
 
 // appLogger is used for logging events in our commands.
 var appLogger = log15.New()
-var ErrURL = errors.New("you must supply --url")
-var ErrCert = errors.New("you must supply --cert")
-var ErrKey = errors.New("you must supply --key")
 
 const (
 	serverURLEnvKey  = "TT_SERVER_URL"
@@ -81,23 +78,6 @@ func init() {
 	if err != nil && !errors.Is(err, mysql.ErrMissingEnvs) {
 		errorMsg("%s", err.Error())
 	}
-}
-
-// ensureServerArgs dies if --url or --cert or --key have not been set.
-func ensureServerArgs(serverURL, serverCert, serverKey string) error {
-	if serverURL == "" {
-		return ErrURL
-	}
-
-	if serverCert == "" {
-		return ErrCert
-	}
-
-	if serverKey == "" {
-		return ErrKey
-	}
-
-	return nil
 }
 
 // logToFile logs to the given file.
