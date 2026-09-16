@@ -29,6 +29,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
+	"strconv"
 
 	"github.com/spf13/cobra"
 	gas "github.com/wtsi-hgi/go-authserver"
@@ -78,35 +79,34 @@ Further filter flags will be made available
 
 		client := gas.NewClientRequest(url, cert)
 
-		// //validate type is valid
-		// typeOfThing, err := database.NewThingsType(typ)
-		// if err != nil {
-		// 	return err
-		// }
-		// getThing.FilterOnType = typeOfThing
+		//validate type is valid
+		_, err := database.NewThingsType(typ)
+		if err != nil {
+			return err
+		}
 
-		// //validate order by
-		// getThing.OrderBy, err = database.NewOrderBy(orderBy)
-		// if err != nil {
-		// 	return err
-		// }
+		//validate order by
+		_, err = database.NewOrderBy(orderBy)
+		if err != nil {
+			return err
+		}
 
-		// //validate order dir
-		// getThing.OrderDirection, err = database.NewOrderDirection(orderDir)
-		// if err != nil {
-		// 	return err
-		// }
+		//validate order dir
+		_, err = database.NewOrderDirection(orderDir)
+		if err != nil {
+			return err
+		}
 
-		// //Validate page and per page
-		// getThing.Page, err = strconv.Atoi(page)
-		// if err != nil {
-		// 	return err
-		// }
+		//Validate page and per page
+		_, err = strconv.Atoi(page)
+		if err != nil {
+			return err
+		}
 
-		// getThing.ThingsPerPage, err = strconv.Atoi(perPage)
-		// if err != nil {
-		// 	return err
-		// }
+		_, err = strconv.Atoi(perPage)
+		if err != nil {
+			return err
+		}
 
 		//get the thing
 		resp, err := client.SetQueryParams(map[string]string{
