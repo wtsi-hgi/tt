@@ -51,7 +51,7 @@ defaults to the TT_SERVER_CERT env var.
 
 This command is only usable by the user who created the server. Access has been limited as 
 users are automatically created when they access our web server so user creation will only be used 
-with caution, when neccessary, by admins. 
+with caution, when necessary, by admins. 
 `,
 
 	RunE: func(cmd *cobra.Command, args []string) error { //nolint: revive

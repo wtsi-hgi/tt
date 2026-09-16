@@ -79,25 +79,25 @@ Further filter flags will be made available
 
 		client := gas.NewClientRequest(url, cert)
 
-		//validate type is valid
+		// Validate type is valid
 		_, err := database.NewThingsType(typ)
 		if err != nil {
 			return err
 		}
 
-		//validate order by
+		// Validate order by
 		_, err = database.NewOrderBy(orderBy)
 		if err != nil {
 			return err
 		}
 
-		//validate order dir
+		// Validate order dir
 		_, err = database.NewOrderDirection(orderDir)
 		if err != nil {
 			return err
 		}
 
-		//Validate page and per page
+		// Validate page and per page
 		_, err = strconv.Atoi(page)
 		if err != nil {
 			return err
@@ -108,7 +108,7 @@ Further filter flags will be made available
 			return err
 		}
 
-		//get the thing
+		// Get the thing
 		resp, err := client.SetQueryParams(map[string]string{
 			"type":     typ,
 			"page":     page,
@@ -161,6 +161,4 @@ func init() {
 		"page you would like to see")
 	getCmd.Flags().String("perPage", "50",
 		"number of things per page")
-
-	//orderBy, orderDirection, thingType, page, perPage,
 }

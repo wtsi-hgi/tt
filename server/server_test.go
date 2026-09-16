@@ -263,7 +263,7 @@ func TestServer(t *testing.T) {
 		})
 
 		Convey("You can POST to the user endpoint", func() {
-			//TODO
+			//TODO:
 			// and do we have any tests for subscribers being creator?
 		})
 

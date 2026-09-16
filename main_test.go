@@ -369,7 +369,6 @@ func TestVersion(t *testing.T) {
 }
 
 func TestCreateGet(t *testing.T) {
-
 	Convey("You can Create a user and Create a Thing", t, func() {
 		s, err := NewTestServer(t, []string{})
 		if err != nil {
@@ -437,15 +436,15 @@ func TestCreateGet(t *testing.T) {
 			So(out, ShouldContainSubstring, "something\t1.2\ts3\n")
 			So(out, ShouldNotContainSubstring, "something_else\t2.3\tirods\n")
 		})
-		//TODO: test all other kinds of filtering
-
+		//TODO: test all other kinds of filtering - in server?
 	})
 	//TODO: test that create and get fail when you didn't start a server
-	// Convey("You can not (Create a user, Create a Thing, and Get a Thing) without starting the server", t, func() {
-	// 	ec, out := runBinary(t, "createUser", "--url", s.url, "--cert", s.cert, "--user", "name", "--email", "name@something")
-	// 	So(out, ShouldBeBlank)
-	// 	So(ec, ShouldBeZeroValue)
-	// })
+	Convey("You can not (Create a user, Create a Thing, and Get a Thing) without starting the server", t, func() {
+		ec, out := runBinary(t, "createUser", "--url", "testURL", "--cert", "testCert", "--user", "name", "--email", "name@something")
+		expected := "Post \"https://testURL/user?email=name%40something&user=name\": dial tcp: lookup testURL on 127.0.0.53:53: server misbehaving"
+		So(out, ShouldContainSubstring, expected)
+		So(ec, ShouldNotBeZeroValue)
+	})
 }
 
 func createFlags(flags map[string]string) []string {
