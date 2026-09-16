@@ -100,12 +100,12 @@ Further filter flags will be made available
 		// Validate page and per page
 		_, err = strconv.Atoi(page)
 		if err != nil {
-			return err
+			page = "1"
 		}
 
 		_, err = strconv.Atoi(perPage)
 		if err != nil {
-			return err
+			perPage = "50"
 		}
 
 		// Get the thing
