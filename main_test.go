@@ -369,7 +369,8 @@ func TestVersion(t *testing.T) {
 }
 
 func TestCreateGet(t *testing.T) {
-	Convey("You can create a user, Create a Thing, and Get a Thing", t, func() {
+
+	Convey("You can Create a user and Create a Thing", t, func() {
 		s, err := NewTestServer(t, []string{})
 		if err != nil {
 			SkipConvey("Skipping real server tests without .env.development.local", func() {})
@@ -395,13 +396,56 @@ func TestCreateGet(t *testing.T) {
 		})...)
 
 		ec, out = runBinary(t, args...)
+		So(ec, ShouldBeZeroValue)
+		So(out, ShouldBeBlank)
+
+		args = []string{"create", "--url", s.url, "--cert", s.cert} //nolint:prealloc
+		args = append(args, createFlags(map[string]string{
+			"name":          "something_else",
+			"version":       "2.3",
+			"description":   "thing of some",
+			"type":          "irods",
+			"requestSource": "fdfd",
+			"address":       "something/path",
+			"reason":        "just because",
+			"creator":       "name",
+		})...)
+		ec, out = runBinary(t, args...)
 		So(out, ShouldBeBlank)
 		So(ec, ShouldBeZeroValue)
 
-		ec, out = runBinary(t, "get", "--url", s.url, "--cert", s.cert)
-		So(out, ShouldEqual, "something\t1.2\n")
-		So(ec, ShouldBeZeroValue)
+		Convey("You can Get a Thing without filtering", func() {
+			ec, out = runBinary(t, "get", "--url", s.url, "--cert", s.cert)
+			So(ec, ShouldBeZeroValue)
+			So(out, ShouldContainSubstring, "something\t1.2\ts3\n")
+			So(out, ShouldContainSubstring, "something_else\t2.3\tirods\n")
+		})
+
+		Convey("You can Get a Thing with filtering", func() {
+			args := []string{"get", "--url", s.url, "--cert", s.cert} //nolint:prealloc
+			args = append(args, createFlags(map[string]string{
+				"type":     "s3",
+				"orderBy":  "address",
+				"orderDir": "ASC",
+				"page":     "1",
+				"perPage":  "10",
+			})...)
+
+			ec, out = runBinary(t, args...)
+			So(ec, ShouldBeZeroValue)
+
+			So(out, ShouldContainSubstring, "something\t1.2\ts3\n")
+			So(out, ShouldNotContainSubstring, "something_else\t2.3\tirods\n")
+		})
+		//TODO: test all other kinds of filtering
+
 	})
+	//TODO: test that create and get fail when you didn't start a server
+	// Convey("You can not (Create a user, Create a Thing, and Get a Thing) without starting the server", t, func() {
+	// 	ec, out := runBinary(t, "createUser", "--url", s.url, "--cert", s.cert, "--user", "name", "--email", "name@something")
+	// 	So(out, ShouldBeBlank)
+	// 	So(ec, ShouldBeZeroValue)
+	// })
 }
 
 func createFlags(flags map[string]string) []string {

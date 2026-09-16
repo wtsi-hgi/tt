@@ -38,16 +38,35 @@ import (
 // serverCmd represents the server command.
 var getCmd = &cobra.Command{
 	Use:   "get",
-	Short: "Gewt a Thing",
-	Long:  ``,
+	Short: "Get a Thing",
+	Long: `Get a Thing 
+This command is usable by anyone. 
+tt get connects to the started server in order to retrieve data in a table 
+
+For example, 
+tt get --url [] --cert [] 
+Will retrieve all things in the things table 
+The --url of the started tt server, including its port, and for it to work
+with your --cert, you probably need to specify it as
+fqdn:port. --url defaults to the TT_SERVER_URL env var. --cert 
+defaults to the TT_SERVER_CERT env var.
+You can add additional optional filtering this using the --type flag.
+This will retrieve all Things of the specified type 
+
+Further filter flags will be made available 
+	`,
 
 	RunE: func(cmd *cobra.Command, args []string) error { //nolint: revive
-		var url, cert, typ string
-
+		var url, cert, typ, orderBy, orderDir, page, perPage string
+		// var getThing database.GetThingsParams
 		for name, v := range map[string]*string{
-			"url":  &url,  //nolint:goconst
-			"cert": &cert, //nolint:goconst
-			"type": &typ,
+			"url":      &url,  //nolint:goconst
+			"cert":     &cert, //nolint:goconst
+			"type":     &typ,
+			"orderBy":  &orderBy,
+			"orderDir": &orderDir,
+			"page":     &page,
+			"perPage":  &perPage,
 		} {
 			val, err := cmd.Flags().GetString(name)
 			if err != nil {
@@ -59,7 +78,44 @@ var getCmd = &cobra.Command{
 
 		client := gas.NewClientRequest(url, cert)
 
-		resp, err := client.SetQueryParam("type", typ).SetHeader("Accept", "application/json").Get("/things")
+		// //validate type is valid
+		// typeOfThing, err := database.NewThingsType(typ)
+		// if err != nil {
+		// 	return err
+		// }
+		// getThing.FilterOnType = typeOfThing
+
+		// //validate order by
+		// getThing.OrderBy, err = database.NewOrderBy(orderBy)
+		// if err != nil {
+		// 	return err
+		// }
+
+		// //validate order dir
+		// getThing.OrderDirection, err = database.NewOrderDirection(orderDir)
+		// if err != nil {
+		// 	return err
+		// }
+
+		// //Validate page and per page
+		// getThing.Page, err = strconv.Atoi(page)
+		// if err != nil {
+		// 	return err
+		// }
+
+		// getThing.ThingsPerPage, err = strconv.Atoi(perPage)
+		// if err != nil {
+		// 	return err
+		// }
+
+		//get the thing
+		resp, err := client.SetQueryParams(map[string]string{
+			"type":     typ,
+			"page":     page,
+			"per_page": perPage,
+			"dir":      orderDir,
+			"sort":     orderBy,
+		}).SetHeader("Accept", "application/json").Get("/things")
 		if err != nil {
 			return err
 		}
@@ -77,7 +133,7 @@ var getCmd = &cobra.Command{
 		}
 
 		for _, thing := range things {
-			fmt.Printf("%s\t%s\n", thing.Name, thing.Version)
+			fmt.Printf("%s\t%s\t%s\n", thing.Name, thing.Version, thing.Type)
 		}
 
 		return nil
@@ -96,5 +152,15 @@ func init() {
 	getCmd.MarkFlagRequired("cert") //nolint:errcheck
 
 	getCmd.Flags().String("type", "",
-		"type of thing")
+		"type of things you would like to see")
+	getCmd.Flags().String("orderBy", "",
+		"field you would like to order by")
+	getCmd.Flags().String("orderDir", "",
+		"direction of order (asc/desc)")
+	getCmd.Flags().String("page", "1",
+		"page you would like to see")
+	getCmd.Flags().String("perPage", "50",
+		"number of things per page")
+
+	//orderBy, orderDirection, thingType, page, perPage,
 }

@@ -262,6 +262,11 @@ func TestServer(t *testing.T) {
 			So(actual, ShouldContainSubstring, "<td>f</td>")
 		})
 
+		Convey("You can POST to the user endpoint", func() {
+			//TODO
+			// and do we have any tests for subscribers being creator?
+		})
+
 		SkipConvey("You can POST to the things endpoint and listen for SSE updates", func() {
 			actual := testEndpoint(s, "POST", "/things")
 			So(actual, ShouldEqual, "")

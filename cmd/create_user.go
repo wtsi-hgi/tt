@@ -36,9 +36,23 @@ import (
 
 // serverCmd represents the server command.
 var createUser = &cobra.Command{
-	Use:   "createUser",
-	Short: "Gewt a Thing",
-	Long:  ``,
+	Use:   "createUser", //TODO: better name for this; user has to type this on the terminal, eg just "user"
+	Short: "Create a User",
+	Long: `
+The tt createUser command is used to add a new user to the users table.
+For example,
+tt createUser --url [] --cert [] --user "username" --email "username@something.com"
+Will retrieve all things in the things table.
+
+The --url of the started tt server, including its port, and for it to work
+with your --cert, you probably need to specify it as
+fqdn:port. --url defaults to the TT_SERVER_URL env var. --cert 
+defaults to the TT_SERVER_CERT env var.
+
+This command is only usable by the user who created the server. Access has been limited as 
+users are automatically created when they access our web server so user creation will only be used 
+with caution, when neccessary, by admins. 
+`,
 
 	RunE: func(cmd *cobra.Command, args []string) error { //nolint: revive
 		var url, cert, user, email string

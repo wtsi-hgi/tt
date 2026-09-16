@@ -43,7 +43,47 @@ const fiveYear = time.Hour * 24 * 365 * 5
 var createCmd = &cobra.Command{
 	Use:   "create",
 	Short: "Create a Thing",
-	Long:  ``,
+	Long: `Create a Thing.
+
+A thing is...
+For example,
+tt create 
+			--url 			[]
+			--cert			[]
+			--name 			"item"
+			--version"      "1.2"
+			--description   "Something"
+			--type          "s3"
+			--requestSource "jira"
+			--address       "s3://bucket/path"
+			--reason       	"xyz"
+			--creator     	"username"
+This command will access the started server and, after verification,
+result in "item" being added to the table of Things with 
+various information from the various mandatory fields supplied by the flag. 
+
+The --url of the started tt server, including its port, and for it to work
+with your --cert, you probably need to specify it as
+fqdn:port. --url defaults to the TT_SERVER_URL env var. --cert 
+defaults to the TT_SERVER_CERT env var.
+
+The information would indicated that the temporary thing "item" version 
+"1.2" is a "s3". It does "something" and was requested through "jira" because
+"xyz" and can be found in the directory "s3://bucket/path".
+The type of thing you supply will be validated.
+
+If applicable, the following flags can also be supplied with strings:
+--downloadMethod, --downloadURL, --license 
+	These fields may not be applicable to every type of thing 
+--created, --delete, 
+	These are fields that may not be known.
+	If a value is not supplied for the creation date, it will default to the 
+	date of table entry, If a value is not supplied for the deletion date, 
+	it will default to five years from the creation date.
+	
+This command can only be used by the person who started the server.
+The creator field will default to the user who started the server 
+	`,
 
 	RunE: func(cmd *cobra.Command, args []string) error { //nolint: revive
 		var url, cert, typ, creationDate, remove string
@@ -163,5 +203,5 @@ func init() { //nolint:funlen
 	createCmd.MarkFlagRequired("reason")        //nolint:errcheck
 	createCmd.MarkFlagRequired("requestSource") //nolint:errcheck
 	createCmd.MarkFlagRequired("version")       //nolint:errcheck
-	createCmd.MarkFlagRequired("creator")       //nolint:errcheck
+	createCmd.MarkFlagRequired("creator")       //nolint:errcheck //TODO: make this optional, set it to current user, after we enforce that only the server starter can run this
 }
