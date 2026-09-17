@@ -395,8 +395,8 @@ func TestCreateGet(t *testing.T) {
 		})...)
 
 		ec, out = runBinary(t, args...)
-		So(ec, ShouldBeZeroValue)
 		So(out, ShouldBeBlank)
+		So(ec, ShouldBeZeroValue)
 
 		args = []string{"create", "--url", s.url, "--cert", s.cert} //nolint:prealloc
 		args = append(args, createFlags(map[string]string{
@@ -415,9 +415,9 @@ func TestCreateGet(t *testing.T) {
 
 		Convey("You can Get a Thing without filtering", func() {
 			ec, out = runBinary(t, "get", "--url", s.url, "--cert", s.cert)
-			So(ec, ShouldBeZeroValue)
 			So(out, ShouldContainSubstring, "something\t1.2\ts3\n")
 			So(out, ShouldContainSubstring, "something_else\t2.3\tirods\n")
+			So(ec, ShouldBeZeroValue)
 		})
 
 		Convey("You can Get a Thing with filtering", func() {
@@ -431,17 +431,16 @@ func TestCreateGet(t *testing.T) {
 			})...)
 
 			ec, out = runBinary(t, args...)
-			So(ec, ShouldBeZeroValue)
 
 			So(out, ShouldContainSubstring, "something\t1.2\ts3\n")
 			So(out, ShouldNotContainSubstring, "something_else\t2.3\tirods\n")
+			So(ec, ShouldBeZeroValue)
 		})
-		//TODO: test all other kinds of filtering - in server?
 	})
-	//TODO: test that create and get fail when you didn't start a server
+
 	Convey("You can not (Create a user, Create a Thing, and Get a Thing) without starting the server", t, func() {
 		ec, out := runBinary(t, "createUser", "--url", "testURL", "--cert", "testCert", "--user", "name", "--email", "name@something")
-		expected := "Post \"https://testURL/user?email=name%40something&user=name\": dial tcp: lookup testURL on 127.0.0.53:53: server misbehaving"
+		expected := "Post \"https://testURL/user\": dial tcp: lookup testURL on 127.0.0.53:53: server misbehaving"
 		So(out, ShouldContainSubstring, expected)
 		So(ec, ShouldNotBeZeroValue)
 	})

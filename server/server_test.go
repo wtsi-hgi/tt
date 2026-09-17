@@ -27,7 +27,9 @@ package server
 
 import (
 	"bytes"
+	"encoding/json"
 	"html/template"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"slices"
@@ -73,8 +75,19 @@ func (m *mockDB) CreateThing(args database.CreateThingParams) (*database.Thing, 
 	m.thingID++
 
 	thing := database.Thing{
-		ID:      id,
-		Address: args.Address,
+		ID:             id,
+		Address:        args.Address,
+		Type:           args.Type,
+		Description:    args.Description,
+		Reason:         args.Reason,
+		Remove:         args.Remove,
+		License:        args.License,
+		Version:        args.Version,
+		Name:           args.Name,
+		URL:            args.URL,
+		DownloadMethod: args.DownloadMethod,
+		RequestSource:  args.RequestSource,
+		CreationDate:   args.CreationDate,
 	}
 
 	m.things = append(m.things, thing)
@@ -204,7 +217,7 @@ func TestServer(t *testing.T) {
 			actual = testEndpoint(s, "GET", "/things?dir=DESC")
 			So(actual, ShouldEqual, expected)
 
-			code := testEndpointCode(s, "GET", "/things?dir=BAD")
+			code := testEndpointCode(s, "GET", "/things?dir=BAD", "")
 			So(code, ShouldEqual, http.StatusBadRequest)
 
 			things = sortAndFilterThings(mdb.things, database.GetThingsParams{
@@ -214,7 +227,7 @@ func TestServer(t *testing.T) {
 			actual = testEndpoint(s, "GET", "/things?sort=address")
 			So(actual, ShouldEqual, expected)
 
-			code = testEndpointCode(s, "GET", "/things?sort=bad")
+			code = testEndpointCode(s, "GET", "/things?sort=bad", "")
 			So(code, ShouldEqual, http.StatusBadRequest)
 
 			things = sortAndFilterThings(mdb.things, database.GetThingsParams{
@@ -233,7 +246,7 @@ func TestServer(t *testing.T) {
 			So(actual, ShouldEqual, expected)
 			So(strings.Count(actual, "</tr>"), ShouldEqual, 2)
 
-			code = testEndpointCode(s, "GET", "/things?type=bad")
+			code = testEndpointCode(s, "GET", "/things?type=bad", "")
 			So(code, ShouldEqual, http.StatusBadRequest)
 
 			perPage := 3
@@ -267,34 +280,57 @@ func TestServer(t *testing.T) {
 			// and do we have any tests for subscribers being creator?
 		})
 
-		SkipConvey("You can POST to the things endpoint and listen for SSE updates", func() {
-			actual := testEndpoint(s, "POST", "/things")
-			So(actual, ShouldEqual, "")
+		Convey("You can't POST to the things endpoint without providing complete thing details", func() {
+			code := testEndpointCode(s, "POST", "/things", "")
+			So(code, ShouldEqual, http.StatusBadRequest)
+			So(len(mdb.things), ShouldEqual, 0)
+		})
+
+		Convey("You can POST thing details to the things endpoint and listen for SSE updates", func() {
+			_, thing, _ := internal.GetExampleResourceData()
+			thing.ID = 0
+			thingJSON, err := json.Marshal(thing)
+			So(err, ShouldBeNil)
+
+			code := testEndpointCode(s, "POST", "/things", string(thingJSON))
+			So(code, ShouldEqual, http.StatusNoContent)
 
 			So(len(mdb.things), ShouldEqual, 1)
-			So(mdb.things[0].Address, ShouldEqual, "test1")
+			So(mdb.things[0], ShouldResemble, thing)
+			//TODO: actual SSE test
 		})
 	})
 }
 
 func testEndpoint(s *Server, method, target string) string {
-	recorder := recordRequest(s, method, target)
+	recorder := recordRequest(s, method, target, "")
 	So(recorder.Code, ShouldEqual, http.StatusOK)
 	So(recorder.Header().Get("Content-Type"), ShouldEqual, "text/html; charset=utf-8")
 
 	return recorder.Body.String()
 }
 
-func recordRequest(s *Server, method, target string) *httptest.ResponseRecorder {
+func recordRequest(s *Server, method, target, body string) *httptest.ResponseRecorder {
+	var bodyReader io.Reader
+
+	if body != "" {
+		bodyReader = strings.NewReader(body)
+	}
+
 	recorder := httptest.NewRecorder()
-	req := httptest.NewRequest(method, target, nil)
+	req := httptest.NewRequest(method, target, bodyReader)
+
+	if body != "" {
+		req.Header.Set("Content-Type", "application/json")
+	}
+
 	s.Router().ServeHTTP(recorder, req)
 
 	return recorder
 }
 
-func testEndpointCode(s *Server, method, target string) int {
-	recorder := recordRequest(s, method, target)
+func testEndpointCode(s *Server, method, target, body string) int {
+	recorder := recordRequest(s, method, target, body)
 
 	return recorder.Code
 }

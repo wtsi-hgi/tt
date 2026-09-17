@@ -119,9 +119,9 @@ The creator field will default to the user who started the server
 		if err != nil {
 			return err
 		}
-
 		thing.Type = typeOfThing
 
+		// Set default for delete
 		if creationDate != "" {
 			creationTime, errb := time.Parse(time.DateOnly, creationDate)
 			if errb != nil {
@@ -138,6 +138,7 @@ The creator field will default to the user who started the server
 			}
 
 			thing.Remove = deletionTime
+
 		} else if thing.CreationDate.Valid {
 			thing.Remove = thing.CreationDate.Time.Add(fiveYear)
 		} else {
@@ -151,7 +152,7 @@ The creator field will default to the user who started the server
 			return err
 		}
 
-		if resp.StatusCode() != http.StatusOK {
+		if resp.StatusCode() != http.StatusNoContent {
 			return errors.New(resp.String()) //nolint:err113
 		}
 

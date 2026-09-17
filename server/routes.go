@@ -28,6 +28,7 @@ package server
 import (
 	"net/http"
 	"strconv"
+	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/wtsi-hgi/tt/database"
@@ -36,6 +37,15 @@ import (
 const (
 	defaultPage    = 1
 	defaultPerPage = 50
+	fiveYear       = time.Hour * 24 * 365 * 5
+)
+
+type Error string
+
+func (e Error) Error() string { return string(e) }
+
+const (
+	ErrInvalidUserValues = Error("Invalid username or email")
 )
 
 // pageRoot takes no user input; it's for the overall main html page at /.
@@ -132,8 +142,20 @@ func (s *Server) postThing(c *gin.Context) {
 
 		return
 	}
+	// Set defaults here
 
-	_, err := database.NewThingsType(string(postedThing.Type))
+	if postedThing.Remove.IsZero() {
+		if postedThing.CreationDate.Valid {
+			postedThing.Remove = postedThing.CreationDate.Time.Add(fiveYear)
+
+		}
+
+		postedThing.Remove = time.Now().Add(fiveYear)
+
+	}
+
+	// Validate values before
+	err := database.ValidateCreateThingsParams(postedThing)
 	if err != nil {
 		c.AbortWithError(http.StatusBadRequest, err) //nolint: errcheck
 
@@ -154,7 +176,7 @@ func (s *Server) postThing(c *gin.Context) {
 		return
 	}
 
-	c.Status(http.StatusOK)
+	c.Status(http.StatusNoContent)
 }
 
 // deleteThing deletes the thing with the id in the url /things/id from the
@@ -178,10 +200,17 @@ func (s *Server) deleteThing(c *gin.Context) {
 }
 
 func (s *Server) postUser(c *gin.Context) {
-	user := c.Query("user")
-	email := c.Query("email")
+	var userPost database.User
 
-	_, err := s.db.CreateUser(user, email)
+	if err := c.ShouldBind(&userPost); err != nil {
+		c.AbortWithError(http.StatusBadRequest, err) //nolint: errcheck
+		return
+	}
+	if userPost.Email == "" || userPost.Name == "" {
+		c.AbortWithError(http.StatusBadRequest, ErrInvalidUserValues) //nolint: errcheck
+		return
+	}
+	_, err := s.db.CreateUser(userPost.Name, userPost.Email)
 	if err != nil {
 		c.Error(err) //nolint:errcheck
 	}

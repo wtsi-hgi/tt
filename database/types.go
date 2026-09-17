@@ -39,6 +39,14 @@ const (
 	ErrBadType           = Error("Invalid things type")
 	ErrBadOrderBy        = Error("Invalid order")
 	ErrBadOrderDirection = Error("Invalid direction")
+	ErrBadAddress        = Error("Invalid things address")
+	ErrBadDescription    = Error("Invalid things description")
+	ErrBadReason         = Error("Invalid things reason")
+	ErrBadVersion        = Error("Invalid things version")
+	ErrBadName           = Error("Invalid things name")
+	ErrBadRequestSource  = Error("Invalid things request source")
+	ErrBadRemove         = Error("Invalid things remove  ")
+	ErrBadCreationDate   = Error("Invalid things creation date  ")
 )
 
 type ThingsType string
@@ -169,7 +177,7 @@ type GetThingsResult struct {
 }
 
 type User struct {
-	ID    uint32
+	ID    uint32 `json:"-"`
 	Name  string
 	Email string
 }
@@ -186,8 +194,59 @@ type CreateThingParams struct {
 	URL            string
 	DownloadMethod string
 	RequestSource  string
-	CreationDate   null.Time `time_format:"2006-01-02"`
+	CreationDate   null.Time `time_format:"2006-01-02"` //!!
 	Creator        string    // Creator must correspond to the Name of a User.
+}
+
+// Validate that all fields in thing are okay
+func ValidateCreateThingsParams(thing CreateThingParams) error {
+	// Validate  Address
+	if thing.Address == "" {
+		return ErrBadAddress
+	}
+
+	// Validate Type
+	NewThingsType(string(thing.Type))
+	_, err := NewThingsType(string(thing.Type))
+	if err != nil {
+		return err
+	}
+
+	// Validate Description
+	if thing.Description == "" {
+		return ErrBadDescription
+	}
+	// Validate Reason
+	if thing.Reason == "" {
+		return ErrBadReason
+	}
+	// Validate Remove !!
+	if thing.Remove.IsZero() {
+		return ErrBadRemove
+	}
+
+	// Validate Version
+	if thing.Version == "" {
+		return ErrBadVersion
+	}
+	// Validate Name
+	if thing.Name == "" {
+		return ErrBadName
+	}
+
+	// Validate RequestSource
+	if thing.RequestSource == "" {
+		return ErrBadRequestSource
+	}
+	// Validate CreationDate
+	if time.Now().Before(thing.CreationDate.Time) {
+		return ErrBadCreationDate
+	}
+
+	// .License can be empty
+	// URL may be empty
+	// DownloadMethod mey empty
+	return nil
 }
 
 type Thing struct {

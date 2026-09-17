@@ -32,6 +32,7 @@ import (
 
 	"github.com/spf13/cobra"
 	gas "github.com/wtsi-hgi/go-authserver"
+	"github.com/wtsi-hgi/tt/database"
 )
 
 // serverCmd represents the server command.
@@ -55,13 +56,13 @@ with caution, when necessary, by admins.
 `,
 
 	RunE: func(cmd *cobra.Command, args []string) error { //nolint: revive
-		var url, cert, user, email string
-
+		var url, cert string
+		var userPost database.User
 		for name, v := range map[string]*string{
 			"url":   &url,  //nolint:goconst
 			"cert":  &cert, //nolint:goconst
-			"user":  &user,
-			"email": &email,
+			"user":  &userPost.Name,
+			"email": &userPost.Email,
 		} {
 			val, err := cmd.Flags().GetString(name)
 			if err != nil {
@@ -73,7 +74,7 @@ with caution, when necessary, by admins.
 
 		client := gas.NewClientRequest(url, cert)
 
-		resp, err := client.SetQueryParam("user", user).SetQueryParam("email", email).Post("/user")
+		resp, err := client.SetBody(&userPost).Post("/user")
 		if err != nil {
 			return err
 		}
