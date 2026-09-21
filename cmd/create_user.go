@@ -79,7 +79,7 @@ with caution, when necessary, by admins.
 			return err
 		}
 
-		if resp.StatusCode() != http.StatusOK {
+		if resp.StatusCode() != http.StatusNoContent {
 			return errors.New(resp.String()) //nolint:err113
 		}
 
