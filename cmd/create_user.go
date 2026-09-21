@@ -37,12 +37,12 @@ import (
 
 // serverCmd represents the server command.
 var createUser = &cobra.Command{
-	Use:   "createUser", //TODO: better name for this; user has to type this on the terminal, eg just "user"
+	Use:   "user",
 	Short: "Create a User",
 	Long: `
-The tt createUser command is used to add a new user to the users table.
+The tt user command is used to add a new user to the users table.
 For example,
-tt createUser --url [] --cert [] --user "username" --email "username@something.com"
+tt user --url [] --cert [] --user "username" --email "username@something.com"
 Will retrieve all things in the things table.
 
 The --url of the started tt server, including its port, and for it to work

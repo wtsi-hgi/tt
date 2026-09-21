@@ -212,6 +212,9 @@ func (s *Server) postUser(c *gin.Context) {
 	}
 	_, err := s.db.CreateUser(userPost.Name, userPost.Email)
 	if err != nil {
+		c.AbortWithError(http.StatusBadRequest, err)
 		c.Error(err) //nolint:errcheck
+		return
 	}
+	c.Status(http.StatusNoContent)
 }

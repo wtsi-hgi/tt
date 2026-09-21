@@ -67,7 +67,14 @@ func newMockDB() *mockDB {
 }
 
 func (m *mockDB) CreateUser(name, email string) (*database.User, error) {
-	return nil, nil //nolint: nilnil
+	user := database.User{
+		ID:    uint32(len(m.users) + 1),
+		Name:  name,
+		Email: email,
+	}
+	m.users = append(m.users, user)
+
+	return &user, nil
 }
 
 func (m *mockDB) CreateThing(args database.CreateThingParams) (*database.Thing, error) {
@@ -278,6 +285,15 @@ func TestServer(t *testing.T) {
 		Convey("You can POST to the user endpoint", func() {
 			//TODO: now that we have done this in create_user
 			// and do we have any tests for subscribers being creator?
+			user := internal.GetExampleUser(1)
+			thingJSON, err := json.Marshal(user)
+			So(err, ShouldBeNil)
+
+			code := testEndpointCode(s, "POST", "/user", string(thingJSON))
+			So(code, ShouldEqual, http.StatusNoContent)
+
+			So(len(mdb.users), ShouldEqual, 1)
+			So(mdb.users[0], ShouldResemble, user)
 		})
 
 		Convey("You can't POST to the things endpoint without providing complete thing details", func() {

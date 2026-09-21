@@ -377,7 +377,7 @@ func TestCreateGet(t *testing.T) {
 			return
 		}
 
-		ec, out := runBinary(t, "createUser", "--url", s.url, "--cert", s.cert, "--user", "name", "--email", "name@something")
+		ec, out := runBinary(t, "user", "--url", s.url, "--cert", s.cert, "--user", "name", "--email", "name@something")
 		So(out, ShouldBeBlank)
 		So(ec, ShouldBeZeroValue)
 
@@ -439,7 +439,7 @@ func TestCreateGet(t *testing.T) {
 	})
 
 	Convey("You can not (Create a user, Create a Thing, and Get a Thing) without starting the server", t, func() {
-		ec, out := runBinary(t, "createUser", "--url", "testURL", "--cert", "testCert", "--user", "name", "--email", "name@something")
+		ec, out := runBinary(t, "user", "--url", "testURL", "--cert", "testCert", "--user", "name", "--email", "name@something")
 		expected := "Post \"https://testURL/user\": dial tcp: lookup testURL on 127.0.0.53:53: server misbehaving"
 		So(out, ShouldContainSubstring, expected)
 		So(ec, ShouldNotBeZeroValue)
