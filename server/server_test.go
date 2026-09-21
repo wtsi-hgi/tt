@@ -97,6 +97,21 @@ func (m *mockDB) CreateThing(args database.CreateThingParams) (*database.Thing, 
 		CreationDate:   args.CreationDate,
 	}
 
+	var userID uint32
+
+	for _, user := range m.users {
+		if user.Name == args.Creator {
+			userID = user.ID
+		}
+	}
+
+	subscriber := database.Subscriber{
+		UserID:  userID,
+		ThingID: id,
+		Creator: true,
+	}
+
+	m.subs = append(m.subs, subscriber)
 	m.things = append(m.things, thing)
 
 	return &thing, nil
@@ -283,8 +298,6 @@ func TestServer(t *testing.T) {
 		})
 
 		Convey("You can POST to the user endpoint", func() {
-			//TODO: now that we have done this in create_user
-			// and do we have any tests for subscribers being creator?
 			user := internal.GetExampleUser(1)
 			thingJSON, err := json.Marshal(user)
 			So(err, ShouldBeNil)
@@ -303,7 +316,7 @@ func TestServer(t *testing.T) {
 		})
 
 		Convey("You can POST thing details to the things endpoint and listen for SSE updates", func() {
-			_, thing, _ := internal.GetExampleResourceData()
+			_, thing, exampleSubscriber := internal.GetExampleResourceData()
 			thing.ID = 0
 			thingJSON, err := json.Marshal(thing)
 			So(err, ShouldBeNil)
@@ -313,8 +326,18 @@ func TestServer(t *testing.T) {
 
 			So(len(mdb.things), ShouldEqual, 1)
 			So(mdb.things[0], ShouldResemble, thing)
+
+			Convey("You are a subscriber to the thing you created", func() {
+				exampleSubscriber.UserID = 0
+				exampleSubscriber.ThingID = 0
+
+				So(len(mdb.subs), ShouldEqual, 1)
+				So(mdb.subs[0], ShouldResemble, exampleSubscriber)
+			})
+
 			//TODO: actual SSE test
 		})
+
 	})
 }
 

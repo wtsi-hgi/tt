@@ -113,6 +113,43 @@ func (m *DB) GetUserByName(name string) (*database.User, error) {
 	return &user, nil
 }
 
+const getSubscriberByThing = `
+SELECT user_id, thing_id, creator
+FROM subscribers
+WHERE thing_id = ?
+`
+
+func (m *DB) GetSubscribers(thingID uint32) ([]database.Subscriber, error) {
+	rows, err := m.pool.Query(getSubscriberByThing, thingID)
+	if err != nil {
+		return nil, err
+	}
+
+	defer rows.Close()
+
+	var subscribers []database.Subscriber
+
+	for rows.Next() {
+		var subscriber database.Subscriber
+
+		if err = rows.Scan(
+			&subscriber.UserID,
+			&subscriber.ThingID,
+			&subscriber.Creator,
+		); err != nil {
+			return nil, err
+		}
+
+		subscribers = append(subscribers, subscriber)
+	}
+
+	if err = rows.Close(); err != nil {
+		return nil, err
+	}
+
+	return subscribers, rows.Err()
+}
+
 const createThing = `
 INSERT INTO things (
   address, type, created, description, reason, remove, license, ` +
@@ -261,6 +298,7 @@ func (m *DB) GetThings(params database.GetThingsParams) (*database.GetThingsResu
 		LastPage: lastPage,
 	}, nil
 }
+
 func (m *DB) runGetThingsQuery(params database.GetThingsParams) (*sql.Rows, error) {
 	var sql strings.Builder
 
@@ -274,6 +312,7 @@ func (m *DB) runGetThingsQuery(params database.GetThingsParams) (*sql.Rows, erro
 
 	return rows, nil
 }
+
 func getThingsParamsToSQL(params database.GetThingsParams, sql *strings.Builder) {
 	whereSQL(params, sql)
 	orderSQL(params, sql)

@@ -277,7 +277,6 @@ func TestMySQL(t *testing.T) {
 					before := time.Now()
 
 					var creator database.User
-
 					if expectedSubs[i].UserID == expectedUsers[0].ID {
 						creator = expectedUsers[0]
 					} else {
@@ -293,9 +292,13 @@ func TestMySQL(t *testing.T) {
 
 					thing.Created = time.Time{}
 					So(thing, ShouldResemble, &et)
+
+					subscribers, err := db.GetSubscribers(thing.ID)
+					So(err, ShouldBeNil)
+					So(len(subscribers), ShouldEqual, 1)
+					So(subscribers[0], ShouldResemble, database.Subscriber{UserID: creator.ID, ThingID: thing.ID, Creator: true})
 				}
 
-				// unsure if passed correct index
 				_, err = db.CreateThing(expectedThings[0].ToCreateParams(database.User{Name: "invalid"}))
 
 				So(err, ShouldNotBeNil)
