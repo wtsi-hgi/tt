@@ -436,6 +436,23 @@ func TestCreateGet(t *testing.T) {
 			So(out, ShouldNotContainSubstring, "something_else\t2.3\tirods\n")
 			So(ec, ShouldBeZeroValue)
 		})
+
+		Convey("You can't create a User or a Thing if you didn't start the server'", func() {
+			origUser := os.Getenv("USER")
+			os.Setenv("USER", "someone_else")
+
+			defer func() {
+				os.Setenv("USER", origUser)
+			}()
+
+			ec, out := runBinary(t, "user", "--url", s.url, "--cert", s.cert, "--user", "name2", "--email", "name2@something")
+			So(ec, ShouldNotBeZeroValue)
+			So(out, ShouldNotBeBlank)
+		})
+
+		//TODO: test that we can't use protected client methods without being the user that started the server
+		//TODO: test that creator defaults to self if not provided during a create
+		//TODO: test that create doesn't need us to manually create a user first
 	})
 
 	Convey("You can not (Create a user, Create a Thing, and Get a Thing) without starting the server", t, func() {

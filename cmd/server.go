@@ -34,8 +34,13 @@ import (
 
 	"github.com/inconshreveable/log15"
 	"github.com/spf13/cobra"
+	gas "github.com/wtsi-hgi/go-authserver"
 	"github.com/wtsi-hgi/tt/database/mysql"
 	"github.com/wtsi-hgi/tt/server"
+)
+
+const (
+	serverTokenBasename = ".tt.token"
 )
 
 // serverCmd represents the server command.
@@ -125,6 +130,11 @@ ctrl-z; bg. Or better yet, use the daemonize program to daemonize this.
 			return fmt.Errorf("failed to configure server: %w", err)
 		}
 
+		err = s.EnableAuthWithServerToken(serverCert, serverKey, serverTokenBasename, checkPassword)
+		if err != nil {
+			return err
+		}
+
 		go sayStarted()
 
 		err = s.Start(serverURL, serverCert, serverKey)
@@ -136,6 +146,16 @@ ctrl-z; bg. Or better yet, use the daemonize program to daemonize this.
 
 		return nil
 	},
+}
+
+func checkPassword(username, password string) (bool, string) {
+	uid, err := gas.UserNameToUID(username)
+	if err != nil {
+		return false, ""
+	}
+
+	//TODO: check cookie somehow?
+	return true, uid
 }
 
 func init() {
