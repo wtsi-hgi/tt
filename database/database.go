@@ -32,6 +32,10 @@ type Queries interface {
 	// user will have its ID set.
 	CreateUser(name, email string) (*User, error)
 
+	// GetUserByName returns a user with a given name if that user exists in the
+	// database
+	GetUserByName(name string) (*User, error)
+
 	// CreateThing creates a new Thing with the given details. The returned
 	// Thing will have its ID set to an auto-increment value, and Created time
 	// set to now. The supplied Creator must match the Name of an existing User,

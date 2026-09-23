@@ -43,6 +43,8 @@ import (
 	"github.com/wtsi-hgi/tt/internal"
 )
 
+const ErrNoUser = database.Error("No User found with that name")
+
 type mockDB struct {
 	users    []database.User
 	things   []database.Thing
@@ -68,13 +70,23 @@ func newMockDB() *mockDB {
 
 func (m *mockDB) CreateUser(name, email string) (*database.User, error) {
 	user := database.User{
-		ID:    uint32(len(m.users) + 1),
+		ID:    uint32(len(m.users) + 1), //nolint:gosec
 		Name:  name,
 		Email: email,
 	}
 	m.users = append(m.users, user)
 
 	return &user, nil
+}
+
+func (m *mockDB) GetUserByName(name string) (*database.User, error) {
+	for _, user := range m.users {
+		if name == user.Name {
+			return &user, nil
+		}
+	}
+
+	return nil, ErrNoUser
 }
 
 func (m *mockDB) CreateThing(args database.CreateThingParams) (*database.Thing, error) {
@@ -337,11 +349,10 @@ func TestServer(t *testing.T) {
 
 			//TODO: actual SSE test
 		})
-
 	})
 }
 
-func testEndpoint(s *Server, method, target string) string {
+func testEndpoint(s *Server, method, target string) string { //nolint:unparam
 	recorder := recordRequest(s, method, target, "")
 	So(recorder.Code, ShouldEqual, http.StatusOK)
 	So(recorder.Header().Get("Content-Type"), ShouldEqual, "text/html; charset=utf-8")

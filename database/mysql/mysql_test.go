@@ -293,8 +293,8 @@ func TestMySQL(t *testing.T) {
 					thing.Created = time.Time{}
 					So(thing, ShouldResemble, &et)
 
-					subscribers, err := db.GetSubscribers(thing.ID)
-					So(err, ShouldBeNil)
+					subscribers, errc := db.GetSubscribers(thing.ID)
+					So(errc, ShouldBeNil)
 					So(len(subscribers), ShouldEqual, 1)
 					So(subscribers[0], ShouldResemble, database.Subscriber{UserID: creator.ID, ThingID: thing.ID, Creator: true})
 				}

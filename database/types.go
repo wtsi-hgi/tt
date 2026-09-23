@@ -198,15 +198,14 @@ type CreateThingParams struct {
 	Creator        string    // Creator must correspond to the Name of a User.
 }
 
-// Validate that all fields in thing are okay
+// Validate that all fields in thing are okay.
 func ValidateCreateThingsParams(thing CreateThingParams) error {
-	// Validate  Address
+	// Validate  Address.
 	if thing.Address == "" {
 		return ErrBadAddress
 	}
 
-	// Validate Type
-	NewThingsType(string(thing.Type))
+	// Validate Type.
 	_, err := NewThingsType(string(thing.Type))
 	if err != nil {
 		return err
@@ -216,10 +215,12 @@ func ValidateCreateThingsParams(thing CreateThingParams) error {
 	if thing.Description == "" {
 		return ErrBadDescription
 	}
+
 	// Validate Reason
 	if thing.Reason == "" {
 		return ErrBadReason
 	}
+
 	// Validate Remove !!
 	if thing.Remove.IsZero() {
 		return ErrBadRemove
@@ -229,6 +230,7 @@ func ValidateCreateThingsParams(thing CreateThingParams) error {
 	if thing.Version == "" {
 		return ErrBadVersion
 	}
+
 	// Validate Name
 	if thing.Name == "" {
 		return ErrBadName
@@ -238,6 +240,7 @@ func ValidateCreateThingsParams(thing CreateThingParams) error {
 	if thing.RequestSource == "" {
 		return ErrBadRequestSource
 	}
+
 	// Validate CreationDate
 	if time.Now().Before(thing.CreationDate.Time) {
 		return ErrBadCreationDate

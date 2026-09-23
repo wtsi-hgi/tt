@@ -211,7 +211,7 @@ func getTestServerAddress() (string, error) {
 }
 
 func (s *testServer) startServer(additionalServerArgs []string) {
-	args := []string{"server", "--url", s.url, "--cert", s.cert, "--key", s.key} //nolint:prealloc
+	args := []string{"server", "--url", s.url, "--cert", s.cert, "--key", s.key} //nolint:prealloc,goconst
 	args = append(args, additionalServerArgs...)
 
 	s.stopped = false
@@ -384,12 +384,12 @@ func TestCreateGet(t *testing.T) {
 		args := []string{"create", "--url", s.url, "--cert", s.cert} //nolint:prealloc
 
 		args = append(args, createFlags(map[string]string{
-			"name":          "something",
+			"name":          "something", //nolint:goconst
 			"version":       "1.2",
 			"description":   "Some thing",
-			"type":          "s3",
+			"type":          "s3", //nolint:goconst
 			"requestSource": "dfdf",
-			"address":       "s3://bucket/path",
+			"address":       "s3://bucket/path", //nolint:goconst
 			"reason":        "just because",
 			"creator":       "name",
 		})...)
@@ -439,6 +439,7 @@ func TestCreateGet(t *testing.T) {
 
 		Convey("You can't create a User or a Thing if you didn't start the server'", func() {
 			origUser := os.Getenv("USER")
+
 			os.Setenv("USER", "someone_else")
 
 			defer func() {

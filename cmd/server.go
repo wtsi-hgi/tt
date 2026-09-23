@@ -148,7 +148,7 @@ ctrl-z; bg. Or better yet, use the daemonize program to daemonize this.
 	},
 }
 
-func checkPassword(username, password string) (bool, string) {
+func checkPassword(username, password string) (bool, string) { //nolint:revive
 	uid, err := gas.UserNameToUID(username)
 	if err != nil {
 		return false, ""

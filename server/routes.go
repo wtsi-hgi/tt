@@ -45,7 +45,8 @@ type Error string
 func (e Error) Error() string { return string(e) }
 
 const (
-	ErrInvalidUserValues = Error("Invalid username or email")
+	ErrInvalidEmail    = Error("Invalid email")
+	ErrInvalidUserName = Error("Invalid username")
 )
 
 // pageRoot takes no user input; it's for the overall main html page at /.
@@ -147,11 +148,9 @@ func (s *Server) postThing(c *gin.Context) {
 	if postedThing.Remove.IsZero() {
 		if postedThing.CreationDate.Valid {
 			postedThing.Remove = postedThing.CreationDate.Time.Add(fiveYear)
-
 		}
 
 		postedThing.Remove = time.Now().Add(fiveYear)
-
 	}
 
 	// Validate values before
@@ -204,17 +203,53 @@ func (s *Server) postUser(c *gin.Context) {
 
 	if err := c.ShouldBind(&userPost); err != nil {
 		c.AbortWithError(http.StatusBadRequest, err) //nolint: errcheck
+
 		return
 	}
-	if userPost.Email == "" || userPost.Name == "" {
-		c.AbortWithError(http.StatusBadRequest, ErrInvalidUserValues) //nolint: errcheck
+
+	if userPost.Name == "" {
+		c.AbortWithError(http.StatusBadRequest, ErrInvalidUserName) //nolint: errcheck
+
 		return
 	}
+
+	if userPost.Email == "" {
+		c.AbortWithError(http.StatusBadRequest, ErrInvalidEmail) //nolint: errcheck
+
+		return
+	}
+
 	_, err := s.db.CreateUser(userPost.Name, userPost.Email)
 	if err != nil {
-		c.AbortWithError(http.StatusBadRequest, err)
-		c.Error(err) //nolint:errcheck
+		c.AbortWithError(http.StatusBadRequest, err) //nolint:errcheck
+
 		return
 	}
+
 	c.Status(http.StatusNoContent)
+}
+
+func (s *Server) getUser(c *gin.Context) {
+	username := c.Query("name")
+	if username == "" {
+		c.AbortWithError(http.StatusBadRequest, ErrInvalidUserName) //nolint: errcheck
+
+		return
+	}
+
+	result, err := s.db.GetUserByName(username)
+	if err != nil {
+		c.AbortWithError(http.StatusInternalServerError, err) //nolint: errcheck
+
+		return
+	}
+
+	if c.Request.Header.Get("Accept") == "application/json" {
+		c.JSON(http.StatusOK, result)
+
+		return
+	}
+
+	//TODO: this should be using a user template of some kind
+	c.HTML(http.StatusOK, "templates/things.html", result)
 }

@@ -96,7 +96,7 @@ The creator field will default to the user who started the server
 			"name":           &thing.Name,
 			"description":    &thing.Description,
 			"version":        &thing.Version,
-			"type":           &typ,
+			"type":           &typ, //nolint:goconst
 			"address":        &thing.Address,
 			"reason":         &thing.Reason,
 			"requestSource":  &thing.RequestSource,
@@ -119,6 +119,7 @@ The creator field will default to the user who started the server
 		if err != nil {
 			return err
 		}
+
 		thing.Type = typeOfThing
 
 		// Set default for delete
@@ -138,7 +139,6 @@ The creator field will default to the user who started the server
 			}
 
 			thing.Remove = deletionTime
-
 		} else if thing.CreationDate.Valid {
 			thing.Remove = thing.CreationDate.Time.Add(fiveYear)
 		} else {

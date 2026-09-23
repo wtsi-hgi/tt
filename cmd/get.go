@@ -63,7 +63,7 @@ Further filter flags will be made available
 		for name, v := range map[string]*string{
 			"url":      &url,  //nolint:goconst
 			"cert":     &cert, //nolint:goconst
-			"type":     &typ,
+			"type":     &typ,  //nolint:goconst
 			"orderBy":  &orderBy,
 			"orderDir": &orderDir,
 			"page":     &page,

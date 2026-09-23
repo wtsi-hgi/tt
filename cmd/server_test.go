@@ -148,7 +148,7 @@ func TestServer(t *testing.T) {
 											Convey("You can't start a server with invalid cert files", func() {
 												output, err := executeRootCommandForTest(t, cliArgs)
 												So(err, ShouldNotBeNil)
-												So(output, ShouldContainSubstring, "non-graceful stop: open val: no such file or directory")
+												So(output, ShouldContainSubstring, "private key file unreadable")
 											})
 
 											Convey("Given real cert files", func() {

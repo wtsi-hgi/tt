@@ -32,24 +32,22 @@ import (
 	"net/http"
 
 	"github.com/go-resty/resty/v2"
-	"github.com/inconshreveable/log15"
 	gas "github.com/wtsi-hgi/go-authserver"
 	"github.com/wtsi-hgi/tt/database"
 )
 
-// TODO: const errors, not global vars
-var (
-	ErrInvalidInput = errors.New("invalid input")
-	ErrInternal     = errors.New("internal error")
+const (
+	ErrInvalidInput = Error("Invalid input")
+	ErrInternal     = Error("internal error")
 )
 
 // Client is used to interact with the Server over the network, with
 // authentication.
 type Client struct {
-	url    string
-	cert   string
-	jwt    string
-	logger log15.Logger
+	url  string
+	cert string
+	jwt  string
+	// logger log15.Logger
 }
 
 // NewClient returns a Client you can use to call methods on a Server listening
@@ -66,8 +64,8 @@ func NewClient(url, cert string, userpass ...string) (*Client, error) {
 		return nil, err
 	}
 
-	if err := c.Login(userpass...); err != nil {
-		return nil, err
+	if errc := c.Login(userpass...); err != nil {
+		return nil, errc
 	}
 
 	jwt, err := c.GetJWT()
@@ -88,24 +86,55 @@ func (c *Client) request() *resty.Request {
 
 // CreateUser adds the given user to the database.
 func (c *Client) CreateUser(u *database.User) error {
-	// c.putObject(EndPointAuth..., u)
-	return nil
-}
-
-// putObject sends obj encoded as JSON in the body via a PUT to the given url.
-// If optionalResponseObj is defined, gets that decoded from the JSON response.
-func (c *Client) putObject(url string, obj interface{}, optionalResponseObj ...interface{}) error {
-	req := c.setBodyAndOptionalResult(obj, optionalResponseObj...)
-
-	resp, err := req.Put(url)
+	//TODO: secure endpoint
+	resp, err := c.request().ForceContentType("application/json").SetBody(u).Post("/user")
 	if err != nil {
 		return err
 	}
 
-	return responseToErr(resp)
+	if resp.StatusCode() != http.StatusNoContent {
+		return errors.New(resp.String()) //nolint:err113
+	}
+
+	return nil
 }
 
-func (c *Client) setBodyAndOptionalResult(thing interface{}, optionalResponseObj ...interface{}) *resty.Request {
+// GetUser checks that a user exists in the database
+func (c *Client) GetUserByName(username string) (*database.User, error) {
+	user := &database.User{}
+
+	resp, err := c.request().SetHeader("Accept", "application/json").SetQueryParam("name", username).
+		SetResult(user).
+		Get("/user")
+	if err != nil {
+		return nil, err
+	}
+
+	// resp, err := c.request().SetHeader("Accept", "application/json").SetQueryParam("name", username).
+	// 	Get("/user")
+	// if err != nil {
+	// 	return nil, err
+	// }
+
+	// fmt.Println(string(resp.Body()))
+
+	return user, responseToErr(resp)
+}
+
+// putObject sends obj encoded as JSON in the body via a PUT to the given url.
+// If optionalResponseObj is defined, gets that decoded from the JSON response.
+func (c *Client) putObject(url string, obj interface{}, optionalResponseObj ...interface{}) (error, *resty.Response) { //nolint:revive,unused
+	req := c.setBodyAndOptionalResult(obj, optionalResponseObj...)
+
+	resp, err := req.Put(url)
+	if err != nil {
+		return err, nil
+	}
+
+	return responseToErr(resp), resp
+}
+
+func (c *Client) setBodyAndOptionalResult(thing interface{}, optionalResponseObj ...interface{}) *resty.Request { //nolint:unused
 	req := c.request().ForceContentType("application/json").SetBody(thing)
 
 	if len(optionalResponseObj) == 1 {
@@ -143,15 +172,21 @@ func responseToErr(resp *resty.Response) error {
 }
 
 // GetThings gets optionally filtered Things from the database.
-func (c *Client) GetThings(filter interface{}) ([]*database.Thing, error) {
+func (c *Client) GetThings(filter interface{}) ([]*database.Thing, error) { //nolint:revive
 	// ...
 	// err := c.getObj(EndPointAuth..., &things)
-
 	return nil, nil
 }
 
+// func (c *Client) GetThings(filter interface{}) ([]*database.Thing, error) {
+// 	// ...
+// 	// err := c.getObj(EndPointAuth..., &things)
+
+// 	return nil, nil
+// }
+
 // getObj gets obj decoded from JSON from the given url.
-func (c *Client) getObj(url string, obj interface{}) error {
+func (c *Client) getObj(url string, obj interface{}) error { //nolint:unused
 	resp, err := c.request().ForceContentType("application/json").
 		SetResult(&obj).
 		Get(url)

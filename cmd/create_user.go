@@ -57,6 +57,7 @@ with caution, when necessary, by admins.
 
 	RunE: func(cmd *cobra.Command, args []string) error { //nolint: revive
 		var url, cert string
+
 		var userPost database.User
 		for name, v := range map[string]*string{
 			"url":   &url,  //nolint:goconst

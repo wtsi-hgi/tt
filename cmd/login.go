@@ -26,46 +26,46 @@
 
 package cmd
 
-import (
-	"os/user"
+// import (
+// 	"os/user"
 
-	gas "github.com/wtsi-hgi/go-authserver"
-	"github.com/wtsi-hgi/tt/server"
-)
+// 	gas "github.com/wtsi-hgi/go-authserver"
+// 	"github.com/wtsi-hgi/tt/server"
+// )
 
-const jwtBasename = ".tt.jwt"
+// const jwtBasename = ".tt.jwt"
 
-// newServerClient tries to get a jwt for the given server url, and returns a
-// client that can interact with it.
-func newServerClient(url, cert string) (*server.Client, error) {
-	token, err := gasClientCLI(url, cert).GetJWT()
-	if err != nil {
-		return nil, err
-	}
+// // newServerClient tries to get a jwt for the given server url, and returns a
+// // client that can interact with it.
+// func newServerClient(url, cert string) (*server.Client, error) {
+// 	token, err := gasClientCLI(url, cert).GetJWT()
+// 	if err != nil {
+// 		return nil, err
+// 	}
 
-	return server.NewClient(url, cert, token), nil
-}
+// 	return server.NewClient(url, cert, token), nil
+// }
 
-func gasClientCLI(url, cert string) *gas.ClientCLI {
-	c, err := gas.NewClientCLI(jwtBasename, serverTokenBasename, url, cert, false)
-	if err != nil {
-		die(err)
-	}
+// func gasClientCLI(url, cert string) *gas.ClientCLI {
+// 	c, err := gas.NewClientCLI(jwtBasename, serverTokenBasename, url, cert, false)
+// 	if err != nil {
+// 		die(err)
+// 	}
 
-	return c
-}
+// 	return c
+// }
 
-func currentUsername() string {
-	user, err := user.Current()
-	if err != nil {
-		dief("couldn't get user: %s", err)
-	}
+// func currentUsername() string {
+// 	user, err := user.Current()
+// 	if err != nil {
+// 		dief("couldn't get user: %s", err)
+// 	}
 
-	return user.Username
-}
+// 	return user.Username
+// }
 
-func isAdmin() bool {
-	clientCLI := gasClientCLI(serverURL, serverCert)
+// func isAdmin() bool {
+// 	clientCLI := gasClientCLI(serverURL, serverCert)
 
-	return clientCLI.CanReadServerToken()
-}
+// 	return clientCLI.CanReadServerToken()
+// }
