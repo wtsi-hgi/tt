@@ -199,7 +199,7 @@ type CreateThingParams struct {
 }
 
 // Validate that all fields in thing are okay.
-func ValidateCreateThingsParams(thing CreateThingParams) error {
+func ValidateCreateThingsParams(thing CreateThingParams) error { //nolint:gocyclo
 	// Validate  Address.
 	if thing.Address == "" {
 		return ErrBadAddress

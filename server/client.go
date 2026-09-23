@@ -64,7 +64,7 @@ func NewClient(url, cert string, userpass ...string) (*Client, error) {
 		return nil, err
 	}
 
-	if errc := c.Login(userpass...); err != nil {
+	if errc := c.Login(userpass...); err != nil { //nolint:govet
 		return nil, errc
 	}
 
@@ -99,7 +99,7 @@ func (c *Client) CreateUser(u *database.User) error {
 	return nil
 }
 
-// GetUser checks that a user exists in the database
+// GetUser checks that a user exists in the database.
 func (c *Client) GetUserByName(username string) (*database.User, error) {
 	user := &database.User{}
 
