@@ -204,43 +204,35 @@ func ValidateCreateThingsParams(thing CreateThingParams) error { //nolint:gocycl
 	if thing.Address == "" {
 		return ErrBadAddress
 	}
-
 	// Validate Type.
 	_, err := NewThingsType(string(thing.Type))
 	if err != nil {
 		return err
 	}
-
 	// Validate Description
 	if thing.Description == "" {
 		return ErrBadDescription
 	}
-
 	// Validate Reason
 	if thing.Reason == "" {
 		return ErrBadReason
 	}
-
 	// Validate Remove !!
 	if thing.Remove.IsZero() {
 		return ErrBadRemove
 	}
-
 	// Validate Version
 	if thing.Version == "" {
 		return ErrBadVersion
 	}
-
 	// Validate Name
 	if thing.Name == "" {
 		return ErrBadName
 	}
-
 	// Validate RequestSource
 	if thing.RequestSource == "" {
 		return ErrBadRequestSource
 	}
-
 	// Validate CreationDate
 	if time.Now().Before(thing.CreationDate.Time) {
 		return ErrBadCreationDate

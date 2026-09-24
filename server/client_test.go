@@ -107,9 +107,71 @@ func TestClient(t *testing.T) {
 			So(u, ShouldResemble, userPost)
 		})
 
-		// Convey("You can create and get Things", func() {
-		// 	// TODO
-		// })
+		Convey("You can create and get Things", func() {
+			thingPost := &database.Thing{
+				Name:          "something_else",
+				Version:       "2.3",
+				Description:   "thing of some",
+				Type:          "irods",
+				RequestSource: "fdfd",
+				Address:       "something/path",
+				Reason:        "just because"}
+			deleteTimeBefore := time.Now().Add(fiveYear)
+			err := client.PostThing(thingPost)
+			deleteTimeAfter := time.Now().Add(fiveYear)
+
+			So(err, ShouldBeNil)
+			So(len(mdb.things), ShouldEqual, 1)
+
+			thingTwoPost := &database.Thing{
+				ID:            1,
+				Name:          "something_else",
+				Version:       "2.3",
+				Description:   "thing of some",
+				Type:          "s3",
+				RequestSource: "fdfd",
+				Address:       "something/path",
+				Reason:        "just because"}
+
+			err = client.PostThing(thingTwoPost)
+			So(err, ShouldBeNil)
+			So(len(mdb.things), ShouldEqual, 2)
+
+			//TODO: should test get with and without filtering.
+
+			filter := &database.GetThingsParams{
+				FilterOnType:   database.ThingsTypeIrods,
+				OrderBy:        database.OrderByType,
+				OrderDirection: database.OrderAsc,
+				Page:           1,
+				ThingsPerPage:  1,
+			}
+
+			things, err := client.GetThings(filter)
+			So(err, ShouldBeNil)
+			So(len(things), ShouldEqual, 1)
+			So(things[0].Remove, ShouldHappenOnOrBetween, deleteTimeBefore, deleteTimeAfter)
+
+			things[0].Remove = time.Time{}
+			So(things[0], ShouldResemble, *thingPost)
+
+			// Getting both with no Type filter.
+			filter = &database.GetThingsParams{
+				FilterOnType:   database.ThingsTypeNil,
+				OrderBy:        database.OrderByType,
+				OrderDirection: database.OrderAsc,
+				Page:           1,
+				ThingsPerPage:  2,
+			}
+
+			things, err = client.GetThings(filter)
+			So(err, ShouldBeNil)
+			So(len(things), ShouldEqual, 2)
+			things[0].Remove = time.Time{}
+			things[1].Remove = time.Time{}
+			So(things[0], ShouldResemble, *thingPost)
+			So(things[1], ShouldResemble, *thingTwoPost)
+		})
 	})
 }
 

@@ -30,6 +30,7 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"strconv"
 
 	"github.com/go-resty/resty/v2"
 	gas "github.com/wtsi-hgi/go-authserver"
@@ -56,8 +57,8 @@ type Client struct {
 // Provide a non-blank path to a certificate to force us to trust that
 // certificate, eg. if the server was started with a self-signed certificate.
 //
-// You must first gas.GetJWT() to get a JWT that you must supply here.
-// TODO: update the help text to explain we login and the optinoal user pass...
+// Optionally provide a username and password in order to login.
+// This will check the user has the correct authority in a JWT.
 func NewClient(url, cert string, userpass ...string) (*Client, error) {
 	c, err := gas.NewClientCLI(".tt.jwt", ".tt.token", url, cert, false)
 	if err != nil {
@@ -110,31 +111,23 @@ func (c *Client) GetUserByName(username string) (*database.User, error) {
 		return nil, err
 	}
 
-	// resp, err := c.request().SetHeader("Accept", "application/json").SetQueryParam("name", username).
-	// 	Get("/user")
-	// if err != nil {
-	// 	return nil, err
-	// }
-
-	// fmt.Println(string(resp.Body()))
-
 	return user, responseToErr(resp)
 }
 
 // putObject sends obj encoded as JSON in the body via a PUT to the given url.
 // If optionalResponseObj is defined, gets that decoded from the JSON response.
-func (c *Client) putObject(url string, obj interface{}, optionalResponseObj ...interface{}) (error, *resty.Response) { //nolint:revive,unused
+func (c *Client) putObject(url string, obj interface{}, optionalResponseObj ...interface{}) (*resty.Response, error) { //nolint:unused,lll
 	req := c.setBodyAndOptionalResult(obj, optionalResponseObj...)
 
 	resp, err := req.Put(url)
 	if err != nil {
-		return err, nil
+		return nil, err
 	}
 
-	return responseToErr(resp), resp
+	return resp, responseToErr(resp)
 }
 
-func (c *Client) setBodyAndOptionalResult(thing interface{}, optionalResponseObj ...interface{}) *resty.Request { //nolint:unused
+func (c *Client) setBodyAndOptionalResult(thing interface{}, optionalResponseObj ...interface{}) *resty.Request { //nolint:unused,lll
 	req := c.request().ForceContentType("application/json").SetBody(thing)
 
 	if len(optionalResponseObj) == 1 {
@@ -171,19 +164,42 @@ func responseToErr(resp *resty.Response) error {
 	return err
 }
 
-// GetThings gets optionally filtered Things from the database.
-func (c *Client) GetThings(filter interface{}) ([]*database.Thing, error) { //nolint:revive
-	// ...
-	// err := c.getObj(EndPointAuth..., &things)
-	return nil, nil
+// PostThing posts a thing to the database.
+func (c *Client) PostThing(t *database.Thing) error {
+	// TODO: secure endpoints
+	resp, err := c.request().ForceContentType("application/json").SetBody(t).Post("/things")
+	if err != nil {
+		return err
+	}
+
+	if resp.StatusCode() != http.StatusNoContent {
+		return errors.New(resp.String()) //nolint:err113
+	}
+
+	return nil
 }
 
-// func (c *Client) GetThings(filter interface{}) ([]*database.Thing, error) {
-// 	// ...
-// 	// err := c.getObj(EndPointAuth..., &things)
+// GetThings gets optionally filtered Things from the database.
+func (c *Client) GetThings(filter *database.GetThingsParams) ([]database.Thing, error) {
+	things := []database.Thing{}
+	// !!!
+	// see getthingsparams....
+	// this is more useful when get body.. get standard is to set params NOT body.... might work though..
+	resp, err := c.request().SetHeader("Accept", "application/json").SetQueryParams(map[string]string{
+		"type":     string(filter.FilterOnType),
+		"page":     strconv.Itoa(filter.Page),
+		"per_page": strconv.Itoa(filter.ThingsPerPage),
+		"dir":      string(filter.OrderDirection),
+		"sort":     string(filter.OrderBy),
+	}).
+		SetResult(&things).
+		Get("/things")
+	if err != nil {
+		return nil, err
+	}
 
-// 	return nil, nil
-// }
+	return things, responseToErr(resp)
+}
 
 // getObj gets obj decoded from JSON from the given url.
 func (c *Client) getObj(url string, obj interface{}) error { //nolint:unused

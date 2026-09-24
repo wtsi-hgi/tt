@@ -139,41 +139,47 @@ func (m *mockDB) GetThings(params database.GetThingsParams) (*database.GetThings
 func sortAndFilterThings(origThings []database.Thing, params database.GetThingsParams) []database.Thing {
 	var things []database.Thing
 
-	order := []int{0, 1, 2, 3, 4, 5, 6, 7, 8, 9}
-
-	if params.OrderBy == database.OrderByAddress {
-		order = []int{4, 6, 1, 8, 2, 6, 7, 9, 3, 0}
+	for _, thing := range origThings {
+		if params.FilterOnType == database.ThingsTypeNil || thing.Type == params.FilterOnType {
+			things = append(things, thing)
+		}
 	}
 
-	if params.FilterOnType == database.ThingsTypeS3 {
-		order = []int{4, 5}
+	switch params.OrderBy {
+	case database.OrderByType:
+		slices.SortFunc(things, func(a, b database.Thing) int {
+			return strings.Compare(string(a.Type), string(b.Type))
+		})
+	case database.OrderByAddress:
+		slices.SortFunc(things, func(a, b database.Thing) int {
+			return strings.Compare(a.Address, b.Address)
+		})
+	case database.OrderByReason:
+		slices.SortFunc(things, func(a, b database.Thing) int {
+			return strings.Compare(a.Reason, b.Reason)
+		})
+	case database.OrderByRemove:
+		slices.SortFunc(things, func(a, b database.Thing) int {
+			return a.Remove.Compare(b.Remove)
+		})
 	}
 
 	if params.OrderDirection == database.OrderDesc {
-		slices.Reverse(order)
+		slices.Reverse(things)
 	}
 
-	if params.ThingsPerPage > 0 {
-		low := (params.Page - 1) * params.ThingsPerPage
-		if low >= len(order) {
-			order = []int{}
-		}
-
-		high := low + params.ThingsPerPage
-		high = min(high, len(order))
-
-		order = order[low:high]
+	if params.ThingsPerPage == 0 {
+		return things
 	}
 
-	for i := range origThings {
-		if i >= len(order) {
-			break
-		}
+	low := (params.Page - 1) * params.ThingsPerPage
+	high := params.Page * params.ThingsPerPage
 
-		things = append(things, origThings[order[i]])
+	if low > len(things) {
+		return nil
 	}
 
-	return things
+	return things[low:min(high, len(things))]
 }
 
 func (m *mockDB) DeleteUser(id uint32) error {
