@@ -26,6 +26,7 @@
 package database
 
 import (
+	"strconv"
 	"time"
 
 	null "github.com/guregu/null/v5"
@@ -47,6 +48,10 @@ const (
 	ErrBadRequestSource  = Error("Invalid things request source")
 	ErrBadRemove         = Error("Invalid things remove  ")
 	ErrBadCreationDate   = Error("Invalid things creation date  ")
+)
+const (
+	defaultPage    = 1
+	defaultPerPage = 50
 )
 
 type ThingsType string
@@ -315,4 +320,39 @@ type Subscriber struct {
 	UserID  uint32
 	ThingID uint32
 	Creator bool
+}
+
+func NewGetThingsParams(typ, orderBy, dir, page, perPage string) (GetThingsParams, error) {
+	var filter GetThingsParams
+	OrderByTemp, err := NewOrderBy(orderBy)
+	if err != nil {
+		return filter, err
+	}
+
+	filter.OrderBy = OrderByTemp
+
+	filter.OrderDirection, err = NewOrderDirection(dir)
+	if err != nil {
+		return filter, err
+	}
+
+	filter.FilterOnType, err = NewThingsType(typ)
+	if err != nil {
+		return filter, err
+	}
+
+	filter.Page = atoiWithDefault(page, defaultPage)
+	filter.ThingsPerPage = atoiWithDefault(perPage, defaultPerPage)
+
+	return filter, nil
+}
+
+func atoiWithDefault(text string, defaultVal int) int {
+	num, err := strconv.Atoi(text)
+
+	if err != nil || num < 1 {
+		return defaultVal
+	}
+
+	return num
 }

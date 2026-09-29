@@ -26,13 +26,11 @@
 package cmd
 
 import (
-	"errors"
-	"net/http"
 	"os"
 
 	"github.com/spf13/cobra"
-	gas "github.com/wtsi-hgi/go-authserver"
 	"github.com/wtsi-hgi/tt/database"
+	"github.com/wtsi-hgi/tt/server"
 )
 
 // serverCmd represents the server command.
@@ -73,18 +71,12 @@ with caution, when necessary, by admins.
 			*v = val
 		}
 
-		client := gas.NewClientRequest(url, cert)
-
-		resp, err := client.SetBody(&userPost).Post("/user")
+		client, err := server.NewClient(url, cert) //TODO: pass CLI user?
 		if err != nil {
 			return err
 		}
 
-		if resp.StatusCode() != http.StatusNoContent {
-			return errors.New(resp.String()) //nolint:err113
-		}
-
-		return nil
+		return client.CreateUser(&userPost)
 	},
 }
 

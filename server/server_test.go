@@ -28,6 +28,7 @@ package server
 import (
 	"bytes"
 	"encoding/json"
+	"fmt"
 	"html/template"
 	"io"
 	"net/http"
@@ -92,7 +93,7 @@ func (m *mockDB) GetUserByName(name string) (*database.User, error) {
 func (m *mockDB) CreateThing(args database.CreateThingParams) (*database.Thing, error) {
 	id := m.thingID
 	m.thingID++
-
+	fmt.Println("a")
 	thing := database.Thing{
 		ID:             id,
 		Address:        args.Address,
@@ -111,10 +112,17 @@ func (m *mockDB) CreateThing(args database.CreateThingParams) (*database.Thing, 
 
 	var userID uint32
 
+	found := false
 	for _, user := range m.users {
 		if user.Name == args.Creator {
 			userID = user.ID
+			found = true
 		}
+	}
+	//TODO: if user not found (must disttinguish between finding userID 0 and not found!), create new user here
+	if !found {
+		user, _ := m.CreateUser(args.Creator, args.Creator+"@default.domain")
+		userID = user.ID
 	}
 
 	subscriber := database.Subscriber{
@@ -204,10 +212,12 @@ func TestServer(t *testing.T) {
 	Convey("Given a valid Config", t, func() {
 		logWriter := gas.NewStringLogger()
 		mdb := newMockDB()
+		defaultEmailDomain := "default.domain"
 
 		conf := Config{
-			HTTPLogger: logWriter,
-			Database:   mdb,
+			HTTPLogger:         logWriter,
+			Database:           mdb,
+			DefaultEmailDomain: defaultEmailDomain,
 		}
 		So(conf.CheckValid(), ShouldBeNil)
 
@@ -243,6 +253,7 @@ func TestServer(t *testing.T) {
 			So(actual, ShouldEqual, "")
 
 			mdb.users, mdb.things, mdb.subs = internal.GetExampleData()
+
 			expected := executeThingsTemplate(mdb.things)
 
 			actual = testEndpoint(s, "GET", "/things")
@@ -316,7 +327,7 @@ func TestServer(t *testing.T) {
 		})
 
 		Convey("You can POST to the user endpoint", func() {
-			user := internal.GetExampleUser(1)
+			user := internal.GetExampleUser(2)
 			thingJSON, err := json.Marshal(user)
 			So(err, ShouldBeNil)
 
@@ -324,36 +335,45 @@ func TestServer(t *testing.T) {
 			So(code, ShouldEqual, http.StatusNoContent)
 
 			So(len(mdb.users), ShouldEqual, 1)
+
+			user.ID = 1
 			So(mdb.users[0], ShouldResemble, user)
+
+			Convey("You can POST thing details to the things endpoint and listen for SSE updates", func() {
+				newUser, thing, exampleSubscriber := internal.GetExampleResourceData()
+				thingParams := thing.ToCreateParams(newUser)
+
+				thing.ID = 0
+				thingJSON, err = json.Marshal(thingParams)
+				So(err, ShouldBeNil)
+
+				code := testEndpointCode(s, "POST", "/things", string(thingJSON))
+
+				So(code, ShouldEqual, http.StatusNoContent)
+				So(len(mdb.things), ShouldEqual, 1)
+				So(mdb.things[0], ShouldResemble, thing)
+				Convey("You are a subscriber to the thing you created", func() {
+					newUser.ID = 2
+					newUser.Email = "user1@" + defaultEmailDomain
+
+					So(len(mdb.users), ShouldEqual, 2)
+					So(mdb.users[1], ShouldResemble, newUser) //TODO: the system where we can define the default email domain
+
+					exampleSubscriber.UserID = newUser.ID
+					exampleSubscriber.ThingID = 0
+
+					So(len(mdb.subs), ShouldEqual, 1)
+					So(mdb.subs[0], ShouldResemble, exampleSubscriber)
+				})
+
+				//TODO: actual SSE test
+			})
 		})
 
 		Convey("You can't POST to the things endpoint without providing complete thing details", func() {
 			code := testEndpointCode(s, "POST", "/things", "")
 			So(code, ShouldEqual, http.StatusBadRequest)
 			So(len(mdb.things), ShouldEqual, 0)
-		})
-
-		Convey("You can POST thing details to the things endpoint and listen for SSE updates", func() {
-			_, thing, exampleSubscriber := internal.GetExampleResourceData()
-			thing.ID = 0
-			thingJSON, err := json.Marshal(thing)
-			So(err, ShouldBeNil)
-
-			code := testEndpointCode(s, "POST", "/things", string(thingJSON))
-			So(code, ShouldEqual, http.StatusNoContent)
-
-			So(len(mdb.things), ShouldEqual, 1)
-			So(mdb.things[0], ShouldResemble, thing)
-
-			Convey("You are a subscriber to the thing you created", func() {
-				exampleSubscriber.UserID = 0
-				exampleSubscriber.ThingID = 0
-
-				So(len(mdb.subs), ShouldEqual, 1)
-				So(mdb.subs[0], ShouldResemble, exampleSubscriber)
-			})
-
-			//TODO: actual SSE test
 		})
 	})
 }

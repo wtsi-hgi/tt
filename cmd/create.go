@@ -26,18 +26,12 @@
 package cmd
 
 import (
-	"errors"
-	"net/http"
 	"os"
-	"time"
 
-	"github.com/guregu/null/v5"
 	"github.com/spf13/cobra"
-	gas "github.com/wtsi-hgi/go-authserver"
 	"github.com/wtsi-hgi/tt/database"
+	"github.com/wtsi-hgi/tt/server"
 )
-
-const fiveYear = time.Hour * 24 * 365 * 5
 
 // serverCmd represents the server command.
 var createCmd = &cobra.Command{
@@ -96,7 +90,7 @@ The creator field will default to the user who started the server
 			"name":           &thing.Name,
 			"description":    &thing.Description,
 			"version":        &thing.Version,
-			"type":           &typ, //nolint:goconst
+			"type":           &typ,
 			"address":        &thing.Address,
 			"reason":         &thing.Reason,
 			"requestSource":  &thing.RequestSource,
@@ -115,45 +109,19 @@ The creator field will default to the user who started the server
 			*v = val
 		}
 
-		typeOfThing, err := database.NewThingsType(typ)
+		client, err := server.NewClient(url, cert)
 		if err != nil {
 			return err
 		}
 
-		thing.Type = typeOfThing
-
-		// Set default for delete
-		if creationDate != "" {
-			creationTime, errb := time.Parse(time.DateOnly, creationDate)
-			if errb != nil {
-				return errb
-			}
-
-			thing.CreationDate = null.TimeFrom(creationTime)
-		}
-
-		if remove != "" {
-			deletionTime, errb := time.Parse(time.DateOnly, remove)
-			if errb != nil {
-				return errb
-			}
-
-			thing.Remove = deletionTime
-		} else if thing.CreationDate.Valid {
-			thing.Remove = thing.CreationDate.Time.Add(fiveYear)
-		} else {
-			thing.Remove = time.Now().Add(fiveYear)
-		}
-
-		client := gas.NewClientRequest(url, cert)
-
-		resp, err := client.SetBody(&thing).Post("/things")
+		thing.Type, err = database.NewThingsType(typ)
 		if err != nil {
 			return err
 		}
 
-		if resp.StatusCode() != http.StatusNoContent {
-			return errors.New(resp.String()) //nolint:err113
+		err = client.PostThing(&thing)
+		if err != nil {
+			return err
 		}
 
 		return nil
@@ -195,7 +163,7 @@ func init() { //nolint:funlen
 		"deletion date of thing")
 	createCmd.Flags().String("license", "",
 		"license of thing")
-	createCmd.Flags().String("creator", "",
+	createCmd.Flags().String("creator", os.Getenv("USER"),
 		"creator of thing")
 	createCmd.MarkFlagRequired("address")       //nolint:errcheck
 	createCmd.MarkFlagRequired("type")          //nolint:errcheck

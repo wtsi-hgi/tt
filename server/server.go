@@ -52,6 +52,9 @@ type Config struct {
 	// Database is used to query MySQL for users, things and subscribers. This
 	// is required.
 	Database database.Queries
+
+	// Default email domain is the default when a user is being made
+	DefaultEmailDomain string
 }
 
 // CheckValid returns nil if all required options have been supplied, or an

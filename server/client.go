@@ -65,7 +65,7 @@ func NewClient(url, cert string, userpass ...string) (*Client, error) {
 		return nil, err
 	}
 
-	if errc := c.Login(userpass...); err != nil { //nolint:govet
+	if errc := c.Login(userpass...); errc != nil {
 		return nil, errc
 	}
 
@@ -165,7 +165,7 @@ func responseToErr(resp *resty.Response) error {
 }
 
 // PostThing posts a thing to the database.
-func (c *Client) PostThing(t *database.Thing) error {
+func (c *Client) PostThing(t *database.CreateThingParams) error {
 	// TODO: secure endpoints
 	resp, err := c.request().ForceContentType("application/json").SetBody(t).Post("/things")
 	if err != nil {

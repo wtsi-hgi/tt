@@ -67,20 +67,12 @@ func (s *Server) pageRoot(c *gin.Context) {
 // page=<int>&per_page=<int> : get a particular page of results, where each page
 // has per_page Things. Page defaults to 1, and per_page defaults to 50.
 func (s *Server) getThings(c *gin.Context) {
-	orderBy, orderDirection, thingType, page, perPage, err := parseGetThingsParams(c)
+	filter, err := database.NewGetThingsParams(c.Query("type"), c.Query("sort"), c.Query("dir"), c.Query("page"), c.Query("per_page"))
 	if err != nil {
 		c.AbortWithError(http.StatusBadRequest, err) //nolint: errcheck
-
-		return
 	}
 
-	result, err := s.db.GetThings(database.GetThingsParams{
-		FilterOnType:   thingType,
-		OrderBy:        orderBy,
-		OrderDirection: orderDirection,
-		Page:           page,
-		ThingsPerPage:  perPage,
-	})
+	result, err := s.db.GetThings(filter)
 	if err != nil {
 		c.AbortWithError(http.StatusInternalServerError, err) //nolint: errcheck
 
@@ -94,39 +86,6 @@ func (s *Server) getThings(c *gin.Context) {
 	}
 
 	c.HTML(http.StatusOK, "templates/things.html", result.Things)
-}
-
-func parseGetThingsParams(c *gin.Context) (orderBy database.OrderBy,
-	orderDirection database.OrderDirection, thingsType database.ThingsType, page int, perPage int, err error) {
-	orderBy, err = database.NewOrderBy(c.Query("sort"))
-	if err != nil {
-		return //nolint:nakedret
-	}
-
-	orderDirection, err = database.NewOrderDirection(c.Query("dir"))
-	if err != nil {
-		return //nolint:nakedret
-	}
-
-	thingsType, err = database.NewThingsType(c.Query("type"))
-	if err != nil {
-		return //nolint:nakedret
-	}
-
-	page = atoiWithDefault(c.Query("page"), defaultPage)
-	perPage = atoiWithDefault(c.Query("per_page"), defaultPerPage)
-
-	return //nolint:nakedret
-}
-
-func atoiWithDefault(text string, defaultVal int) int {
-	num, err := strconv.Atoi(text)
-
-	if err != nil || num < 1 {
-		return defaultVal
-	}
-
-	return num
 }
 
 // postThing posts all required fields of a Thing to /things, along with Creator
@@ -160,6 +119,8 @@ func (s *Server) postThing(c *gin.Context) {
 
 		return
 	}
+
+	//TODO: add server's default domain to postedThing, and get db.CreateThing to use that if it needs to auto-create the user
 
 	thing, err := s.db.CreateThing(postedThing)
 	if err != nil {

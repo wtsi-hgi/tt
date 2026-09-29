@@ -173,10 +173,17 @@ INSERT INTO subscribers (
 // recored as a Subscriber of the new Thing.
 func (m *DB) CreateThing(args database.CreateThingParams) (*database.Thing, error) { //nolint:funlen
 	created := time.Now()
-
+	var user *database.User
 	user, err := m.GetUserByName(args.Creator)
 	if err != nil {
-		return nil, err
+		if err != ErrNoUser {
+			return nil, err
+		}
+		user, err = m.CreateUser(args.Creator, args.Creator+"@default.domain")
+		if err != nil {
+			return nil, err
+		}
+
 	}
 
 	tx, err := m.pool.Begin()

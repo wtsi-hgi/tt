@@ -26,14 +26,12 @@
 package cmd
 
 import (
-	"encoding/json"
 	"fmt"
 	"os"
-	"strconv"
 
 	"github.com/spf13/cobra"
-	gas "github.com/wtsi-hgi/go-authserver"
 	"github.com/wtsi-hgi/tt/database"
+	"github.com/wtsi-hgi/tt/server"
 )
 
 // serverCmd represents the server command.
@@ -59,11 +57,11 @@ Further filter flags will be made available
 
 	RunE: func(cmd *cobra.Command, args []string) error { //nolint: revive
 		var url, cert, typ, orderBy, orderDir, page, perPage string
-		// var getThing database.GetThingsParams
+
 		for name, v := range map[string]*string{
 			"url":      &url,  //nolint:goconst
 			"cert":     &cert, //nolint:goconst
-			"type":     &typ,  //nolint:goconst
+			"type":     &typ,
 			"orderBy":  &orderBy,
 			"orderDir": &orderDir,
 			"page":     &page,
@@ -76,53 +74,18 @@ Further filter flags will be made available
 
 			*v = val
 		}
-
-		client := gas.NewClientRequest(url, cert)
-
-		// Validate type is valid
-		_, err := database.NewThingsType(typ)
+		client, err := server.NewClient(url, cert) //TODO: pass CLI user?
 		if err != nil {
 			return err
 		}
 
-		// Validate order by
-		_, err = database.NewOrderBy(orderBy)
+		filter, err := database.NewGetThingsParams(typ, orderBy, orderDir, page, perPage)
 		if err != nil {
 			return err
 		}
 
-		// Validate order dir
-		_, err = database.NewOrderDirection(orderDir)
+		things, err := client.GetThings(&filter)
 		if err != nil {
-			return err
-		}
-
-		// Validate page and per page
-		_, err = strconv.Atoi(page)
-		if err != nil {
-			page = "1"
-		}
-
-		_, err = strconv.Atoi(perPage)
-		if err != nil {
-			perPage = "50"
-		}
-
-		// Get the thing
-		resp, err := client.SetQueryParams(map[string]string{
-			"type":     typ,
-			"page":     page,
-			"per_page": perPage,
-			"dir":      orderDir,
-			"sort":     orderBy,
-		}).SetHeader("Accept", "application/json").Get("/things")
-		if err != nil {
-			return err
-		}
-
-		var things []database.Thing
-
-		if err := json.Unmarshal(resp.Body(), &things); err != nil {
 			return err
 		}
 

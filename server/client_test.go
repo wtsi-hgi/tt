@@ -94,7 +94,7 @@ func TestClient(t *testing.T) {
 		Convey("You can create and get a User", func() {
 			userPost := &database.User{
 				Name:  "User1",
-				Email: "User1@something",
+				Email: "User1@default.domain",
 			}
 
 			err := client.CreateUser(userPost)
@@ -108,14 +108,18 @@ func TestClient(t *testing.T) {
 		})
 
 		Convey("You can create and get Things", func() {
-			thingPost := &database.Thing{
+			userName := "testCreator"
+
+			thingPost := &database.CreateThingParams{
 				Name:          "something_else",
 				Version:       "2.3",
 				Description:   "thing of some",
 				Type:          "irods",
 				RequestSource: "fdfd",
 				Address:       "something/path",
-				Reason:        "just because"}
+				Reason:        "just because",
+				Creator:       userName,
+			}
 			deleteTimeBefore := time.Now().Add(fiveYear)
 			err := client.PostThing(thingPost)
 			deleteTimeAfter := time.Now().Add(fiveYear)
@@ -123,21 +127,20 @@ func TestClient(t *testing.T) {
 			So(err, ShouldBeNil)
 			So(len(mdb.things), ShouldEqual, 1)
 
-			thingTwoPost := &database.Thing{
-				ID:            1,
+			thingTwoPost := &database.CreateThingParams{
 				Name:          "something_else",
 				Version:       "2.3",
 				Description:   "thing of some",
 				Type:          "s3",
 				RequestSource: "fdfd",
 				Address:       "something/path",
-				Reason:        "just because"}
+				Reason:        "just because",
+				Creator:       userName,
+			}
 
 			err = client.PostThing(thingTwoPost)
 			So(err, ShouldBeNil)
 			So(len(mdb.things), ShouldEqual, 2)
-
-			//TODO: should test get with and without filtering.
 
 			filter := &database.GetThingsParams{
 				FilterOnType:   database.ThingsTypeIrods,
@@ -153,7 +156,10 @@ func TestClient(t *testing.T) {
 			So(things[0].Remove, ShouldHappenOnOrBetween, deleteTimeBefore, deleteTimeAfter)
 
 			things[0].Remove = time.Time{}
-			So(things[0], ShouldResemble, *thingPost)
+			So(things[0].ToCreateParams(database.User{
+				Name:  userName,
+				Email: userName + "@default.domain", // TODO: somewhere we need to define a default domain for the server to auto-create users when given only username
+			}), ShouldResemble, *thingPost)
 
 			// Getting both with no Type filter.
 			filter = &database.GetThingsParams{
@@ -169,8 +175,14 @@ func TestClient(t *testing.T) {
 			So(len(things), ShouldEqual, 2)
 			things[0].Remove = time.Time{}
 			things[1].Remove = time.Time{}
-			So(things[0], ShouldResemble, *thingPost)
-			So(things[1], ShouldResemble, *thingTwoPost)
+			So(things[0].ToCreateParams(database.User{
+				Name:  userName,
+				Email: userName + "@default.domain",
+			}), ShouldResemble, *thingPost)
+			So(things[1].ToCreateParams(database.User{
+				Name:  userName,
+				Email: userName + "@default.domain",
+			}), ShouldResemble, *thingTwoPost)
 		})
 	})
 }
