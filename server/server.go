@@ -40,8 +40,9 @@ import (
 var templatesFS embed.FS
 
 const (
-	ErrNoLogger   = gas.Error("a http logger must be configured")
-	ErrNoDatabase = gas.Error("a database must be supplied")
+	ErrNoLogger        = gas.Error("a http logger must be configured")
+	ErrNoDatabase      = gas.Error("a database must be supplied")
+	ErrNoDefaultDomain = gas.Error("a default domains must be supplied")
 )
 
 // Config configures the server.
@@ -69,9 +70,9 @@ func (c Config) CheckValid() error {
 	}
 
 	//!! make required later
-	// if c.DefaultEmailDomain == "nil" {
-	// 	return ErrNoDatabase
-	// }
+	if c.DefaultEmailDomain == "nil" {
+		return ErrNoDatabase
+	}
 
 	return nil
 }
@@ -82,7 +83,7 @@ type Server struct {
 	gas.Server
 	db                 database.Queries
 	rootTemplate       *template.Template
-	DefaultEmailDomain string //!!
+	DefaultEmailDomain string
 }
 
 // New creates a Server which serves the tt website.
@@ -97,7 +98,7 @@ func New(conf Config) (*Server, error) {
 	s := &Server{
 		Server:             *gas.New(conf.HTTPLogger),
 		db:                 conf.Database,
-		DefaultEmailDomain: conf.DefaultEmailDomain, //!!
+		DefaultEmailDomain: conf.DefaultEmailDomain,
 	}
 
 	s.Router().Use(gas.IncludeAbortErrorsInBody)

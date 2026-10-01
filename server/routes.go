@@ -92,7 +92,7 @@ func (s *Server) getThings(c *gin.Context) {
 	c.HTML(http.StatusOK, "templates/things.html", result.Things)
 }
 
-// getThingByID returns the row in the Things table in teh database. The id of
+// getThingByID returns the row in the Things table in the database. The id of
 // the desired thing can be supplied as a query param by the User.
 func (s *Server) getThingByID(c *gin.Context) {
 	tID := c.Query("id")
@@ -138,22 +138,19 @@ func (s *Server) postThing(c *gin.Context) {
 
 		return
 	}
-	//!! s.defaultDomain > pass to postedthing?
-	// 	> in createThing (routes) we will
 
 	user, err := s.db.GetUserByName(postedThing.Creator)
 	if errors.Is(err, ErrNoUser) {
 		user, err = s.db.CreateUser(postedThing.Creator, postedThing.Creator+s.DefaultEmailDomain)
-	} else if err != nil {
+	}
+	if err != nil && !errors.Is(err, ErrNoUser) {
 		c.AbortWithError(http.StatusInternalServerError, err) //nolint: errcheck
 
 		return
 	}
-	postedThing.CreatorID = user.ID
-	//TODO: auto create user here
-	//  maybe change createThingParams to hold an id .. added after user is created..
 
-	//TODO: add server's default domain to postedThing, and get db.CreateThing to use that if it needs to auto-create the user
+	postedThing.CreatorID = user.ID
+
 	thing, err := s.db.CreateThing(postedThing)
 	if err != nil {
 		c.AbortWithError(http.StatusBadRequest, err) //nolint: errcheck

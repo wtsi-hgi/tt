@@ -193,18 +193,6 @@ INSERT INTO subscribers (
 func (m *DB) CreateThing(args database.CreateThingParams) (*database.Thing, error) { //nolint:funlen
 	created := time.Now()
 
-	// var user *database.User
-
-	// user, err := m.GetUserByName(args.Creator)
-
-	// if errors.Is(err, ErrNoUser) {
-	// 	user, err = m.CreateUser(args.Creator, args.Creator+"@default.domain") //!! change to the default domain in createThingsParams
-	// }
-
-	// if err != nil {
-	// 	return nil, err
-	// }
-
 	tx, err := m.pool.Begin()
 	if err != nil {
 		return nil, err

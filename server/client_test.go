@@ -56,7 +56,6 @@ func TestClient(t *testing.T) {
 			HTTPLogger:         logWriter,
 			Database:           mdb,
 			DefaultEmailDomain: "@default.domain",
-			//!! add default
 		}
 
 		s, err := New(conf)
@@ -96,9 +95,8 @@ func TestClient(t *testing.T) {
 		Convey("You can create and get a User", func() {
 			userPost := &database.User{
 				Name:  "User1",
-				Email: "User1@default.domain",
+				Email: "User1" + s.DefaultEmailDomain,
 			}
-
 			err := client.CreateUser(userPost)
 			So(err, ShouldBeNil)
 
@@ -166,7 +164,7 @@ func TestClient(t *testing.T) {
 			things[0].Remove = time.Time{}
 			So(things[0].ToCreateParams(&database.User{
 				Name:  userName,
-				Email: userName + "@default.domain", // TODO: somewhere we need to define a default domain for the server to auto-create users when given only username
+				Email: userName + s.DefaultEmailDomain, // TODO: somewhere we need to define a default domain for the server to auto-create users when given only username
 			}), ShouldResemble, *thingPost)
 
 			// Getting both with no Type filter.
@@ -186,11 +184,11 @@ func TestClient(t *testing.T) {
 			things[1].Remove = time.Time{}
 			So(things[0].ToCreateParams(&database.User{
 				Name:  userName,
-				Email: userName + "@default.domain",
+				Email: userName + s.DefaultEmailDomain,
 			}), ShouldResemble, *thingPost)
 			So(things[1].ToCreateParams(&database.User{
 				Name:  userName,
-				Email: userName + "@default.domain",
+				Email: userName + s.DefaultEmailDomain,
 			}), ShouldResemble, *thingTwoPost)
 
 			// Get with just ID

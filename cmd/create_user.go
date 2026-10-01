@@ -54,6 +54,8 @@ with caution, when necessary, by admins.
 `,
 
 	RunE: func(cmd *cobra.Command, args []string) error { //nolint: revive
+		//TODO: email can default to default domain
+		//  user can default to CLI User?? not needed because happened when create
 		var url, cert string
 
 		var userPost database.User
