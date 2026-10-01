@@ -47,6 +47,7 @@ func (e Error) Error() string { return string(e) }
 const (
 	ErrInvalidEmail    = Error("Invalid email")
 	ErrInvalidUserName = Error("Invalid username")
+	ErrInvalidThingID  = Error("Invalid thing ID")
 )
 
 // pageRoot takes no user input; it's for the overall main html page at /.
@@ -67,25 +68,51 @@ func (s *Server) pageRoot(c *gin.Context) {
 // page=<int>&per_page=<int> : get a particular page of results, where each page
 // has per_page Things. Page defaults to 1, and per_page defaults to 50.
 func (s *Server) getThings(c *gin.Context) {
-	filter, err := database.NewGetThingsParams(c.Query("type"), c.Query("sort"), c.Query("dir"), c.Query("page"), c.Query("per_page"))
-	if err != nil {
-		c.AbortWithError(http.StatusBadRequest, err) //nolint: errcheck
+	// Get a single thing from ID.
+	tID := c.Query("id")
+	if tID != "" {
+		id, err := strconv.Atoi(tID)
+		if err != nil {
+			c.AbortWithError(http.StatusInternalServerError, err) //nolint: errcheck
+
+			return
+		}
+
+		result, err := s.db.GetThingByID(uint32(id))
+		if err != nil {
+			c.AbortWithError(http.StatusInternalServerError, err) //nolint: errcheck
+
+			return
+		}
+
+		if c.Request.Header.Get("Accept") == "application/json" {
+			c.JSON(http.StatusOK, result)
+
+			return
+		}
+
+		c.HTML(http.StatusOK, "templates/things.html", result)
+	} else {
+		filter, err := database.NewGetThingsParams(c.Query("type"), c.Query("sort"), c.Query("dir"), c.Query("page"), c.Query("per_page"))
+		if err != nil {
+			c.AbortWithError(http.StatusBadRequest, err) //nolint: errcheck
+		}
+
+		result, err := s.db.GetThings(filter)
+		if err != nil {
+			c.AbortWithError(http.StatusInternalServerError, err) //nolint: errcheck
+
+			return
+		}
+
+		if c.Request.Header.Get("Accept") == "application/json" {
+			c.JSON(http.StatusOK, result.Things)
+
+			return
+		}
+
+		c.HTML(http.StatusOK, "templates/things.html", result.Things)
 	}
-
-	result, err := s.db.GetThings(filter)
-	if err != nil {
-		c.AbortWithError(http.StatusInternalServerError, err) //nolint: errcheck
-
-		return
-	}
-
-	if c.Request.Header.Get("Accept") == "application/json" {
-		c.JSON(http.StatusOK, result.Things)
-
-		return
-	}
-
-	c.HTML(http.StatusOK, "templates/things.html", result.Things)
 }
 
 // postThing posts all required fields of a Thing to /things, along with Creator
@@ -192,15 +219,68 @@ func (s *Server) postUser(c *gin.Context) {
 
 func (s *Server) getUser(c *gin.Context) {
 	username := c.Query("name")
-	if username == "" {
-		c.AbortWithError(http.StatusBadRequest, ErrInvalidUserName) //nolint: errcheck
+	uID := c.Query("id")
+	if username != "" {
+		result, err := s.db.GetUserByName(username)
+		if err != nil {
+			c.AbortWithError(http.StatusInternalServerError, err) //nolint: errcheck
+
+			return
+		}
+
+		if c.Request.Header.Get("Accept") == "application/json" {
+			c.JSON(http.StatusOK, result)
+
+			return
+		}
+
+		//TODO: this should be using a user template of some kind
+		c.HTML(http.StatusOK, "templates/things.html", result)
+
+		return
+	}
+	if uID != "" {
+		id, err := strconv.Atoi(uID)
+		if err != nil {
+			c.AbortWithError(http.StatusInternalServerError, err)
+
+			return
+		}
+		result, err := s.db.GetUserByID(uint32(id))
+		if err != nil {
+			c.AbortWithError(http.StatusInternalServerError, err) //nolint: errcheck
+
+			return
+		}
+
+		if c.Request.Header.Get("Accept") == "application/json" {
+			c.JSON(http.StatusOK, result)
+
+			return
+		}
+
+		//TODO: this should be using a user template of some kind
+		c.HTML(http.StatusOK, "templates/things.html", result)
 
 		return
 	}
 
-	result, err := s.db.GetUserByName(username)
+	c.AbortWithError(http.StatusBadRequest, ErrInvalidUserName) //nolint: errcheck
+}
+
+func (s *Server) getSubscribers(c *gin.Context) {
+	tID := c.Query("id")
+
+	id, err := strconv.Atoi(tID)
 	if err != nil {
-		c.AbortWithError(http.StatusInternalServerError, err) //nolint: errcheck
+		c.AbortWithError(http.StatusBadRequest, ErrInvalidThingID) //nolint: errcheck
+
+		return
+	}
+
+	result, errc := s.db.GetSubscribers(uint32(id))
+	if errc != nil {
+		c.AbortWithError(http.StatusBadRequest, errc) //nolint: errcheck
 
 		return
 	}
@@ -211,6 +291,6 @@ func (s *Server) getUser(c *gin.Context) {
 		return
 	}
 
-	//TODO: this should be using a user template of some kind
+	//TODO: subscriber template
 	c.HTML(http.StatusOK, "templates/things.html", result)
 }

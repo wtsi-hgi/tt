@@ -36,7 +36,7 @@ import (
 // GetExampleData returns 2 users and a selection of Things that they created,
 // 2 things per ThingsType, and with property values that would all sort
 // differently to each other.
-func GetExampleData() ([]database.User, []database.Thing, []database.Subscriber) { //nolint:funlen
+func GetExampleData() ([]*database.User, []database.Thing, []database.Subscriber) { //nolint:funlen
 	user1 := exampleUser(1)
 	user2 := exampleUser(2) //nolint:mnd
 
@@ -90,7 +90,7 @@ func GetExampleData() ([]database.User, []database.Thing, []database.Subscriber)
 		}
 	}
 
-	return []database.User{user1, user2}, expectedThings, expectedSubs
+	return []*database.User{user1, user2}, expectedThings, expectedSubs
 }
 
 func dateFromYear(year uint32) time.Time {
@@ -99,15 +99,15 @@ func dateFromYear(year uint32) time.Time {
 	return remove
 }
 
-func exampleUser(id uint32) database.User {
-	return database.User{
+func exampleUser(id uint32) *database.User {
+	return &database.User{
 		ID:    id,
 		Name:  fmt.Sprintf("user%d", id),
 		Email: fmt.Sprintf("user%d@example.com", id),
 	}
 }
-func GetExampleUser(id uint32) database.User {
-	expectedUser := database.User{
+func GetExampleUser(id uint32) *database.User {
+	expectedUser := &database.User{
 		ID:    id,
 		Name:  fmt.Sprintf("user%d", id),
 		Email: fmt.Sprintf("user%d@example.com", id),
@@ -115,7 +115,7 @@ func GetExampleUser(id uint32) database.User {
 
 	return expectedUser
 }
-func GetExampleResourceData() (database.User, database.Thing, database.Subscriber) {
+func GetExampleResourceData() (*database.User, database.Thing, database.Subscriber) {
 	expectedThing := database.Thing{
 		ID:             1,
 		Address:        "address",

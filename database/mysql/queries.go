@@ -113,6 +113,101 @@ func (m *DB) GetUserByName(name string) (*database.User, error) {
 	return &user, nil
 }
 
+const GetUserByID = `
+SELECT id, name, email
+FROM users
+WHERE id = ?
+`
+
+// GetUserByID returns the user with the given user ID.
+func (m *DB) GetUserByID(id uint32) (*database.User, error) {
+	rows, err := m.pool.Query(GetUserByID, id)
+	if err != nil {
+		return nil, err
+	}
+
+	defer rows.Close()
+
+	if gotRow := rows.Next(); !gotRow {
+		return nil, ErrNoUser
+	}
+
+	var user database.User
+
+	if err := rows.Scan(
+		&user.ID,
+		&user.Name,
+		&user.Email,
+	); err != nil {
+		return nil, err
+	}
+
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+
+	return &user, nil
+}
+
+const GetThingByID = `
+SELECT things.id, address, type, created, description, reason, remove, warned1, warned2, ` +
+	`removed, license, version, name, url, download_method, request_source, creation_date
+FROM things
+WHERE things.id = ?
+`
+
+// GetThingByID returns a Thing correlating to a given ID.
+func (m *DB) GetThingByID(id uint32) (*database.Thing, error) {
+	rows, err := m.pool.Query(GetThingByID, id)
+	if err != nil {
+		return nil, err
+	}
+
+	defer rows.Close()
+
+	if gotRow := rows.Next(); !gotRow {
+		return nil, ErrNoUser
+	}
+
+	var thing database.Thing
+
+	if err = rows.Scan(
+		&thing.ID,
+		&thing.Address,
+		&thing.Type,
+		&thing.Created,
+		&thing.Description,
+		&thing.Reason,
+		&thing.Remove,
+		&thing.Warned1,
+		&thing.Warned2,
+		&thing.Removed,
+		&thing.License,
+		&thing.Version,
+		&thing.Name,
+		&thing.URL,
+		&thing.DownloadMethod,
+		&thing.RequestSource,
+		&thing.CreationDate,
+	); err != nil {
+		return nil, err
+	}
+
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+
+	return &thing, nil
+}
+
 const getSubscriberByThing = `
 SELECT user_id, thing_id, creator
 FROM subscribers
@@ -173,17 +268,19 @@ INSERT INTO subscribers (
 // recored as a Subscriber of the new Thing.
 func (m *DB) CreateThing(args database.CreateThingParams) (*database.Thing, error) { //nolint:funlen
 	created := time.Now()
+
 	var user *database.User
+
 	user, err := m.GetUserByName(args.Creator)
 	if err != nil {
 		if err != ErrNoUser {
 			return nil, err
 		}
+
 		user, err = m.CreateUser(args.Creator, args.Creator+"@default.domain")
 		if err != nil {
 			return nil, err
 		}
-
 	}
 
 	tx, err := m.pool.Begin()

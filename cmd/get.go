@@ -96,7 +96,12 @@ Further filter flags will be made available
 		}
 
 		for _, thing := range things {
-			fmt.Printf("%s\t%s\t%s\n", thing.Name, thing.Version, thing.Type)
+			thingWithSubs, err := client.GetThingAndSubscriberDetails(thing.ID)
+			if err != nil {
+				return err
+			}
+
+			fmt.Printf("%s\t%s\t%s\t%s\n", thing.Name, thing.Version, thing.Type, thingWithSubs.Creator.Name)
 		}
 
 		return nil

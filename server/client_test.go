@@ -104,6 +104,12 @@ func TestClient(t *testing.T) {
 
 			u, err := client.GetUserByName(userPost.Name)
 			So(err, ShouldBeNil)
+
+			userPost.ID = 1
+			So(u, ShouldResemble, userPost)
+
+			u, err = client.GetUserByID(u.ID)
+			So(err, ShouldBeNil)
 			So(u, ShouldResemble, userPost)
 		})
 
@@ -156,7 +162,7 @@ func TestClient(t *testing.T) {
 			So(things[0].Remove, ShouldHappenOnOrBetween, deleteTimeBefore, deleteTimeAfter)
 
 			things[0].Remove = time.Time{}
-			So(things[0].ToCreateParams(database.User{
+			So(things[0].ToCreateParams(&database.User{
 				Name:  userName,
 				Email: userName + "@default.domain", // TODO: somewhere we need to define a default domain for the server to auto-create users when given only username
 			}), ShouldResemble, *thingPost)
@@ -173,16 +179,56 @@ func TestClient(t *testing.T) {
 			things, err = client.GetThings(filter)
 			So(err, ShouldBeNil)
 			So(len(things), ShouldEqual, 2)
+
 			things[0].Remove = time.Time{}
 			things[1].Remove = time.Time{}
-			So(things[0].ToCreateParams(database.User{
+			So(things[0].ToCreateParams(&database.User{
 				Name:  userName,
 				Email: userName + "@default.domain",
 			}), ShouldResemble, *thingPost)
-			So(things[1].ToCreateParams(database.User{
+			So(things[1].ToCreateParams(&database.User{
 				Name:  userName,
 				Email: userName + "@default.domain",
 			}), ShouldResemble, *thingTwoPost)
+
+			// Get with just ID
+			filter = &database.GetThingsParams{
+				FilterOnType:   database.ThingsTypeNil,
+				OrderBy:        database.OrderByType,
+				OrderDirection: database.OrderAsc,
+				Page:           1,
+				ThingsPerPage:  2,
+			}
+
+			things, err = client.GetThings(filter)
+			So(err, ShouldBeNil)
+			So(len(things), ShouldEqual, 2)
+
+			thing, err := client.GetThingByID(things[0].ID)
+			So(err, ShouldBeNil)
+			So(thing, ShouldResemble, &things[0])
+
+			Convey("You can get information about subscribers to the thing created", func() {
+				// Test get a subscriber with thingID.
+				u, err := client.GetUserByName(userName)
+				So(err, ShouldBeNil)
+
+				subs, err := client.GetSubscribers(things[0].ID)
+				So(err, ShouldBeNil)
+				So(len(subs), ShouldEqual, 1)
+				So(subs[0].UserID, ShouldResemble, u.ID)
+
+				// Test get subscriber and user details.
+				subAndUser, err := client.GetSubscriberAndUserDetails(&subs[0])
+				So(err, ShouldBeNil)
+				So(&subAndUser.User, ShouldResemble, u)
+
+				// Test get a thing and its subscriber details.
+				thingAndSubs, err := client.GetThingAndSubscriberDetails(things[0].ID)
+				So(err, ShouldBeNil)
+				So(thingAndSubs.Thing, ShouldResemble, things[0])
+				So(thingAndSubs.Subscribers[0].ID, ShouldResemble, subs[0].UserID)
+			})
 		})
 	})
 }

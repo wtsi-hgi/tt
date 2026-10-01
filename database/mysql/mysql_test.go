@@ -257,11 +257,11 @@ func TestMySQL(t *testing.T) {
 
 				user1, err := db.CreateUser(expectedUsers[0].Name, expectedUsers[0].Email)
 				So(err, ShouldBeNil)
-				So(user1, ShouldResemble, &expectedUsers[0])
+				So(user1, ShouldResemble, expectedUsers[0])
 
 				user2, err := db.CreateUser(expectedUsers[1].Name, expectedUsers[1].Email)
 				So(err, ShouldBeNil)
-				So(user2, ShouldResemble, &expectedUsers[1])
+				So(user2, ShouldResemble, expectedUsers[1])
 
 				_, err = db.CreateUser(expectedUsers[0].Name, "foo@bar.com")
 				So(err, ShouldNotBeNil)
@@ -276,7 +276,7 @@ func TestMySQL(t *testing.T) {
 				for i, et := range expectedThings {
 					before := time.Now()
 
-					var creator database.User
+					var creator *database.User
 					if expectedSubs[i].UserID == expectedUsers[0].ID {
 						creator = expectedUsers[0]
 					} else {
@@ -515,7 +515,7 @@ func TestMySQL(t *testing.T) {
 
 				creator, err := db.CreateUser(expectedUser.Name, expectedUser.Email)
 				So(err, ShouldBeNil)
-				So(creator, ShouldResemble, &expectedUser)
+				So(creator, ShouldResemble, expectedUser)
 
 				thing, err := db.CreateThing(et.ToCreateParams(expectedUser))
 				So(err, ShouldBeNil)

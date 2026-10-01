@@ -398,7 +398,7 @@ func TestCreateGet(t *testing.T) {
 		So(out, ShouldBeBlank)
 		So(ec, ShouldBeZeroValue)
 
-		args = []string{"create", "--url", s.url, "--cert", s.cert} //nolint:prealloc
+		args = []string{"create", "--url", s.url, "--cert", s.cert}
 		extraCreateFlags := map[string]string{
 			"name":          "something_else",
 			"version":       "2.3",
@@ -415,27 +415,35 @@ func TestCreateGet(t *testing.T) {
 		So(ec, ShouldBeZeroValue)
 
 		Convey("You can Create a Thing without creating the User first", func() {
-			// extraCreateFlags["creator"] = "newUser"
-			// newUserArgs := append(args, createFlags(extraCreateFlags)...)
-			// ec, out = runBinary(t, newUserArgs...)
-			// So(out, ShouldBeBlank)
-			// So(ec, ShouldBeZeroValue)
+			newUser := "newUser"
+			extraCreateFlags["address"] = "some/other/thing/path"
+			extraCreateFlags["creator"] = newUser
+			newUserArgs := append(args, createFlags(extraCreateFlags)...)
+			ec, out = runBinary(t, newUserArgs...)
+			So(out, ShouldBeBlank)
+			So(ec, ShouldBeZeroValue)
 
-			// // TODO test that the thing got created with newUser as the creator
+			// TODO test that the thing got created with newUser as the creator
 
-			// delete(extraCreateFlags, "creator")
-			// defaultUserArgs := append(args, createFlags(extraCreateFlags)...)
-			// ec, out = runBinary(t, defaultUserArgs...)
-			// So(out, ShouldBeBlank)
-			// So(ec, ShouldBeZeroValue)
-
+			delete(extraCreateFlags, "creator")
+			extraCreateFlags["type"] = "openstack"
+			defaultUserArgs := append(args, createFlags(extraCreateFlags)...)
+			ec, out = runBinary(t, defaultUserArgs...)
+			So(out, ShouldBeBlank)
+			So(ec, ShouldBeZeroValue)
+			Convey("You can Get the things that implemented auto creating a user", func() {
+				ec, out = runBinary(t, "get", "--url", s.url, "--cert", s.cert)
+				So(out, ShouldContainSubstring, newUser)
+				So(out, ShouldContainSubstring, os.Getenv("USER"))
+				So(ec, ShouldBeZeroValue)
+			})
 			// TODO test that the thing got created with test runner real user as the creator
 		})
 
 		Convey("You can Get a Thing without filtering", func() {
 			ec, out = runBinary(t, "get", "--url", s.url, "--cert", s.cert)
-			So(out, ShouldContainSubstring, "something\t1.2\ts3\n")
-			So(out, ShouldContainSubstring, "something_else\t2.3\tirods\n")
+			So(out, ShouldContainSubstring, "something\t1.2\ts3")
+			So(out, ShouldContainSubstring, "something_else\t2.3\tirods")
 			So(ec, ShouldBeZeroValue)
 		})
 
@@ -451,8 +459,8 @@ func TestCreateGet(t *testing.T) {
 
 			ec, out = runBinary(t, args...)
 
-			So(out, ShouldContainSubstring, "something\t1.2\ts3\n")
-			So(out, ShouldNotContainSubstring, "something_else\t2.3\tirods\n")
+			So(out, ShouldContainSubstring, "something\t1.2\ts3")
+			So(out, ShouldNotContainSubstring, "something_else\t2.3\tirods")
 			So(ec, ShouldBeZeroValue)
 		})
 

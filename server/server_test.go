@@ -28,7 +28,6 @@ package server
 import (
 	"bytes"
 	"encoding/json"
-	"fmt"
 	"html/template"
 	"io"
 	"net/http"
@@ -44,10 +43,13 @@ import (
 	"github.com/wtsi-hgi/tt/internal"
 )
 
-const ErrNoUser = database.Error("No User found with that name")
+const (
+	ErrNoUser        = database.Error("No User found with that name")
+	ErrInvalidUserID = database.Error("No User found with that ID")
+)
 
 type mockDB struct {
-	users    []database.User
+	users    []*database.User
 	things   []database.Thing
 	subs     []database.Subscriber
 	thingID  uint32
@@ -56,7 +58,7 @@ type mockDB struct {
 
 func newMockDB() *mockDB {
 	var (
-		users  []database.User
+		users  []*database.User
 		things []database.Thing
 		subs   []database.Subscriber
 	)
@@ -70,30 +72,50 @@ func newMockDB() *mockDB {
 }
 
 func (m *mockDB) CreateUser(name, email string) (*database.User, error) {
-	user := database.User{
+	user := &database.User{
 		ID:    uint32(len(m.users) + 1), //nolint:gosec
 		Name:  name,
 		Email: email,
 	}
 	m.users = append(m.users, user)
 
-	return &user, nil
+	return user, nil
 }
 
 func (m *mockDB) GetUserByName(name string) (*database.User, error) {
 	for _, user := range m.users {
 		if name == user.Name {
-			return &user, nil
+			return user, nil
 		}
 	}
 
 	return nil, ErrNoUser
 }
 
+func (m *mockDB) GetUserByID(id uint32) (*database.User, error) {
+	for _, user := range m.users {
+		if id == user.ID {
+			return user, nil
+		}
+	}
+
+	return nil, ErrInvalidUserID
+}
+
+func (m *mockDB) GetThingByID(id uint32) (*database.Thing, error) {
+	for _, thing := range m.things {
+		if id == thing.ID {
+			return &thing, nil
+		}
+	}
+
+	return nil, ErrInvalidThingID
+}
+
 func (m *mockDB) CreateThing(args database.CreateThingParams) (*database.Thing, error) {
 	id := m.thingID
 	m.thingID++
-	fmt.Println("a")
+
 	thing := database.Thing{
 		ID:             id,
 		Address:        args.Address,
@@ -113,6 +135,7 @@ func (m *mockDB) CreateThing(args database.CreateThingParams) (*database.Thing, 
 	var userID uint32
 
 	found := false
+
 	for _, user := range m.users {
 		if user.Name == args.Creator {
 			userID = user.ID
@@ -192,6 +215,18 @@ func sortAndFilterThings(origThings []database.Thing, params database.GetThingsP
 
 func (m *mockDB) DeleteUser(id uint32) error {
 	return nil
+}
+
+func (m *mockDB) GetSubscribers(id uint32) ([]database.Subscriber, error) {
+	subscribers := []database.Subscriber{}
+
+	for _, sub := range m.subs {
+		if id == sub.ThingID {
+			subscribers = append(subscribers, sub)
+		}
+	}
+
+	return subscribers, nil
 }
 
 func (m *mockDB) DeleteThing(id uint32) error {

@@ -1,28 +1,29 @@
 /*******************************************************************************
- * Copyright (c) 2026 Genome Research Ltd.
- *
- * Authors:
- *	- Sendu Bala <sb10@sanger.ac.uk>
- *
- * Permission is hereby granted, free of charge, to any person obtaining
- * a copy of this software and associated documentation files (the
- * "Software"), to deal in the Software without restriction, including
- * without limitation the rights to use, copy, modify, merge, publish,
- * distribute, sublicense, and/or sell copies of the Software, and to
- * permit persons to whom the Software is furnished to do so, subject to
- * the following conditions:
- *
- * The above copyright notice and this permission notice shall be included
- * in all copies or substantial portions of the Software.
- *
- * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
- * EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
- * MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
- * IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
- * CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
- * TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
- * SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
- ******************************************************************************/
+* Copyright (c) 2026 Genome Research Ltd.
+*
+* Authors:
+*	- Sendu Bala <sb10@sanger.ac.uk>
+*   - Amber Faruque <af35@sanger.ac.uk>
+*
+* Permission is hereby granted, free of charge, to any person obtaining
+* a copy of this software and associated documentation files (the
+* "Software"), to deal in the Software without restriction, including
+* without limitation the rights to use, copy, modify, merge, publish,
+* distribute, sublicense, and/or sell copies of the Software, and to
+* permit persons to whom the Software is furnished to do so, subject to
+* the following conditions:
+*
+* The above copyright notice and this permission notice shall be included
+* in all copies or substantial portions of the Software.
+*
+* THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+* EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+* MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+* IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
+* CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
+* TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+* SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+******************************************************************************/
 
 package server
 
@@ -49,6 +50,17 @@ type Client struct {
 	cert string
 	jwt  string
 	// logger log15.Logger
+}
+
+type SubscriberWithUserDetails struct {
+	database.User
+	Creator bool
+}
+
+type ThingWithSubscriberDetails struct {
+	database.Thing
+	Subscribers []SubscriberWithUserDetails
+	Creator     database.User
 }
 
 // NewClient returns a Client you can use to call methods on a Server listening
@@ -179,12 +191,49 @@ func (c *Client) PostThing(t *database.CreateThingParams) error {
 	return nil
 }
 
+// GetSubscribers gets the subscribers to a thing given the Thing ID.
+func (c *Client) GetSubscribers(id uint32) ([]database.Subscriber, error) {
+	subscribers := []database.Subscriber{}
+
+	resp, err := c.request().SetHeader("Accept", "application/json").
+		SetQueryParam("id", strconv.Itoa(int(id))).
+		SetResult(&subscribers).
+		Get("/subscribers")
+	if err != nil {
+		return nil, err
+	}
+
+	if resp.StatusCode() != http.StatusOK {
+		return nil, errors.New(resp.String()) //nolint:err113
+	}
+
+	return subscribers, responseToErr(resp)
+}
+
+// GetUserByID gets a user given the user ID.
+func (c *Client) GetUserByID(id uint32) (*database.User, error) {
+	// TODO: secure endpoints
+	user := &database.User{}
+
+	resp, err := c.request().SetHeader("Accept", "application/json").
+		SetQueryParam("id", strconv.Itoa(int(id))).
+		SetResult(&user).
+		Get("/user")
+	if err != nil {
+		return nil, err
+	}
+
+	if resp.StatusCode() != http.StatusOK {
+		return nil, errors.New(resp.String()) //nolint:err113
+	}
+
+	return user, responseToErr(resp)
+}
+
 // GetThings gets optionally filtered Things from the database.
 func (c *Client) GetThings(filter *database.GetThingsParams) ([]database.Thing, error) {
 	things := []database.Thing{}
-	// !!!
-	// see getthingsparams....
-	// this is more useful when get body.. get standard is to set params NOT body.... might work though..
+
 	resp, err := c.request().SetHeader("Accept", "application/json").SetQueryParams(map[string]string{
 		"type":     string(filter.FilterOnType),
 		"page":     strconv.Itoa(filter.Page),
@@ -199,6 +248,72 @@ func (c *Client) GetThings(filter *database.GetThingsParams) ([]database.Thing, 
 	}
 
 	return things, responseToErr(resp)
+}
+
+// GetThingByID returns a thing given an ID.
+func (c *Client) GetThingByID(id uint32) (*database.Thing, error) {
+	thing := &database.Thing{}
+
+	resp, err := c.request().SetHeader("Accept", "application/json").SetQueryParam("id", strconv.Itoa(int(id))).
+		SetResult(&thing).
+		Get("/things")
+	if err != nil {
+		return nil, err
+	}
+
+	return thing, responseToErr(resp)
+}
+
+// SubscriberAndserDetails gets the subscribers to a thing given the Thing ID.
+func (c *Client) GetSubscriberAndUserDetails(sub *database.Subscriber) (*SubscriberWithUserDetails, error) {
+	detailedSub := &SubscriberWithUserDetails{
+		Creator: sub.Creator,
+	}
+
+	user, err := c.GetUserByID(sub.UserID)
+	if err != nil {
+		return nil, err
+	}
+
+	detailedSub.User = *user
+
+	return detailedSub, err
+}
+
+// GetThingAndSubscriberDetails returns a struct with a Thing and
+// information about its subscribers given.
+func (c *Client) GetThingAndSubscriberDetails(tID uint32) (*ThingWithSubscriberDetails, error) {
+	thingInfo := &ThingWithSubscriberDetails{}
+
+	thing, err := c.GetThingByID(tID)
+	if err != nil {
+		return nil, err
+	}
+
+	thingInfo.Thing = *thing
+
+	detailedSubs := []SubscriberWithUserDetails{}
+
+	subs, err := c.GetSubscribers(tID)
+	if err != nil {
+		return nil, err
+	}
+
+	for _, sub := range subs {
+		detailedSub, errc := c.GetSubscriberAndUserDetails(&sub)
+		if errc != nil {
+			return nil, errc
+		}
+
+		detailedSubs = append(detailedSubs, *detailedSub)
+		if detailedSub.Creator {
+			thingInfo.Creator = detailedSub.User
+		}
+	}
+
+	thingInfo.Subscribers = detailedSubs
+
+	return thingInfo, err
 }
 
 // getObj gets obj decoded from JSON from the given url.

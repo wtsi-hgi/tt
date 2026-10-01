@@ -172,5 +172,4 @@ func init() { //nolint:funlen
 	createCmd.MarkFlagRequired("reason")        //nolint:errcheck
 	createCmd.MarkFlagRequired("requestSource") //nolint:errcheck
 	createCmd.MarkFlagRequired("version")       //nolint:errcheck
-	createCmd.MarkFlagRequired("creator")       //nolint:errcheck,lll //TODO: make this optional, set it to current user, after we enforce that only the server starter can run this
 }

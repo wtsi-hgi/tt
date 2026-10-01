@@ -182,7 +182,7 @@ type GetThingsResult struct {
 }
 
 type User struct {
-	ID    uint32 `json:"-"`
+	ID    uint32
 	Name  string
 	Email string
 }
@@ -298,7 +298,7 @@ type Thing struct {
 
 // ToCreateParams converts thing Thing to a CreateThingParams with given user
 // name.
-func (t Thing) ToCreateParams(u User) CreateThingParams {
+func (t Thing) ToCreateParams(u *User) CreateThingParams {
 	return CreateThingParams{
 		Address:        t.Address,
 		Type:           t.Type,
@@ -324,6 +324,7 @@ type Subscriber struct {
 
 func NewGetThingsParams(typ, orderBy, dir, page, perPage string) (GetThingsParams, error) {
 	var filter GetThingsParams
+
 	OrderByTemp, err := NewOrderBy(orderBy)
 	if err != nil {
 		return filter, err
