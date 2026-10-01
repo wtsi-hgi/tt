@@ -86,30 +86,6 @@ func (m *DB) GetUserByName(name string) (*database.User, error) {
 		return nil, err
 	}
 
-	// defer rows.Close()
-
-	// if gotRow := rows.Next(); !gotRow {
-	// 	return nil, ErrNoUser
-	// }
-
-	// var user database.User
-
-	// if err := rows.Scan(
-	// 	&user.ID,
-	// 	&user.Name,
-	// 	&user.Email,
-	// ); err != nil {
-	// 	return nil, err
-	// }
-
-	// if err := rows.Close(); err != nil {
-	// 	return nil, err
-	// }
-
-	// if err := rows.Err(); err != nil {
-	// 	return nil, err
-	// }
-
 	return getUserHelper(rows)
 }
 
@@ -125,30 +101,6 @@ func (m *DB) GetUserByID(id uint32) (*database.User, error) {
 	if err != nil {
 		return nil, err
 	}
-
-	// defer rows.Close()
-
-	// if gotRow := rows.Next(); !gotRow {
-	// 	return nil, ErrNoUser
-	// }
-
-	// var user database.User
-
-	// if err := rows.Scan(
-	// 	&user.ID,
-	// 	&user.Name,
-	// 	&user.Email,
-	// ); err != nil {
-	// 	return nil, err
-	// }
-
-	// if err := rows.Close(); err != nil {
-	// 	return nil, err
-	// }
-
-	// if err := rows.Err(); err != nil {
-	// 	return nil, err
-	// }
 
 	return getUserHelper(rows)
 }
@@ -178,61 +130,6 @@ func getUserHelper(rows *sql.Rows) (*database.User, error) {
 	}
 
 	return &user, nil
-}
-
-const GetThingByID = `
-SELECT things.id, address, type, created, description, reason, remove, warned1, warned2, ` +
-	`removed, license, version, name, url, download_method, request_source, creation_date
-FROM things
-WHERE things.id = ?
-`
-
-// GetThingByID returns a Thing correlating to a given ID.
-func (m *DB) GetThingByID(id uint32) (*database.Thing, error) {
-	rows, err := m.pool.Query(GetThingByID, id)
-	if err != nil {
-		return nil, err
-	}
-
-	defer rows.Close()
-
-	if gotRow := rows.Next(); !gotRow {
-		return nil, ErrNoUser
-	}
-
-	var thing database.Thing
-
-	if err = rows.Scan(
-		&thing.ID,
-		&thing.Address,
-		&thing.Type,
-		&thing.Created,
-		&thing.Description,
-		&thing.Reason,
-		&thing.Remove,
-		&thing.Warned1,
-		&thing.Warned2,
-		&thing.Removed,
-		&thing.License,
-		&thing.Version,
-		&thing.Name,
-		&thing.URL,
-		&thing.DownloadMethod,
-		&thing.RequestSource,
-		&thing.CreationDate,
-	); err != nil {
-		return nil, err
-	}
-
-	if err := rows.Close(); err != nil {
-		return nil, err
-	}
-
-	if err := rows.Err(); err != nil {
-		return nil, err
-	}
-
-	return &thing, nil
 }
 
 const getSubscriberByThing = `
@@ -296,19 +193,17 @@ INSERT INTO subscribers (
 func (m *DB) CreateThing(args database.CreateThingParams) (*database.Thing, error) { //nolint:funlen
 	created := time.Now()
 
-	var user *database.User
+	// var user *database.User
 
-	user, err := m.GetUserByName(args.Creator)
-	if err != nil {
-		if !errors.Is(err, ErrNoUser) {
-			return nil, err
-		}
+	// user, err := m.GetUserByName(args.Creator)
 
-		user, err = m.CreateUser(args.Creator, args.Creator+"@default.domain")
-		if err != nil {
-			return nil, err
-		}
-	}
+	// if errors.Is(err, ErrNoUser) {
+	// 	user, err = m.CreateUser(args.Creator, args.Creator+"@default.domain") //!! change to the default domain in createThingsParams
+	// }
+
+	// if err != nil {
+	// 	return nil, err
+	// }
 
 	tx, err := m.pool.Begin()
 	if err != nil {
@@ -336,7 +231,7 @@ func (m *DB) CreateThing(args database.CreateThingParams) (*database.Thing, erro
 		return nil, errors.Join(err, errRollback)
 	}
 
-	_, err = tx.Exec(createSubscription, user.ID, id, 1)
+	_, err = tx.Exec(createSubscription, args.CreatorID, id, 1)
 	if err != nil {
 		errRollback := tx.Rollback()
 
@@ -384,31 +279,12 @@ func (m *DB) GetThings(params database.GetThingsParams) (*database.GetThingsResu
 	var things []database.Thing
 
 	for rows.Next() {
-		var thing database.Thing
-
-		if err = rows.Scan(
-			&thing.ID,
-			&thing.Address,
-			&thing.Type,
-			&thing.Created,
-			&thing.Description,
-			&thing.Reason,
-			&thing.Remove,
-			&thing.Warned1,
-			&thing.Warned2,
-			&thing.Removed,
-			&thing.License,
-			&thing.Version,
-			&thing.Name,
-			&thing.URL,
-			&thing.DownloadMethod,
-			&thing.RequestSource,
-			&thing.CreationDate,
-		); err != nil {
-			return nil, err
+		thing, errc := getThingRowScan(rows)
+		if errc != nil {
+			return nil, errc
 		}
 
-		things = append(things, thing)
+		things = append(things, *thing)
 	}
 
 	if err = rows.Close(); err != nil {
@@ -428,6 +304,71 @@ func (m *DB) GetThings(params database.GetThingsParams) (*database.GetThingsResu
 		Things:   things,
 		LastPage: lastPage,
 	}, nil
+}
+
+const GetThingByID = `
+SELECT things.id, address, type, created, description, reason, remove, warned1, warned2, ` +
+	`removed, license, version, name, url, download_method, request_source, creation_date
+FROM things
+WHERE things.id = ?
+`
+
+// GetThingByID returns a Thing correlating to a given ID.
+func (m *DB) GetThingByID(id uint32) (*database.Thing, error) {
+	rows, err := m.pool.Query(GetThingByID, id)
+	if err != nil {
+		return nil, err
+	}
+
+	defer rows.Close()
+
+	if gotRow := rows.Next(); !gotRow {
+		return nil, ErrNoUser
+	}
+
+	// var thing database.Thing
+	thing, err := getThingRowScan(rows)
+	if err != nil {
+		return nil, err
+	}
+
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+
+	return thing, nil
+}
+
+func getThingRowScan(rows *sql.Rows) (*database.Thing, error) {
+	var thing database.Thing
+
+	if err := rows.Scan(
+		&thing.ID,
+		&thing.Address,
+		&thing.Type,
+		&thing.Created,
+		&thing.Description,
+		&thing.Reason,
+		&thing.Remove,
+		&thing.Warned1,
+		&thing.Warned2,
+		&thing.Removed,
+		&thing.License,
+		&thing.Version,
+		&thing.Name,
+		&thing.URL,
+		&thing.DownloadMethod,
+		&thing.RequestSource,
+		&thing.CreationDate,
+	); err != nil {
+		return nil, err
+	}
+
+	return &thing, nil
 }
 
 func (m *DB) runGetThingsQuery(params database.GetThingsParams) (*sql.Rows, error) {

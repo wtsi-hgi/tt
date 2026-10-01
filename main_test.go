@@ -423,8 +423,6 @@ func TestCreateGet(t *testing.T) {
 			So(out, ShouldBeBlank)
 			So(ec, ShouldBeZeroValue)
 
-			// TODO test that the thing got created with newUser as the creator
-
 			delete(extraCreateFlags, "creator")
 			extraCreateFlags["type"] = "openstack"
 			defaultUserArgs := append(args, createFlags(extraCreateFlags)...) //nolint: gocritic
@@ -437,7 +435,6 @@ func TestCreateGet(t *testing.T) {
 				So(out, ShouldContainSubstring, os.Getenv("USER"))
 				So(ec, ShouldBeZeroValue)
 			})
-			// TODO test that the thing got created with test runner real user as the creator
 		})
 
 		Convey("You can Get a Thing without filtering", func() {
@@ -479,8 +476,6 @@ func TestCreateGet(t *testing.T) {
 		})
 
 		//TODO: test that we can't use protected client methods without being the user that started the server
-		//TODO: test that creator defaults to self if not provided during a create
-		//TODO: test that create doesn't need us to manually create a user first
 	})
 
 	Convey("You can not (Create a user, Create a Thing, and Get a Thing) without starting the server", t, func() {

@@ -200,7 +200,8 @@ type CreateThingParams struct {
 	DownloadMethod string
 	RequestSource  string
 	CreationDate   null.Time `time_format:"2006-01-02"` //!!
-	Creator        string    // Creator must correspond to the Name of a User.
+	Creator        string
+	CreatorID      uint32
 }
 
 // Validate that all fields in thing are okay.
@@ -313,6 +314,7 @@ func (t Thing) ToCreateParams(u *User) CreateThingParams {
 		RequestSource:  t.RequestSource,
 		CreationDate:   t.CreationDate,
 		Creator:        u.Name,
+		CreatorID:      u.ID,
 	}
 }
 

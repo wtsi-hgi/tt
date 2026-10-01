@@ -255,7 +255,7 @@ func (c *Client) GetThingByID(id uint32) (*database.Thing, error) {
 
 	resp, err := c.request().SetHeader("Accept", "application/json").SetQueryParam("id", strconv.Itoa(int(id))).
 		SetResult(&thing).
-		Get("/things")
+		Get("/things/:id")
 	if err != nil {
 		return nil, err
 	}
@@ -282,21 +282,19 @@ func (c *Client) GetSubscriberAndUserDetails(sub *database.Subscriber) (*Subscri
 // GetThingAndSubscriberDetails returns a struct with a Thing and
 // information about its subscribers given.
 func (c *Client) GetThingAndSubscriberDetails(tID uint32) (*ThingWithSubscriberDetails, error) {
-	thingInfo := &ThingWithSubscriberDetails{}
-
 	thing, err := c.GetThingByID(tID)
 	if err != nil {
 		return nil, err
 	}
 
-	thingInfo.Thing = *thing
-
-	detailedSubs := []SubscriberWithUserDetails{}
-
 	subs, err := c.GetSubscribers(tID)
 	if err != nil {
 		return nil, err
 	}
+
+	var creator database.User
+
+	detailedSubs := []SubscriberWithUserDetails{}
 
 	for _, sub := range subs {
 		detailedSub, errc := c.GetSubscriberAndUserDetails(&sub)
@@ -306,13 +304,11 @@ func (c *Client) GetThingAndSubscriberDetails(tID uint32) (*ThingWithSubscriberD
 
 		detailedSubs = append(detailedSubs, *detailedSub)
 		if detailedSub.Creator {
-			thingInfo.Creator = detailedSub.User
+			creator = detailedSub.User
 		}
 	}
 
-	thingInfo.Subscribers = detailedSubs
-
-	return thingInfo, err
+	return &ThingWithSubscriberDetails{Thing: *thing, Subscribers: detailedSubs, Creator: creator}, err
 }
 
 // getObj gets obj decoded from JSON from the given url.

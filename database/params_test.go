@@ -52,6 +52,7 @@ func TestCreateParams(t *testing.T) {
 			RequestSource:  et.RequestSource,
 			CreationDate:   et.CreationDate,
 			Creator:        eu.Name,
+			CreatorID:      eu.ID,
 		})
 	})
 }

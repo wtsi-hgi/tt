@@ -74,6 +74,7 @@ Further filter flags will be made available
 
 			*v = val
 		}
+
 		client, err := server.NewClient(url, cert) //TODO: pass CLI user?
 		if err != nil {
 			return err

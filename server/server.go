@@ -53,7 +53,7 @@ type Config struct {
 	// is required.
 	Database database.Queries
 
-	// Default email domain is the default when a user is being made
+	// Default email domain is the default domain when a user is being made.
 	DefaultEmailDomain string
 }
 
@@ -68,6 +68,11 @@ func (c Config) CheckValid() error {
 		return ErrNoDatabase
 	}
 
+	//!! make required later
+	// if c.DefaultEmailDomain == "nil" {
+	// 	return ErrNoDatabase
+	// }
+
 	return nil
 }
 
@@ -75,8 +80,9 @@ func (c Config) CheckValid() error {
 // package's database, and a website that displays the information nicely.
 type Server struct {
 	gas.Server
-	db           database.Queries
-	rootTemplate *template.Template
+	db                 database.Queries
+	rootTemplate       *template.Template
+	DefaultEmailDomain string //!!
 }
 
 // New creates a Server which serves the tt website.
@@ -89,8 +95,9 @@ func New(conf Config) (*Server, error) {
 	}
 
 	s := &Server{
-		Server: *gas.New(conf.HTTPLogger),
-		db:     conf.Database,
+		Server:             *gas.New(conf.HTTPLogger),
+		db:                 conf.Database,
+		DefaultEmailDomain: conf.DefaultEmailDomain, //!!
 	}
 
 	s.Router().Use(gas.IncludeAbortErrorsInBody)
@@ -124,12 +131,12 @@ func (s *Server) addEndPoints() error {
 
 	s.Router().GET("/", s.pageRoot)
 	s.Router().GET("/things", s.getThings)
-	// s.Router().GET("/things/:id", s.getThing) //TODO
+	s.Router().GET("/things/:id", s.getThingByID)
 	s.Router().GET("/things/listen", s.SSESender(sseThingsEventName))
 	s.Router().POST("/things", s.postThing)
 	s.Router().POST("/user", s.postUser)
 	s.Router().GET("/user", s.getUser)
-	s.Router().GET("/subscribers", s.getSubscribers) //
+	s.Router().GET("/subscribers", s.getSubscribers)
 	s.Router().DELETE("/things/:id", s.deleteThing)
 
 	return nil

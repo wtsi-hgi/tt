@@ -44,7 +44,7 @@ import (
 )
 
 const (
-	ErrNoUser        = database.Error("No User found with that name")
+	//ErrNoUser        = database.Error("No User found with that name")
 	ErrInvalidUserID = database.Error("No User found with that ID")
 )
 
@@ -144,7 +144,7 @@ func (m *mockDB) CreateThing(args database.CreateThingParams) (*database.Thing, 
 	}
 	//TODO: if user not found (must disttinguish between finding userID 0 and not found!), create new user here
 	if !found {
-		user, err := m.CreateUser(args.Creator, args.Creator+"@default.domain")
+		user, err := m.CreateUser(args.Creator, args.Creator+"@default.domain") //TODO: won't be needed as changed to server default domain
 		if err != nil {
 			return nil, err
 		}
@@ -251,7 +251,7 @@ func TestServer(t *testing.T) {
 	Convey("Given a valid Config", t, func() {
 		logWriter := gas.NewStringLogger()
 		mdb := newMockDB()
-		defaultEmailDomain := "default.domain"
+		defaultEmailDomain := "@default.domain"
 
 		conf := Config{
 			HTTPLogger:         logWriter,
@@ -393,7 +393,7 @@ func TestServer(t *testing.T) {
 				So(mdb.things[0], ShouldResemble, thing)
 				Convey("You are a subscriber to the thing you created", func() {
 					newUser.ID = 2
-					newUser.Email = "user1@" + defaultEmailDomain
+					newUser.Email = "user1" + defaultEmailDomain
 
 					So(len(mdb.users), ShouldEqual, 2)
 					So(mdb.users[1], ShouldResemble, newUser) //TODO: the system where we can define the default email domain

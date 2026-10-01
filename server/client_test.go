@@ -53,8 +53,10 @@ func TestClient(t *testing.T) {
 		logWriter := gas.NewStringLogger()
 
 		conf := Config{
-			HTTPLogger: logWriter,
-			Database:   mdb,
+			HTTPLogger:         logWriter,
+			Database:           mdb,
+			DefaultEmailDomain: "@default.domain",
+			//!! add default
 		}
 
 		s, err := New(conf)
