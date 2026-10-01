@@ -124,6 +124,7 @@ func (s *Server) addEndPoints() error {
 
 	s.Router().GET("/", s.pageRoot)
 	s.Router().GET("/things", s.getThings)
+	// s.Router().GET("/things/:id", s.getThing) //TODO
 	s.Router().GET("/things/listen", s.SSESender(sseThingsEventName))
 	s.Router().POST("/things", s.postThing)
 	s.Router().POST("/user", s.postUser)

@@ -409,7 +409,7 @@ func TestCreateGet(t *testing.T) {
 			"reason":        "just because",
 			"creator":       "name",
 		}
-		argsWithExtra := append(args, createFlags(extraCreateFlags)...)
+		argsWithExtra := append(args, createFlags(extraCreateFlags)...) //nolint: gocritic
 		ec, out = runBinary(t, argsWithExtra...)
 		So(out, ShouldBeBlank)
 		So(ec, ShouldBeZeroValue)
@@ -418,7 +418,7 @@ func TestCreateGet(t *testing.T) {
 			newUser := "newUser"
 			extraCreateFlags["address"] = "some/other/thing/path"
 			extraCreateFlags["creator"] = newUser
-			newUserArgs := append(args, createFlags(extraCreateFlags)...)
+			newUserArgs := append(args, createFlags(extraCreateFlags)...) //nolint: gocritic
 			ec, out = runBinary(t, newUserArgs...)
 			So(out, ShouldBeBlank)
 			So(ec, ShouldBeZeroValue)
@@ -427,7 +427,7 @@ func TestCreateGet(t *testing.T) {
 
 			delete(extraCreateFlags, "creator")
 			extraCreateFlags["type"] = "openstack"
-			defaultUserArgs := append(args, createFlags(extraCreateFlags)...)
+			defaultUserArgs := append(args, createFlags(extraCreateFlags)...) //nolint: gocritic
 			ec, out = runBinary(t, defaultUserArgs...)
 			So(out, ShouldBeBlank)
 			So(ec, ShouldBeZeroValue)

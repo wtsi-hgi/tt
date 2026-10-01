@@ -212,7 +212,6 @@ func (c *Client) GetSubscribers(id uint32) ([]database.Subscriber, error) {
 
 // GetUserByID gets a user given the user ID.
 func (c *Client) GetUserByID(id uint32) (*database.User, error) {
-	// TODO: secure endpoints
 	user := &database.User{}
 
 	resp, err := c.request().SetHeader("Accept", "application/json").

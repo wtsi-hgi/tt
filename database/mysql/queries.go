@@ -86,31 +86,31 @@ func (m *DB) GetUserByName(name string) (*database.User, error) {
 		return nil, err
 	}
 
-	defer rows.Close()
+	// defer rows.Close()
 
-	if gotRow := rows.Next(); !gotRow {
-		return nil, ErrNoUser
-	}
+	// if gotRow := rows.Next(); !gotRow {
+	// 	return nil, ErrNoUser
+	// }
 
-	var user database.User
+	// var user database.User
 
-	if err := rows.Scan(
-		&user.ID,
-		&user.Name,
-		&user.Email,
-	); err != nil {
-		return nil, err
-	}
+	// if err := rows.Scan(
+	// 	&user.ID,
+	// 	&user.Name,
+	// 	&user.Email,
+	// ); err != nil {
+	// 	return nil, err
+	// }
 
-	if err := rows.Close(); err != nil {
-		return nil, err
-	}
+	// if err := rows.Close(); err != nil {
+	// 	return nil, err
+	// }
 
-	if err := rows.Err(); err != nil {
-		return nil, err
-	}
+	// if err := rows.Err(); err != nil {
+	// 	return nil, err
+	// }
 
-	return &user, nil
+	return getUserHelper(rows)
 }
 
 const GetUserByID = `
@@ -126,6 +126,33 @@ func (m *DB) GetUserByID(id uint32) (*database.User, error) {
 		return nil, err
 	}
 
+	// defer rows.Close()
+
+	// if gotRow := rows.Next(); !gotRow {
+	// 	return nil, ErrNoUser
+	// }
+
+	// var user database.User
+
+	// if err := rows.Scan(
+	// 	&user.ID,
+	// 	&user.Name,
+	// 	&user.Email,
+	// ); err != nil {
+	// 	return nil, err
+	// }
+
+	// if err := rows.Close(); err != nil {
+	// 	return nil, err
+	// }
+
+	// if err := rows.Err(); err != nil {
+	// 	return nil, err
+	// }
+
+	return getUserHelper(rows)
+}
+func getUserHelper(rows *sql.Rows) (*database.User, error) {
 	defer rows.Close()
 
 	if gotRow := rows.Next(); !gotRow {
@@ -273,7 +300,7 @@ func (m *DB) CreateThing(args database.CreateThingParams) (*database.Thing, erro
 
 	user, err := m.GetUserByName(args.Creator)
 	if err != nil {
-		if err != ErrNoUser {
+		if !errors.Is(err, ErrNoUser) {
 			return nil, err
 		}
 

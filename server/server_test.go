@@ -144,7 +144,11 @@ func (m *mockDB) CreateThing(args database.CreateThingParams) (*database.Thing, 
 	}
 	//TODO: if user not found (must disttinguish between finding userID 0 and not found!), create new user here
 	if !found {
-		user, _ := m.CreateUser(args.Creator, args.Creator+"@default.domain")
+		user, err := m.CreateUser(args.Creator, args.Creator+"@default.domain")
+		if err != nil {
+			return nil, err
+		}
+
 		userID = user.ID
 	}
 
