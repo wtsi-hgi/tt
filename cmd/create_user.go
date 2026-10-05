@@ -72,7 +72,6 @@ with caution, when necessary, by admins.
 
 			*v = val
 		}
-
 		client, err := server.NewClient(url, cert) //TODO: pass CLI user?
 		if err != nil {
 			return err

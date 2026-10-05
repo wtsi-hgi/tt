@@ -56,7 +56,8 @@ Your --url (in this context, think of it as the bind address) should include the
 port, and for it to work with your --cert, you probably need to specify it as
 fqdn:port. --url defaults to the TT_SERVER_URL env var. --cert and --key (both
 required) defaults to the TT_SERVER_CERT and TT_SERVER_KEY env vars
-respectively.
+respectively. --domain is the default email domain of users, this defaults to 
+TT_SERVER_DEFAULT_EMAIL_DOMAIN env var.
 
 You will also need your database connection details in env vars:
 export TT_SQL_HOST=localhost
@@ -107,6 +108,10 @@ ctrl-z; bg. Or better yet, use the daemonize program to daemonize this.
 		if err != nil {
 			return err
 		}
+		serverDefaultEmailDomain, err := cmd.Flags().GetString("domain")
+		if err != nil {
+			return err
+		}
 
 		logWriter := setServerLogger(serverLogPath, serverLogStdErr)
 
@@ -121,8 +126,9 @@ ctrl-z; bg. Or better yet, use the daemonize program to daemonize this.
 		}
 
 		conf := server.Config{
-			HTTPLogger: logWriter,
-			Database:   database,
+			HTTPLogger:         logWriter,
+			Database:           database,
+			DefaultEmailDomain: serverDefaultEmailDomain,
 		}
 
 		s, err := server.New(conf)
@@ -172,10 +178,14 @@ func init() {
 		"path to server certificate file")
 	serverCmd.Flags().String("key", os.Getenv(serverKeyEnvKey),
 		"path to server key file")
+	serverCmd.Flags().String("domain", os.Getenv(serverDomainEnvKey),
+		"default domain of users")
+
 	serverCmd.MarkFlagsMutuallyExclusive("logfile", "logstderr")
-	serverCmd.MarkFlagRequired("url")  //nolint:errcheck
-	serverCmd.MarkFlagRequired("cert") //nolint:errcheck
-	serverCmd.MarkFlagRequired("key")  //nolint:errcheck
+	serverCmd.MarkFlagRequired("url")    //nolint:errcheck
+	serverCmd.MarkFlagRequired("cert")   //nolint:errcheck
+	serverCmd.MarkFlagRequired("key")    //nolint:errcheck
+	serverCmd.MarkFlagRequired("domain") //nolint:errcheck
 }
 
 // setServerLogger makes our appLogger log to stderr if our stdErrMode is true,

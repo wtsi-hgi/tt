@@ -211,7 +211,8 @@ func getTestServerAddress() (string, error) {
 }
 
 func (s *testServer) startServer(additionalServerArgs []string) {
-	args := []string{"server", "--url", s.url, "--cert", s.cert, "--key", s.key} //nolint:prealloc,goconst
+	args := []string{"server", "--url", s.url, "--cert", s.cert, "--key", s.key,
+		"--domain", "@default.domain"} //nolint:prealloc,goconst
 	args = append(args, additionalServerArgs...)
 
 	s.stopped = false
@@ -466,13 +467,17 @@ func TestCreateGet(t *testing.T) {
 
 			os.Setenv("USER", "someone_else")
 
-			defer func() {
+			// defer func() {
+			// 	os.Setenv("USER", origUser)
+			// }()
+			Reset(func() {
 				os.Setenv("USER", origUser)
-			}()
+			})
 
 			ec, out := runBinary(t, "user", "--url", s.url, "--cert", s.cert, "--user", "name2", "--email", "name2@something")
 			So(ec, ShouldNotBeZeroValue)
 			So(out, ShouldNotBeBlank)
+
 		})
 
 		//TODO: test that we can't use protected client methods without being the user that started the server

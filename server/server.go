@@ -42,7 +42,7 @@ var templatesFS embed.FS
 const (
 	ErrNoLogger        = gas.Error("a http logger must be configured")
 	ErrNoDatabase      = gas.Error("a database must be supplied")
-	ErrNoDefaultDomain = gas.Error("a default domains must be supplied")
+	ErrNoDefaultDomain = gas.Error("a default email domain must be supplied")
 )
 
 // Config configures the server.
@@ -70,8 +70,8 @@ func (c Config) CheckValid() error {
 	}
 
 	//!! make required later
-	if c.DefaultEmailDomain == "nil" {
-		return ErrNoDatabase
+	if c.DefaultEmailDomain == "" {
+		return ErrNoDefaultDomain
 	}
 
 	return nil

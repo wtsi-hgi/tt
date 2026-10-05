@@ -42,9 +42,10 @@ import (
 var appLogger = log15.New()
 
 const (
-	serverURLEnvKey  = "TT_SERVER_URL"
-	serverCertEnvKey = "TT_SERVER_CERT"
-	serverKeyEnvKey  = "TT_SERVER_KEY"
+	serverURLEnvKey    = "TT_SERVER_URL"
+	serverCertEnvKey   = "TT_SERVER_CERT"
+	serverKeyEnvKey    = "TT_SERVER_KEY"
+	serverDomainEnvKey = "TT_SERVER_DEFAULT_EMAIL_DOMAIN"
 )
 
 // RootCmd represents the base command when called without any subcommands.
