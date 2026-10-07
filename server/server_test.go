@@ -32,15 +32,20 @@ import (
 	"io"
 	"net/http"
 	"net/http/httptest"
+	"os/user"
 	"slices"
 	"strings"
+	"sync"
 	"testing"
 	"time"
+	"unsafe"
 
+	"github.com/gin-gonic/gin"
 	. "github.com/smartystreets/goconvey/convey"
 	gas "github.com/wtsi-hgi/go-authserver"
 	"github.com/wtsi-hgi/tt/database"
 	"github.com/wtsi-hgi/tt/internal"
+	"gopkg.in/tylerb/graceful.v1"
 )
 
 const (
@@ -251,16 +256,44 @@ func TestServer(t *testing.T) {
 		logWriter := gas.NewStringLogger()
 		mdb := newMockDB()
 		defaultEmailDomain := "@default.domain"
+		serverCert, serverKey, err := gas.CreateTestCert(t)
+		So(err, ShouldBeNil)
 
 		conf := Config{
 			HTTPLogger:         logWriter,
 			Database:           mdb,
 			DefaultEmailDomain: defaultEmailDomain,
+			AuthCallback:       func(username, password string) (bool, string) { return true, "1" },
+			Key:                serverKey,
+			Cert:               serverCert,
+			TokenFileName:      serverTokenBasename,
 		}
 		So(conf.CheckValid(), ShouldBeNil)
 
 		s, err := New(conf)
 		So(err, ShouldBeNil)
+
+		us := (*struct {
+			_          *gin.Engine
+			_          *graceful.Server
+			_          sync.Mutex
+			_          *gin.RouterGroup
+			serverUser string
+		})(unsafe.Pointer(&s.Server))
+		w := httptest.NewRecorder()
+		user, err := user.Current()
+		So(err, ShouldBeNil)
+
+		r, err := http.NewRequest(http.MethodPost, gas.EndPointJWT,
+			strings.NewReader("username="+user.Username+"&password=123"))
+		So(err, ShouldBeNil)
+
+		r.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+		s.Router().ServeHTTP(w, r)
+
+		var jwt string
+
+		So(json.Unmarshal(w.Body.Bytes(), &jwt), ShouldBeNil)
 
 		SkipConvey("You can start and stop the server", func() {
 			errCh := make(chan error, 1)
@@ -278,7 +311,7 @@ func TestServer(t *testing.T) {
 		})
 
 		Convey("You can use the root endpoint", func() {
-			actual := testEndpoint(s, "GET", "/")
+			actual := testEndpoint(s, "GET", pageRootPath, jwt) //TODO: does it need to be EndPointAuthRoot? broke a test when was
 
 			expected, err := templatesFS.ReadFile("templates/root.html")
 			So(err, ShouldBeNil)
@@ -287,14 +320,14 @@ func TestServer(t *testing.T) {
 		})
 
 		Convey("You can GET the things endpoint", func() {
-			actual := testEndpoint(s, "GET", "/things")
+			actual := testEndpoint(s, "GET", EndPointAuthThings, jwt)
 			So(actual, ShouldEqual, "")
 
 			mdb.users, mdb.things, mdb.subs = internal.GetExampleData()
 
 			expected := executeThingsTemplate(mdb.things)
 
-			actual = testEndpoint(s, "GET", "/things")
+			actual = testEndpoint(s, "GET", EndPointAuthThings, jwt)
 			So(actual, ShouldEqual, expected)
 			So(strings.Count(actual, "</tr"), ShouldEqual, 10)
 			So(strings.Count(actual, "<td>"), ShouldEqual, 60)
@@ -303,20 +336,20 @@ func TestServer(t *testing.T) {
 				OrderDirection: database.OrderDesc,
 			})
 			expected = executeThingsTemplate(things)
-			actual = testEndpoint(s, "GET", "/things?dir=DESC")
+			actual = testEndpoint(s, "GET", EndPointAuthThings+"?dir=DESC", jwt)
 			So(actual, ShouldEqual, expected)
 
-			code := testEndpointCode(s, "GET", "/things?dir=BAD", "")
+			code := testEndpointCode(s, "GET", EndPointAuthThings+"?dir=BAD", "", jwt)
 			So(code, ShouldEqual, http.StatusBadRequest)
 
 			things = sortAndFilterThings(mdb.things, database.GetThingsParams{
 				OrderBy: database.OrderByAddress,
 			})
 			expected = executeThingsTemplate(things)
-			actual = testEndpoint(s, "GET", "/things?sort=address")
+			actual = testEndpoint(s, "GET", EndPointAuthThings+"?sort=address", jwt)
 			So(actual, ShouldEqual, expected)
 
-			code = testEndpointCode(s, "GET", "/things?sort=bad", "")
+			code = testEndpointCode(s, "GET", EndPointAuthThings+"?sort=bad", "", jwt)
 			So(code, ShouldEqual, http.StatusBadRequest)
 
 			things = sortAndFilterThings(mdb.things, database.GetThingsParams{
@@ -324,18 +357,18 @@ func TestServer(t *testing.T) {
 				OrderDirection: database.OrderDesc,
 			})
 			expected = executeThingsTemplate(things)
-			actual = testEndpoint(s, "GET", "/things?sort=address&dir=DESC")
+			actual = testEndpoint(s, "GET", EndPointAuthThings+"?sort=address&dir=DESC", jwt)
 			So(actual, ShouldEqual, expected)
 
 			things = sortAndFilterThings(mdb.things, database.GetThingsParams{
 				FilterOnType: database.ThingsTypeS3,
 			})
 			expected = executeThingsTemplate(things)
-			actual = testEndpoint(s, "GET", "/things?type=s3")
+			actual = testEndpoint(s, "GET", EndPointAuthThings+"?type=s3", jwt)
 			So(actual, ShouldEqual, expected)
 			So(strings.Count(actual, "</tr>"), ShouldEqual, 2)
 
-			code = testEndpointCode(s, "GET", "/things?type=bad", "")
+			code = testEndpointCode(s, "GET", EndPointAuthThings+"?type=bad", "", jwt)
 			So(code, ShouldEqual, http.StatusBadRequest)
 
 			perPage := 3
@@ -344,7 +377,7 @@ func TestServer(t *testing.T) {
 				ThingsPerPage: perPage,
 			})
 			expected = executeThingsTemplate(things)
-			actual = testEndpoint(s, "GET", "/things?page=1&per_page=3")
+			actual = testEndpoint(s, "GET", EndPointAuthThings+"?page=1&per_page=3", jwt)
 			So(actual, ShouldEqual, expected)
 			So(strings.Count(actual, "</tr>"), ShouldEqual, perPage)
 			So(actual, ShouldContainSubstring, "<td>j</td>")
@@ -356,7 +389,7 @@ func TestServer(t *testing.T) {
 				ThingsPerPage: perPage,
 			})
 			expected = executeThingsTemplate(things)
-			actual = testEndpoint(s, "GET", "/things?page=2&per_page=3")
+			actual = testEndpoint(s, "GET", EndPointAuthThings+"?page=2&per_page=3", jwt)
 			So(actual, ShouldEqual, expected)
 			So(strings.Count(actual, "</tr>"), ShouldEqual, perPage)
 			So(actual, ShouldContainSubstring, "<td>i</td>")
@@ -369,7 +402,7 @@ func TestServer(t *testing.T) {
 			thingJSON, err := json.Marshal(user)
 			So(err, ShouldBeNil)
 
-			code := testEndpointCode(s, "POST", "/user", string(thingJSON))
+			code := testEndpointCode(s, "POST", EndPointAuthUser, string(thingJSON), jwt)
 			So(code, ShouldEqual, http.StatusNoContent)
 
 			So(len(mdb.users), ShouldEqual, 1)
@@ -385,7 +418,7 @@ func TestServer(t *testing.T) {
 				thingJSON, err = json.Marshal(thingParams)
 				So(err, ShouldBeNil)
 
-				code := testEndpointCode(s, "POST", "/things", string(thingJSON))
+				code := testEndpointCode(s, "POST", EndPointAuthThings, string(thingJSON), jwt)
 
 				So(code, ShouldEqual, http.StatusNoContent)
 				So(len(mdb.things), ShouldEqual, 1)
@@ -395,7 +428,7 @@ func TestServer(t *testing.T) {
 					newUser.Email = "user1" + s.DefaultEmailDomain
 
 					So(len(mdb.users), ShouldEqual, 2)
-					So(mdb.users[1], ShouldResemble, newUser) //TODO: the system where we can define the default email domain
+					So(mdb.users[1], ShouldResemble, newUser)
 
 					exampleSubscriber.UserID = newUser.ID
 					exampleSubscriber.ThingID = 0
@@ -409,22 +442,92 @@ func TestServer(t *testing.T) {
 		})
 
 		Convey("You can't POST to the things endpoint without providing complete thing details", func() {
-			code := testEndpointCode(s, "POST", "/things", "")
+			code := testEndpointCode(s, "POST", EndPointAuthThings, "", jwt)
 			So(code, ShouldEqual, http.StatusBadRequest)
 			So(len(mdb.things), ShouldEqual, 0)
+		})
+
+		Convey("You can not POST another user to the user endpoint if you are not an admin", func() {
+			us.serverUser = "Admin"
+			user := internal.GetExampleUser(2)
+			thingJSON, err := json.Marshal(user)
+			So(err, ShouldBeNil)
+
+			code := testEndpointCode(s, "POST", EndPointAuthUser, string(thingJSON), jwt)
+			So(code, ShouldEqual, http.StatusUnauthorized)
+			So(len(mdb.things), ShouldEqual, 0)
+
+			Convey("You can not POST to the things endpoint if you are not an admin", func() {
+				newUser, thing, _ := internal.GetExampleResourceData()
+				thingParams := thing.ToCreateParams(newUser)
+
+				thing.ID = 0
+				thingJSON, err = json.Marshal(thingParams)
+				So(err, ShouldBeNil)
+
+				code := testEndpointCode(s, "POST", EndPointAuthThings, string(thingJSON), jwt)
+				So(code, ShouldEqual, http.StatusUnauthorized)
+				So(len(mdb.things), ShouldEqual, 0)
+			})
+		})
+
+		Convey("You can POST yourself user to the user endpoint as a non Admin", func() {
+			us.serverUser = "Admin"
+			currentUser := user
+			user := &database.User{
+				ID:    1,
+				Name:  currentUser.Username,
+				Email: currentUser.Username + conf.DefaultEmailDomain,
+			}
+			thingJSON, err := json.Marshal(user)
+			So(err, ShouldBeNil)
+
+			code := testEndpointCode(s, "POST", EndPointAuthUser, string(thingJSON), jwt)
+			So(code, ShouldEqual, http.StatusNoContent)
+
+			So(len(mdb.users), ShouldEqual, 1)
+
+			user.ID = 1
+			So(mdb.users[0], ShouldResemble, user)
+
+			Convey("You can POST your things to the Things endpoint if you are not Admin", func() {
+				_, thing, _ := internal.GetExampleResourceData()
+				thingParams := thing.ToCreateParams(mdb.users[0])
+
+				thing.ID = 0
+				thingJSON, err = json.Marshal(thingParams)
+				So(err, ShouldBeNil)
+
+				code := testEndpointCode(s, "POST", EndPointAuthThings, string(thingJSON), jwt)
+
+				So(code, ShouldEqual, http.StatusNoContent)
+				So(len(mdb.things), ShouldEqual, 1)
+				So(mdb.things[0], ShouldResemble, thing)
+
+				Convey("You are a subscriber to the thing you created", func() {
+					exampleSubscriber := database.Subscriber{
+						UserID:  1,
+						ThingID: thing.ID,
+						Creator: true,
+					}
+
+					So(len(mdb.subs), ShouldEqual, 1)
+					So(mdb.subs[0], ShouldResemble, exampleSubscriber)
+				})
+			})
 		})
 	})
 }
 
-func testEndpoint(s *Server, method, target string) string { //nolint:unparam
-	recorder := recordRequest(s, method, target, "")
+func testEndpoint(s *Server, method, target, jwt string) string { //nolint:unparam
+	recorder := recordRequest(s, method, target, "", jwt)
 	So(recorder.Code, ShouldEqual, http.StatusOK)
 	So(recorder.Header().Get("Content-Type"), ShouldEqual, "text/html; charset=utf-8")
 
 	return recorder.Body.String()
 }
 
-func recordRequest(s *Server, method, target, body string) *httptest.ResponseRecorder {
+func recordRequest(s *Server, method, target, body, jwt string) *httptest.ResponseRecorder {
 	var bodyReader io.Reader
 
 	if body != "" {
@@ -433,6 +536,7 @@ func recordRequest(s *Server, method, target, body string) *httptest.ResponseRec
 
 	recorder := httptest.NewRecorder()
 	req := httptest.NewRequest(method, target, bodyReader)
+	req.Header.Set("Authorization", "Bearer "+jwt)
 
 	if body != "" {
 		req.Header.Set("Content-Type", "application/json")
@@ -443,8 +547,8 @@ func recordRequest(s *Server, method, target, body string) *httptest.ResponseRec
 	return recorder
 }
 
-func testEndpointCode(s *Server, method, target, body string) int {
-	recorder := recordRequest(s, method, target, body)
+func testEndpointCode(s *Server, method, target, body, jwt string) int {
+	recorder := recordRequest(s, method, target, body, jwt)
 
 	return recorder.Code
 }

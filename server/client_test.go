@@ -28,6 +28,7 @@ package server
 import (
 	"net"
 	"os"
+	"os/user"
 	"strconv"
 	"testing"
 	"time"
@@ -35,10 +36,6 @@ import (
 	. "github.com/smartystreets/goconvey/convey"
 	gas "github.com/wtsi-hgi/go-authserver"
 	"github.com/wtsi-hgi/tt/database"
-)
-
-const (
-	serverTokenBasename = ".tt.token"
 )
 
 func TestClient(t *testing.T) {
@@ -56,16 +53,21 @@ func TestClient(t *testing.T) {
 			HTTPLogger:         logWriter,
 			Database:           mdb,
 			DefaultEmailDomain: "@default.domain",
+			AuthCallback:       func(username, password string) (bool, string) { return true, "1" },
+			Key:                serverKey,
+			Cert:               serverCert,
+			TokenFileName:      serverTokenBasename,
 		}
 
 		s, err := New(conf)
 		So(err, ShouldBeNil)
 
-		err = s.EnableAuthWithServerToken(serverCert, serverKey, serverTokenBasename,
-			func(username, password string) (bool, string) {
-				return true, ""
-			})
-		So(err, ShouldBeNil)
+		// done server side now
+		// err = s.EnableAuthWithServerToken(serverCert, serverKey, serverTokenBasename,
+		// 	func(username, password string) (bool, string) {
+		// 		return true, ""
+		// 	})
+		// So(err, ShouldBeNil)
 
 		errCh := make(chan error)
 
@@ -74,14 +76,15 @@ func TestClient(t *testing.T) {
 			errCh <- errc
 		}()
 
-		defer func() {
+		Reset(s.Stop)
+		Reset(func() {
 			err = <-errCh
 			So(err, ShouldBeNil)
-		}()
+		})
 
-		defer s.Stop()
+		home := os.Getenv("XDG_STATE_HOME")
 
-		defer t.Setenv("XDG_STATE_HOME", os.Getenv("XDG_STATE_HOME"))
+		Reset(func() { t.Setenv("XDG_STATE_HOME", home) })
 
 		fakeDir := t.TempDir()
 
@@ -89,7 +92,9 @@ func TestClient(t *testing.T) {
 
 		time.Sleep(1 * time.Second)
 
-		client, err := NewClient(serverURL, serverCert, "user", "pass")
+		user, err := user.Current()
+		So(err, ShouldBeNil)
+		client, err := NewClient(serverURL, serverCert, user.Username, "pass")
 		So(err, ShouldBeNil)
 
 		Convey("You can create and get a User", func() {
@@ -164,7 +169,7 @@ func TestClient(t *testing.T) {
 			things[0].Remove = time.Time{}
 			So(things[0].ToCreateParams(&database.User{
 				Name:  userName,
-				Email: userName + s.DefaultEmailDomain, // TODO: somewhere we need to define a default domain for the server to auto-create users when given only username
+				Email: userName + s.DefaultEmailDomain, // TODO: auto-create users when given only username
 			}), ShouldResemble, *thingPost)
 
 			// Getting both with no Type filter.

@@ -32,6 +32,7 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
+	gas "github.com/wtsi-hgi/go-authserver"
 	"github.com/wtsi-hgi/tt/database"
 )
 
@@ -50,8 +51,25 @@ const (
 	ErrInvalidEmail    = Error("Invalid email")
 	ErrInvalidUserName = Error("Invalid username")
 	ErrInvalidThingID  = Error("Invalid thing ID")
+	ErrUnauthorized    = Error("Unauthorized")
+	ErrNoUser          = database.Error("No User found with that name")
 )
-const ErrNoUser = database.Error("No User found with that name")
+
+const (
+	pageRootPath     = "/"
+	thingsPath       = "/things"
+	thingIDPath      = "/things/:id"
+	userPath         = "/user"
+	thingsListenPath = "/things/listen"
+	subscribersPath  = "/subscribers"
+
+	EndPointAuthRoot               = gas.EndPointAuth + pageRootPath
+	EndPointAuthUser               = gas.EndPointAuth + userPath
+	EndPointAuthThings             = gas.EndPointAuth + thingsPath
+	EndPointAuthThingID            = gas.EndPointAuth + thingIDPath
+	EndPointAuthSseThingsEventName = gas.EndPointAuth + thingsListenPath
+	EndPointAuthSubscribers        = gas.EndPointAuth + subscribersPath
+)
 
 // pageRoot takes no user input; it's for the overall main html page at /.
 func (s *Server) pageRoot(c *gin.Context) {
@@ -139,10 +157,17 @@ func (s *Server) postThing(c *gin.Context) {
 		return
 	}
 
+	if !s.AllowedAccess(c, postedThing.Creator) {
+		c.AbortWithError(http.StatusUnauthorized, ErrUnauthorized)
+
+		return
+	}
+
 	user, err := s.db.GetUserByName(postedThing.Creator)
 	if errors.Is(err, ErrNoUser) {
 		user, err = s.db.CreateUser(postedThing.Creator, postedThing.Creator+s.DefaultEmailDomain)
 	}
+
 	if err != nil && !errors.Is(err, ErrNoUser) {
 		c.AbortWithError(http.StatusInternalServerError, err) //nolint: errcheck
 
@@ -215,6 +240,12 @@ func (s *Server) postUser(c *gin.Context) {
 
 	if err := c.ShouldBind(&userPost); err != nil {
 		c.AbortWithError(http.StatusBadRequest, err) //nolint: errcheck
+
+		return
+	}
+
+	if !s.AllowedAccess(c, userPost.Name) {
+		c.AbortWithError(http.StatusUnauthorized, ErrUnauthorized)
 
 		return
 	}

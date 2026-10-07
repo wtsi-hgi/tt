@@ -26,46 +26,95 @@
 
 package cmd
 
-// import (
-// 	"os/user"
+import (
+	"fmt"
+	"net"
+	"os/user"
 
-// 	gas "github.com/wtsi-hgi/go-authserver"
-// 	"github.com/wtsi-hgi/tt/server"
-// )
+	ldap "github.com/go-ldap/ldap/v3"
+	gas "github.com/wtsi-hgi/go-authserver"
+)
 
-// const jwtBasename = ".tt.jwt"
+const jwtBasename = ".tt.jwt"
+
+// done client side
 
 // // newServerClient tries to get a jwt for the given server url, and returns a
 // // client that can interact with it.
 // func newServerClient(url, cert string) (*server.Client, error) {
-// 	token, err := gasClientCLI(url, cert).GetJWT()
+// 	client, err := gasClientCLI(url, cert)
 // 	if err != nil {
 // 		return nil, err
 // 	}
-
-// 	return server.NewClient(url, cert, token), nil
-// }
-
-// func gasClientCLI(url, cert string) *gas.ClientCLI {
-// 	c, err := gas.NewClientCLI(jwtBasename, serverTokenBasename, url, cert, false)
+// 	token, err := client.GetJWT()
 // 	if err != nil {
-// 		die(err)
+// 		return nil, err
 // 	}
-
-// 	return c
+// 	return server.NewClient(url, cert, token)
 // }
 
-// func currentUsername() string {
-// 	user, err := user.Current()
-// 	if err != nil {
-// 		dief("couldn't get user: %s", err)
-// 	}
+func gasClientCLI(url, cert string) (*gas.ClientCLI, error) {
+	return gas.NewClientCLI(jwtBasename, serverTokenBasename, url, cert, false)
+}
 
-// 	return user.Username
-// }
+func currentUsername() (string, error) {
+	user, err := user.Current()
+	if err != nil {
+		return "", fmt.Errorf("couldn't get user: %w", err)
+	}
 
-// func isAdmin() bool {
-// 	clientCLI := gasClientCLI(serverURL, serverCert)
+	return user.Username, nil
+}
 
-// 	return clientCLI.CanReadServerToken()
-// }
+func isAdmin(serverURL, serverCert string) (bool, error) {
+	clientCLI, err := gasClientCLI(serverURL, serverCert)
+	if err != nil {
+		return false, err
+	}
+
+	return clientCLI.CanReadServerToken(), nil
+}
+
+// checkPassword defers to checkLDAPPassword(). Warns if we don't have the ldap
+// details we need, and uses an always true password checker.
+func createCheckPassword(serverLDAPFQDN, serverLDAPBindDN string) gas.AuthCallback {
+	if serverLDAPFQDN == "" || serverLDAPBindDN == "" {
+		return fakePasswordCheck
+	}
+
+	return func(username, password string) (bool, string) {
+		return checkLDAPPassword(username, password, serverLDAPFQDN, serverLDAPBindDN)
+	}
+}
+
+// fakePasswordCheck is for when we don't have ldap credentials, and are just
+// testing. It always returns true, unless the username doesn't exist at all.
+func fakePasswordCheck(username, _ string) (bool, string) {
+	uid, err := gas.UserNameToUID(username)
+	if err != nil {
+		return false, ""
+	}
+
+	return true, uid
+}
+
+// checkLDAPPassword checks with LDAP if the given password is valid for the
+// given username. Returns true if valid, along with the user's UID.
+func checkLDAPPassword(username, password, serverLDAPFQDN, serverLDAPBindDN string) (bool, string) {
+	uid, err := gas.UserNameToUID(username)
+	if err != nil {
+		return false, ""
+	}
+
+	l, err := ldap.DialURL(fmt.Sprintf("ldaps://%s", net.JoinHostPort(serverLDAPFQDN, "636")))
+	if err != nil {
+		return false, ""
+	}
+
+	err = l.Bind(fmt.Sprintf(serverLDAPBindDN, username), password)
+	if err != nil {
+		return false, ""
+	}
+
+	return true, uid
+}

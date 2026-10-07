@@ -42,6 +42,9 @@ const (
 	ErrInvalidInput = Error("Invalid input")
 	ErrInternal     = Error("internal error")
 )
+const (
+	serverTokenBasename = ".tt.token"
+)
 
 // Client is used to interact with the Server over the network, with
 // authentication.
@@ -72,7 +75,7 @@ type ThingWithSubscriberDetails struct {
 // Optionally provide a username and password in order to login.
 // This will check the user has the correct authority in a JWT.
 func NewClient(url, cert string, userpass ...string) (*Client, error) {
-	c, err := gas.NewClientCLI(".tt.jwt", ".tt.token", url, cert, false)
+	c, err := gas.NewClientCLI(".tt.jwt", serverTokenBasename, url, cert, false)
 	if err != nil {
 		return nil, err
 	}
@@ -99,8 +102,7 @@ func (c *Client) request() *resty.Request {
 
 // CreateUser adds the given user to the database.
 func (c *Client) CreateUser(u *database.User) error {
-	//TODO: secure endpoint
-	resp, err := c.request().ForceContentType("application/json").SetBody(u).Post("/user")
+	resp, err := c.request().ForceContentType("application/json").SetBody(u).Post(EndPointAuthUser)
 	if err != nil {
 		return err
 	}
@@ -118,7 +120,7 @@ func (c *Client) GetUserByName(username string) (*database.User, error) {
 
 	resp, err := c.request().SetHeader("Accept", "application/json").SetQueryParam("name", username).
 		SetResult(user).
-		Get("/user")
+		Get(EndPointAuthUser)
 	if err != nil {
 		return nil, err
 	}
@@ -178,8 +180,7 @@ func responseToErr(resp *resty.Response) error {
 
 // PostThing posts a thing to the database.
 func (c *Client) PostThing(t *database.CreateThingParams) error {
-	// TODO: secure endpoints
-	resp, err := c.request().ForceContentType("application/json").SetBody(t).Post("/things")
+	resp, err := c.request().ForceContentType("application/json").SetBody(t).Post(EndPointAuthThings)
 	if err != nil {
 		return err
 	}
@@ -198,7 +199,7 @@ func (c *Client) GetSubscribers(id uint32) ([]database.Subscriber, error) {
 	resp, err := c.request().SetHeader("Accept", "application/json").
 		SetQueryParam("id", strconv.Itoa(int(id))).
 		SetResult(&subscribers).
-		Get("/subscribers")
+		Get(EndPointAuthSubscribers)
 	if err != nil {
 		return nil, err
 	}
@@ -217,7 +218,7 @@ func (c *Client) GetUserByID(id uint32) (*database.User, error) {
 	resp, err := c.request().SetHeader("Accept", "application/json").
 		SetQueryParam("id", strconv.Itoa(int(id))).
 		SetResult(&user).
-		Get("/user")
+		Get(EndPointAuthUser)
 	if err != nil {
 		return nil, err
 	}
@@ -241,7 +242,7 @@ func (c *Client) GetThings(filter *database.GetThingsParams) ([]database.Thing, 
 		"sort":     string(filter.OrderBy),
 	}).
 		SetResult(&things).
-		Get("/things")
+		Get(EndPointAuthThings)
 	if err != nil {
 		return nil, err
 	}
@@ -255,7 +256,7 @@ func (c *Client) GetThingByID(id uint32) (*database.Thing, error) {
 
 	resp, err := c.request().SetHeader("Accept", "application/json").SetQueryParam("id", strconv.Itoa(int(id))).
 		SetResult(&thing).
-		Get("/things/:id")
+		Get(EndPointAuthThingID)
 	if err != nil {
 		return nil, err
 	}

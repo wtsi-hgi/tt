@@ -43,6 +43,10 @@ const (
 	ErrNoLogger        = gas.Error("a http logger must be configured")
 	ErrNoDatabase      = gas.Error("a database must be supplied")
 	ErrNoDefaultDomain = gas.Error("a default email domain must be supplied")
+	ErrNoKey           = gas.Error("a key must be supplied")
+	ErrNoCert          = gas.Error("a cert must be supplied")
+	ErrNoTokenFile     = gas.Error("a token file must be supplied")
+	ErrNoAuthCallBack  = gas.Error("an authcallback must be supplied")
 )
 
 // Config configures the server.
@@ -56,6 +60,11 @@ type Config struct {
 
 	// Default email domain is the default domain when a user is being made.
 	DefaultEmailDomain string
+
+	Cert          string
+	Key           string
+	TokenFileName string
+	AuthCallback  gas.AuthCallback
 }
 
 // CheckValid returns nil if all required options have been supplied, or an
@@ -69,9 +78,24 @@ func (c Config) CheckValid() error {
 		return ErrNoDatabase
 	}
 
-	//!! make required later
 	if c.DefaultEmailDomain == "" {
 		return ErrNoDefaultDomain
+	}
+
+	if c.Key == "" {
+		return ErrNoKey
+	}
+
+	if c.Cert == "" {
+		return ErrNoCert
+	}
+
+	if c.TokenFileName == "" {
+		return ErrNoTokenFile
+	}
+
+	if c.AuthCallback == nil {
+		return ErrNoAuthCallBack
 	}
 
 	return nil
@@ -100,10 +124,25 @@ func New(conf Config) (*Server, error) {
 		db:                 conf.Database,
 		DefaultEmailDomain: conf.DefaultEmailDomain,
 	}
+	err := s.EnableAuthWithServerToken(conf.Cert, conf.Key, conf.TokenFileName, conf.AuthCallback)
+	if err != nil {
+		return nil, err
+	}
+	// easier middleware attempt:
+	// s.AuthRouter().Use(func(ctx *gin.Context) {
+	// 	user := s.GetUser(ctx)
+	// 	if user == nil || user.Username != serverUser.Username {
+	// 		ctx.Abort()
+	// 	}
 
-	s.Router().Use(gas.IncludeAbortErrorsInBody)
+	// 	ctx.Next()
+	// })
 
-	err := s.addEndPoints()
+	// authGroup := s.AuthRouter() // from ibacklup to secure endpoints
+	s.AuthRouter().Use(gas.IncludeAbortErrorsInBody)
+	// s.Router().Use(gas.IncludeAbortErrorsInBody)
+
+	err = s.addEndPoints()
 	if err != nil {
 		return nil, err
 	}
@@ -128,17 +167,17 @@ func (s *Server) addEndPoints() error {
 		return err
 	}
 
-	s.Router().SetHTMLTemplate(s.rootTemplate)
+	s.Router().SetHTMLTemplate(s.rootTemplate) //! AuthRouter doesn't have this
 
-	s.Router().GET("/", s.pageRoot)
-	s.Router().GET("/things", s.getThings)
-	s.Router().GET("/things/:id", s.getThingByID)
-	s.Router().GET("/things/listen", s.SSESender(sseThingsEventName))
-	s.Router().POST("/things", s.postThing)
-	s.Router().POST("/user", s.postUser)
-	s.Router().GET("/user", s.getUser)
-	s.Router().GET("/subscribers", s.getSubscribers)
-	s.Router().DELETE("/things/:id", s.deleteThing)
+	s.Router().GET(pageRootPath, s.pageRoot)
+	s.AuthRouter().GET(thingsPath, s.getThings)
+	s.AuthRouter().GET(thingIDPath, s.getThingByID)
+	s.AuthRouter().GET(thingsListenPath, s.SSESender(sseThingsEventName))
+	s.AuthRouter().POST(thingsPath, s.postThing)
+	s.AuthRouter().POST(userPath, s.postUser)
+	s.AuthRouter().GET(userPath, s.getUser)
+	s.AuthRouter().GET(subscribersPath, s.getSubscribers)
+	s.AuthRouter().DELETE(thingIDPath, s.deleteThing)
 
 	return nil
 }

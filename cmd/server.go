@@ -34,7 +34,6 @@ import (
 
 	"github.com/inconshreveable/log15"
 	"github.com/spf13/cobra"
-	gas "github.com/wtsi-hgi/go-authserver"
 	"github.com/wtsi-hgi/tt/database/mysql"
 	"github.com/wtsi-hgi/tt/server"
 )
@@ -43,6 +42,10 @@ const (
 	serverTokenBasename = ".tt.token"
 )
 
+// TODO: rename LDAP flags to ldap_server and ldap_dn
+// TODO: update help text to include LDAP flags
+// TODO:should LDAP not be required like in ibackup... go back and change tests too..
+//
 // serverCmd represents the server command.
 var serverCmd = &cobra.Command{
 	Use:   "server",
@@ -79,6 +82,13 @@ include 'panic' in the message. The messages are tagged 'tt-server', and you
 might want to filter away 'STATUS=200' to find problems.
 If --logfile is supplied, logs to that file instead of syslog.
 
+The server authenticates users using LDAP. You must provide the FQDN for your
+LDAP server, eg. --serverLDAPFQDN ldap.example.com, and the bind DN that you would
+supply to eg. 'ldapwhoami -D' to test user credentials, replacing the username
+part with '%s', eg. --serverLDAPBinDN 'uid=%s,ou=people,dc=example,dc=com'. If you don't
+supply both of these, you'll get a warning, but the server will work and assume
+all passwords are valid.
+
 This command will block forever in the foreground; you can background it with
 ctrl-z; bg. Or better yet, use the daemonize program to daemonize this.
 `,
@@ -108,6 +118,7 @@ ctrl-z; bg. Or better yet, use the daemonize program to daemonize this.
 		if err != nil {
 			return err
 		}
+
 		serverDefaultEmailDomain, err := cmd.Flags().GetString("domain")
 		if err != nil {
 			return err
@@ -120,6 +131,13 @@ ctrl-z; bg. Or better yet, use the daemonize program to daemonize this.
 			return fmt.Errorf("failed to get database config: %w", err)
 		}
 
+		serverLDAPFQDN, _ := cmd.Flags().GetString("serverLDAPFQDN")     //nolint:errcheck
+		serverLDAPBindDN, _ := cmd.Flags().GetString("serverLDAPBindDN") //nolint:errcheck
+		if serverLDAPFQDN == "" || serverLDAPBindDN == "" {              //nolint:revive
+			//TODO: reimplement this but change the way that the main_test looks for output periodically and takes first output
+			// warn("ldap options not supplied, will assume all user passwords are correct!")
+		}
+
 		database, err := mysql.New(config)
 		if err != nil {
 			return fmt.Errorf("error opening database: %w", err)
@@ -129,6 +147,10 @@ ctrl-z; bg. Or better yet, use the daemonize program to daemonize this.
 			HTTPLogger:         logWriter,
 			Database:           database,
 			DefaultEmailDomain: serverDefaultEmailDomain,
+			Key:                serverKey,
+			Cert:               serverCert,
+			TokenFileName:      serverTokenBasename,
+			AuthCallback:       createCheckPassword(serverLDAPFQDN, serverLDAPBindDN),
 		}
 
 		s, err := server.New(conf)
@@ -136,10 +158,10 @@ ctrl-z; bg. Or better yet, use the daemonize program to daemonize this.
 			return fmt.Errorf("failed to configure server: %w", err)
 		}
 
-		err = s.EnableAuthWithServerToken(serverCert, serverKey, serverTokenBasename, checkPassword)
-		if err != nil {
-			return err
-		}
+		// err = s.EnableAuthWithServerToken(serverCert, serverKey, serverTokenBasename, checkPassword)
+		// if err != nil {
+		// 	return err
+		// }
 
 		go sayStarted()
 
@@ -154,15 +176,15 @@ ctrl-z; bg. Or better yet, use the daemonize program to daemonize this.
 	},
 }
 
-func checkPassword(username, password string) (bool, string) { //nolint:revive
-	uid, err := gas.UserNameToUID(username)
-	if err != nil {
-		return false, ""
-	}
+// func checkPassword(username, password string) (bool, string) { //nolint:revive
+// 	uid, err := gas.UserNameToUID(username)
+// 	if err != nil {
+// 		return false, ""
+// 	}
 
-	//TODO: check cookie somehow?
-	return true, uid
-}
+// 	//TODO: check cookie somehow?
+// 	return true, uid
+// }
 
 func init() {
 	RootCmd.AddCommand(serverCmd)
@@ -180,12 +202,17 @@ func init() {
 		"path to server key file")
 	serverCmd.Flags().String("domain", os.Getenv(serverDomainEnvKey),
 		"default domain of users")
+	serverCmd.Flags().String("serverLDAPFQDN", "",
+		"fqdn of your ldap server")
+	serverCmd.Flags().String("serverLDAPBindDN", "",
+		"ldap bind dn, with username replaced with %s")
 
 	serverCmd.MarkFlagsMutuallyExclusive("logfile", "logstderr")
 	serverCmd.MarkFlagRequired("url")    //nolint:errcheck
 	serverCmd.MarkFlagRequired("cert")   //nolint:errcheck
 	serverCmd.MarkFlagRequired("key")    //nolint:errcheck
 	serverCmd.MarkFlagRequired("domain") //nolint:errcheck
+	serverCmd.MarkFlagRequired("cert")   //nolint:errcheck
 }
 
 // setServerLogger makes our appLogger log to stderr if our stdErrMode is true,

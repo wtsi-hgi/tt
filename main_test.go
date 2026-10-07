@@ -38,6 +38,7 @@ import (
 	"os"
 	"os/exec"
 	"os/signal"
+	"os/user"
 	"path/filepath"
 	"regexp"
 	"strconv"
@@ -51,12 +52,18 @@ import (
 	. "github.com/smartystreets/goconvey/convey"
 	gas "github.com/wtsi-hgi/go-authserver"
 	"github.com/wtsi-hgi/tt/database/mysql"
+	"github.com/wtsi-hgi/tt/server"
 )
 
 var (
 	testRootDir    string //nolint:gochecknoglobals
 	testBinaryPath string //nolint:gochecknoglobals
 	app            = "tt" //nolint:gochecknoglobals
+)
+
+const (
+	LDAPFQDN   = "ldap-ro.internal.sanger.ac.uk"
+	LDAPBindDN = "uid=%s,ou=people,dc=sanger,dc=ac,dc=uk"
 )
 
 func TestMain(m *testing.M) {
@@ -211,8 +218,8 @@ func getTestServerAddress() (string, error) {
 }
 
 func (s *testServer) startServer(additionalServerArgs []string) {
-	args := []string{"server", "--url", s.url, "--cert", s.cert, "--key", s.key,
-		"--domain", "@default.domain"} //nolint:prealloc,goconst
+	args := []string{"server", "--url", s.url, "--cert", s.cert, "--key", s.key, //nolint:goconst, prealloc
+		"--domain", "@default.domain"}
 	args = append(args, additionalServerArgs...)
 
 	s.stopped = false
@@ -298,7 +305,7 @@ func TestServer(t *testing.T) {
 
 		So(s.stderr.String(), ShouldContainSubstring, "server started")
 
-		Convey("You can access the webpage", func() {
+		Convey("You can access the webpage", func() { //TODO: accessing webpage securely //!!
 			html, err := getHTML("https://" + s.url)
 
 			So(err, ShouldBeNil)
@@ -377,7 +384,8 @@ func TestCreateGet(t *testing.T) {
 
 			return
 		}
-
+		// user, err := user.Current()
+		// So(err, ShouldBeNil)
 		ec, out := runBinary(t, "user", "--url", s.url, "--cert", s.cert, "--user", "name", "--email", "name@something")
 		So(out, ShouldBeBlank)
 		So(ec, ShouldBeZeroValue)
@@ -461,26 +469,46 @@ func TestCreateGet(t *testing.T) {
 			So(out, ShouldNotContainSubstring, "something_else\t2.3\tirods")
 			So(ec, ShouldBeZeroValue)
 		})
+		// !!
+		SkipConvey("You can't create a User or a Thing if you didn't start the server, unless you are creating yourself ", func() {
+			newCLIUser := "root"
 
-		SkipConvey("You can't create a User or a Thing if you didn't start the server'", func() {
 			origUser := os.Getenv("USER")
 
-			os.Setenv("USER", "someone_else")
+			os.Setenv("USER", newCLIUser)
 
-			// defer func() {
-			// 	os.Setenv("USER", origUser)
-			// }()
+			origHome := os.Getenv("HOME")
+
+			os.Setenv("HOME", t.TempDir())
+
+			origXDGState := os.Getenv("XDG_STATE_HOME")
+
 			Reset(func() {
 				os.Setenv("USER", origUser)
+				os.Setenv("HOME", origHome)
+				os.Setenv("XDG_STATE_HOME", origXDGState)
 			})
 
-			ec, out := runBinary(t, "user", "--url", s.url, "--cert", s.cert, "--user", "name2", "--email", "name2@something")
-			So(ec, ShouldNotBeZeroValue)
-			So(out, ShouldNotBeBlank)
+			err := generateFakeJWT(t, s, newCLIUser)
+			So(err, ShouldBeNil)
 
+			ec, out := runBinary(t, "user", "--url", s.url, "--cert", s.cert, "--user", newCLIUser,
+				"--email", newCLIUser+"@something")
+			So(out, ShouldBeBlank)
+			So(ec, ShouldBeZeroValue)
+
+			u, _ := user.Current()
+			So(u.Username, ShouldContainSubstring, " ??")
+
+			ec, out = runBinary(t, "user", "--url", s.url, "--cert", s.cert, "--user", "Not"+newCLIUser,
+				"--email", "Not"+newCLIUser+"@something")
+			So(out, ShouldContainSubstring, " ??")
+			So(ec, ShouldBeZeroValue)
 		})
-
 		//TODO: test that we can't use protected client methods without being the user that started the server
+
+		//TODO: test where you change $USER and $HOME so that you are not the user that started the server: cli should fail
+		// test as the server starter, but after deleting the server token file: should also fail
 	})
 
 	Convey("You can not (Create a user, Create a Thing, and Get a Thing) without starting the server", t, func() {
@@ -539,4 +567,74 @@ func getHTML(url string) (string, error) {
 	res.Body.Close()
 
 	return string(html), nil
+}
+
+// function sets some env changes and also returns original env so that we can reinstate
+// this where we call it
+// func (s *testServer) impersonateUser(t *testing.T, username string) ([]string, error) {
+// 	t.Helper()
+
+// 	originalEnv := slices.Clone(s.env)
+
+// 	fakeDir, err := generateFakeJWT(t, s, username)
+// 	if err != nil {
+// 		return originalEnv, err
+// 	}
+
+// 	s.env = append(slices.DeleteFunc(s.env, func(str string) bool {
+// 		return strings.HasPrefix(str, "XDG_STATE_HOME")
+// 	}), "XDG_STATE_HOME="+fakeDir)
+
+// 	return originalEnv, nil
+// }
+
+type mockDB struct {
+	mysql.DB
+}
+
+func (mockDB) Close() error {
+	return nil
+}
+
+func generateFakeJWT(t *testing.T, s *testServer, user string) error {
+	t.Helper()
+
+	fakeDir := t.TempDir()
+	os.Setenv("XDG_STATE_HOME", fakeDir)
+
+	defer os.WriteFile(filepath.Join(fakeDir, ".tt.token"), bytes.Repeat([]byte{'a'}, 44), 0600)
+
+	ts, err := server.New(server.Config{
+		HTTPLogger:         io.Discard,
+		Database:           &mockDB{},
+		DefaultEmailDomain: "1",
+		Key:                s.key,
+		Cert:               s.cert,
+		TokenFileName:      ".tt.token",
+		AuthCallback:       func(username, password string) (bool, string) { return true, "0" },
+	})
+	if err != nil {
+		return err
+	}
+
+	l, err := net.Listen("tcp", "127.0.0.1:0")
+	if err != nil {
+		return err
+	}
+
+	l.Close()
+
+	_, port, _ := net.SplitHostPort(l.Addr().String())
+
+	go ts.Start("localhost:"+port, s.cert, s.key)
+	defer ts.Stop()
+
+	time.Sleep(time.Second)
+
+	c, err := gas.NewClientCLI(".tt.jwt", ".tt.token", "localhost:"+port, s.cert, false)
+	if err != nil {
+		return err
+	}
+
+	return c.Login(user, "password")
 }

@@ -55,7 +55,7 @@ func TestServer(t *testing.T) {
 		Reset(func() {
 			flags := serverCmd.Flags()
 
-			for _, name := range []string{"url", "cert", "key", "domain"} {
+			for _, name := range []string{"url", "cert", "key", "domain", "serverLDAPFQDN", "serverLDAPBindDN"} {
 				flag := flags.Lookup(name)
 				if flag == nil {
 					continue
@@ -67,7 +67,8 @@ func TestServer(t *testing.T) {
 		})
 
 		Convey("You can't start a server without all needed env vars", func() {
-			output, err := executeRootCommandForTest(t, []string{"server", "--cert", "a", "--url", "w", "--key", "b", "--domain", "@default.domain"}) //nolint:goconst,lll
+			output, err := executeRootCommandForTest(t, []string{"server", "--cert", "a", "--url", //nolint:goconst
+				"w", "--key", "b", "--domain", "@default.domain"})
 			So(err, ShouldNotBeNil)
 			So(output, ShouldContainSubstring, "failed to get database config")
 			So(output, ShouldContainSubstring, "missing required environment variables")
@@ -162,7 +163,8 @@ func TestServer(t *testing.T) {
 													So(err, ShouldBeNil)
 
 													Convey("You can't start a server with an invalid url", func() {
-														cliArgs = []string{"server", "--url", "invalid", "--cert", cert, "--key", key, "--domain", "@default.domain"}
+														cliArgs = []string{"server", "--url", "invalid", "--cert", cert, "--key", key,
+															"--domain", "@default.domain"}
 														output, err := executeRootCommandForTest(t, cliArgs)
 														So(err, ShouldNotBeNil)
 														So(output, ShouldContainSubstring, "non-graceful stop: listen tcp: address invalid: missing port in address") //nolint:lll
