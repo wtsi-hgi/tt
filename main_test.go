@@ -380,6 +380,9 @@ func TestVersion(t *testing.T) {
 
 func TestCreateGet(t *testing.T) {
 	Convey("You can Create a user and Create a Thing", t, func() {
+		stateDir := t.TempDir()
+		t.Setenv("XDG_STATE_HOME", stateDir)
+
 		s, err := NewTestServer(t, []string{})
 		if err != nil {
 			SkipConvey("Skipping real server tests without .env.development.local", func() {})
@@ -392,7 +395,7 @@ func TestCreateGet(t *testing.T) {
 		So(out, ShouldBeBlank)
 		So(ec, ShouldBeZeroValue)
 
-		args := []string{"create", "--url", s.url, "--cert", s.cert} //nolint:prealloc
+		args := []string{"create", "--url", s.url, "--cert", s.cert} //nolint:prealloc,goconst
 
 		args = append(args, createFlags(map[string]string{
 			"name":          "something",        //nolint:goconst
@@ -471,10 +474,43 @@ func TestCreateGet(t *testing.T) {
 			So(out, ShouldNotContainSubstring, "something_else\t2.3\tirods")
 			So(ec, ShouldBeZeroValue)
 		})
+
 		// !!
+		Convey("You can't interact with protected endpoints if the server credentials are deleted", func() {
+			tokenFile := filepath.Join(stateDir, ".tt.token")
+			err := os.Remove(tokenFile)
+			So(err, ShouldBeNil)
+			err = os.Remove(filepath.Join(stateDir, ".tt.jwt"))
+			So(err, ShouldBeNil)
+
+			ec, out := runBinary(t, "user", "--url", s.url, "--cert", s.cert, "--user", "name", "--email", "name@something")
+			So(out, ShouldContainSubstring, "authentication failed")
+
+			So(ec, ShouldNotBeZeroValue)
+
+			args := []string{"create", "--url", s.url, "--cert", s.cert} //nolint:prealloc
+
+			args = append(args, createFlags(map[string]string{
+				"name":          "something",
+				"version":       "1.2",
+				"description":   "Some thing",
+				"type":          "s3",
+				"requestSource": "dfdf",
+				"address":       "s3://bucket/path",
+				"reason":        "just because",
+				"creator":       "name",
+			})...)
+			ec, out = runBinary(t, args...)
+			So(out, ShouldContainSubstring, "authentication failed")
+			So(ec, ShouldNotBeZeroValue)
+
+			ec, out = runBinary(t, "get", "--url", s.url, "--cert", s.cert)
+			So(out, ShouldContainSubstring, "authentication failed")
+			So(ec, ShouldNotBeZeroValue)
+		})
+
 		SkipConvey("You can't create a User or a Thing if you didn't start the server, unless you are creating yourself ", func() { //nolint:lll
 			newCLIUser := "root"
-
 			origUser := os.Getenv("USER")
 
 			os.Setenv("USER", newCLIUser)
@@ -557,7 +593,7 @@ func TestServerWithCookie(t *testing.T) {
 
 			http.DefaultClient.Transport = &http.Transport{
 				TLSClientConfig: &tls.Config{
-					InsecureSkipVerify: true,
+					InsecureSkipVerify: true, //nolint:gosec
 				},
 			}
 
@@ -575,12 +611,12 @@ func TestServerWithCookie(t *testing.T) {
 
 			args := []string{"create", "--url", s.url, "--cert", s.cert} //nolint:prealloc
 			args = append(args, createFlags(map[string]string{
-				"name":          "something", //nolint:goconst
+				"name":          "something",
 				"version":       "1.2",
 				"description":   "Some thing",
-				"type":          "s3", //nolint:goconst
+				"type":          "s3",
 				"requestSource": "dfdf",
-				"address":       "s3://bucket/path", //nolint:goconst
+				"address":       "s3://bucket/path",
 				"reason":        "just because",
 				"creator":       "name",
 			})...)

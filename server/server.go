@@ -74,7 +74,7 @@ type Config struct {
 
 // CheckValid returns nil if all required options have been supplied, or an
 // error if not.
-// TODO: gocyclo: cert as a single file.. what would this reduce
+// TODO: gocyclo: cert as a single file.. what would this reduce.
 func (c Config) CheckValid() error { //nolint:gocyclo
 	if c.HTTPLogger == nil {
 		return ErrNoLogger
@@ -140,9 +140,7 @@ func New(conf Config) (*Server, error) {
 		cookieAuth(s, conf)
 	}
 
-	// authGroup := s.AuthRouter() // from ibacklup to secure endpoints
 	s.AuthRouter().Use(gas.IncludeAbortErrorsInBody)
-	// s.Router().Use(gas.IncludeAbortErrorsInBody)
 
 	err = s.addEndPoints()
 	if err != nil {

@@ -131,19 +131,19 @@ ctrl-z; bg. Or better yet, use the daemonize program to daemonize this.
 			return fmt.Errorf("failed to get database config: %w", err)
 		}
 
-		serverLDAPFQDN, err := cmd.Flags().GetString("ldap_server") //nolint:errcheck
+		serverLDAPFQDN, err := cmd.Flags().GetString("ldap_server")
 		if err != nil {
-			return fmt.Errorf("failed to get database config: %w", err)
+			return err
 		}
 
-		serverLDAPBindDN, err := cmd.Flags().GetString("ldap_dn") //nolint:errcheck
+		serverLDAPBindDN, err := cmd.Flags().GetString("ldap_dn")
 		if err != nil {
-			return fmt.Errorf("failed to get database config: %w", err)
+			return err
 		}
 
-		if serverLDAPFQDN == "" || serverLDAPBindDN == "" { //nolint:revive
-			//TODO: reimplement this but change the way that the main_test looks for output periodically and takes first output
-			// warn("ldap options not supplied, will assume all user passwords are correct!")
+		if serverLDAPFQDN == "" || serverLDAPBindDN == "" {
+			// main_test looks for output periodically and takes first output so "server started should be said first? "
+			defer warn("ldap options not supplied, will assume all user passwords are correct!")
 		}
 
 		cookie, err := cmd.Flags().GetString("cookie")
@@ -189,16 +189,6 @@ ctrl-z; bg. Or better yet, use the daemonize program to daemonize this.
 		return nil
 	},
 }
-
-// func checkPassword(username, password string) (bool, string) { //nolint:revive
-// 	uid, err := gas.UserNameToUID(username)
-// 	if err != nil {
-// 		return false, ""
-// 	}
-
-// 	//TODO: check cookie somehow?
-// 	return true, uid
-// }
 
 func init() {
 	RootCmd.AddCommand(serverCmd)

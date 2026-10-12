@@ -199,7 +199,7 @@ type CreateThingParams struct {
 	URL            string
 	DownloadMethod string
 	RequestSource  string
-	CreationDate   null.Time `time_format:"2006-01-02"` //!!
+	CreationDate   null.Time `time_format:"2006-01-02"`
 	Creator        string
 	CreatorID      uint32
 }

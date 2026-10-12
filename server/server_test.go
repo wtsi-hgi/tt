@@ -312,7 +312,7 @@ func TestServer(t *testing.T) {
 		})
 
 		Convey("You can use the root endpoint", func() {
-			actual := testEndpoint(s, "GET", pageRootPath, jwt) //TODO: does it need to be EndPointAuthRoot? broke a test when was
+			actual := testEndpoint(s, "GET", pageRootPath, jwt) //!! does it need to be EndPointAuthRoot? broke a test when was
 
 			expected, err := templatesFS.ReadFile("templates/root.html")
 			So(err, ShouldBeNil)
@@ -593,8 +593,6 @@ func TestWebServerWithCookie(t *testing.T) {
 
 			code = testEndpointCode(s, "GET", EndPointAuthThings+"?sort=bad", "", cookie)
 			So(code, ShouldEqual, http.StatusBadRequest)
-
-			//!! not getting every type like testserver > do we need to? just checking difference in access methods
 		})
 
 		Convey("You can not POST to the user endpoint, unless you are posting yourself", func() {

@@ -63,7 +63,7 @@ const (
 	thingsListenPath = "/things/listen"
 	subscribersPath  = "/subscribers"
 
-	EndPointAuthRoot               = gas.EndPointAuth + pageRootPath
+	EndPointAuthRoot               = gas.EndPointAuth + pageRootPath //!! not using auth for root> should we?
 	EndPointAuthUser               = gas.EndPointAuth + userPath
 	EndPointAuthThings             = gas.EndPointAuth + thingsPath
 	EndPointAuthThingID            = gas.EndPointAuth + thingIDPath
