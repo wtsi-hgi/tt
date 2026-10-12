@@ -263,9 +263,7 @@ func (s *Server) postUser(c *gin.Context) {
 	}
 
 	if userPost.Email == "" {
-		c.AbortWithError(http.StatusBadRequest, ErrInvalidEmail) //nolint: errcheck
-
-		return
+		userPost.Email = userPost.Name + s.DefaultEmailDomain
 	}
 
 	_, err := s.db.CreateUser(userPost.Name, userPost.Email)

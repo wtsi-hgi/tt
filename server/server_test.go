@@ -491,8 +491,11 @@ func TestServer(t *testing.T) {
 			user.ID = 1
 			So(mdb.users[0], ShouldResemble, user)
 
-			thingPostAndSubTests(mdb, s, jwt)
+			Convey("You can POST your things to the thing endpoint ", func() {
+				thingPostAndSubTests(mdb, s, jwt)
+			})
 		})
+
 		Convey("You can not post things without a valid authentication method", func() {
 			code := testEndpointCode(s, "POST", EndPointAuthThings, "", 0)
 			So(code, ShouldEqual, http.StatusUnauthorized)
@@ -552,6 +555,7 @@ func TestWebServerWithCookie(t *testing.T) {
 			err = <-errCh
 			So(err, ShouldBeNil)
 		})
+
 		Convey("You can use the root endpoint", func() {
 			actual := testEndpoint(s, "GET", pageRootPath, cookie)
 
@@ -620,9 +624,39 @@ func TestWebServerWithCookie(t *testing.T) {
 
 			userPost.ID = 1
 			So(mdb.users[0], ShouldResemble, userPost)
-
-			thingPostAndSubTests(mdb, s, cookie)
+			Convey("You can POST your things to the thing endpoint ", func() {
+				thingPostAndSubTests(mdb, s, cookie)
+			})
 			//TODO: actual SSE test
+		})
+
+		Convey("You can POST a thing to the thing endpoint without being a user yet", func() {
+			So(len(mdb.users), ShouldEqual, 0)
+
+			_, thing, _ := internal.GetExampleResourceData()
+			thingParams := thing.ToCreateParams(&database.User{Name: user})
+
+			thing.ID = 0
+			thingJSON, err := json.Marshal(thingParams)
+			So(err, ShouldBeNil)
+
+			code := testEndpointCode(s, "POST", EndPointAuthThings, string(thingJSON), cookie)
+
+			So(code, ShouldEqual, http.StatusNoContent)
+			So(len(mdb.things), ShouldEqual, 1)
+			So(mdb.things[0], ShouldResemble, thing)
+			So(len(mdb.users), ShouldEqual, 1)
+
+			Convey("You are a subscriber to the thing you created", func() {
+				exampleSubscriber := database.Subscriber{
+					UserID:  1,
+					ThingID: thing.ID,
+					Creator: true,
+				}
+
+				So(len(mdb.subs), ShouldEqual, 1)
+				So(mdb.subs[0], ShouldResemble, exampleSubscriber)
+			})
 		})
 	})
 }
