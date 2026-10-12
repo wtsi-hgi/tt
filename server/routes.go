@@ -51,7 +51,7 @@ const (
 	ErrInvalidEmail    = Error("Invalid email")
 	ErrInvalidUserName = Error("Invalid username")
 	ErrInvalidThingID  = Error("Invalid thing ID")
-	ErrUnauthorized    = Error("Unauthorized")
+	ErrUnauthorized    = Error("Unauthorized") //nolint:misspell
 	ErrNoUser          = database.Error("No User found with that name")
 )
 
@@ -157,23 +157,7 @@ func (s *Server) postThing(c *gin.Context) {
 		return
 	}
 
-	if !s.AllowedAccess(c, postedThing.Creator) {
-		c.AbortWithError(http.StatusUnauthorized, ErrUnauthorized)
-
-		return
-	}
-
-	user, err := s.db.GetUserByName(postedThing.Creator)
-	if errors.Is(err, ErrNoUser) {
-		user, err = s.db.CreateUser(postedThing.Creator, postedThing.Creator+s.DefaultEmailDomain)
-	}
-
-	if err != nil && !errors.Is(err, ErrNoUser) {
-		c.AbortWithError(http.StatusInternalServerError, err) //nolint: errcheck
-
-		return
-	}
-
+	user := userCheck(s, c, postedThing)
 	postedThing.CreatorID = user.ID
 
 	thing, err := s.db.CreateThing(postedThing)
@@ -192,6 +176,28 @@ func (s *Server) postThing(c *gin.Context) {
 
 	c.Status(http.StatusNoContent)
 }
+
+func userCheck(s *Server, c *gin.Context, postedThing database.CreateThingParams) *database.User {
+	if !s.AllowedAccess(c, postedThing.Creator) {
+		c.AbortWithError(http.StatusUnauthorized, ErrUnauthorized) //nolint: errcheck
+
+		return nil
+	}
+
+	user, err := s.db.GetUserByName(postedThing.Creator)
+	if errors.Is(err, ErrNoUser) {
+		user, err = s.db.CreateUser(postedThing.Creator, postedThing.Creator+s.DefaultEmailDomain)
+	}
+
+	if err != nil && !errors.Is(err, ErrNoUser) {
+		c.AbortWithError(http.StatusInternalServerError, err) //nolint: errcheck
+
+		return nil
+	}
+
+	return user
+}
+
 func (s *Server) postThingValidate(postedThing *database.CreateThingParams, c *gin.Context) error {
 	if err := c.ShouldBind(postedThing); err != nil {
 		return err
@@ -245,7 +251,7 @@ func (s *Server) postUser(c *gin.Context) {
 	}
 
 	if !s.AllowedAccess(c, userPost.Name) {
-		c.AbortWithError(http.StatusUnauthorized, ErrUnauthorized)
+		c.AbortWithError(http.StatusUnauthorized, ErrUnauthorized) //nolint: errcheck
 
 		return
 	}

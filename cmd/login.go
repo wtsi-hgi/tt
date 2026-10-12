@@ -29,16 +29,14 @@ package cmd
 import (
 	"fmt"
 	"net"
-	"os/user"
 
 	ldap "github.com/go-ldap/ldap/v3"
 	gas "github.com/wtsi-hgi/go-authserver"
 )
 
-const jwtBasename = ".tt.jwt"
+// const jwtBasename = ".tt.jwt"
 
-// done client side
-
+// done client side now..
 // // newServerClient tries to get a jwt for the given server url, and returns a
 // // client that can interact with it.
 // func newServerClient(url, cert string) (*server.Client, error) {
@@ -53,27 +51,27 @@ const jwtBasename = ".tt.jwt"
 // 	return server.NewClient(url, cert, token)
 // }
 
-func gasClientCLI(url, cert string) (*gas.ClientCLI, error) {
-	return gas.NewClientCLI(jwtBasename, serverTokenBasename, url, cert, false)
-}
+// func gasClientCLI(url, cert string) (*gas.ClientCLI, error) {
+// 	return gas.NewClientCLI(jwtBasename, serverTokenBasename, url, cert, false)
+// }
 
-func currentUsername() (string, error) {
-	user, err := user.Current()
-	if err != nil {
-		return "", fmt.Errorf("couldn't get user: %w", err)
-	}
+// func currentUsername() (string, error) {
+// 	user, err := user.Current()
+// 	if err != nil {
+// 		return "", fmt.Errorf("couldn't get user: %w", err)
+// 	}
 
-	return user.Username, nil
-}
+// 	return user.Username, nil
+// }
 
-func isAdmin(serverURL, serverCert string) (bool, error) {
-	clientCLI, err := gasClientCLI(serverURL, serverCert)
-	if err != nil {
-		return false, err
-	}
+// func isAdmin(serverURL, serverCert string) (bool, error) {
+// 	clientCLI, err := gasClientCLI(serverURL, serverCert)
+// 	if err != nil {
+// 		return false, err
+// 	}
 
-	return clientCLI.CanReadServerToken(), nil
-}
+// 	return clientCLI.CanReadServerToken(), nil
+// }
 
 // checkPassword defers to checkLDAPPassword(). Warns if we don't have the ldap
 // details we need, and uses an always true password checker.
@@ -106,7 +104,8 @@ func checkLDAPPassword(username, password, serverLDAPFQDN, serverLDAPBindDN stri
 		return false, ""
 	}
 
-	l, err := ldap.DialURL(fmt.Sprintf("ldaps://%s", net.JoinHostPort(serverLDAPFQDN, "636")))
+	// l, err := ldap.DialURL("ldaps://" + net.JoinHostPort(serverLDAPFQDN, "636"))
+	l, err := ldap.DialURL("ldaps://" + net.JoinHostPort(serverLDAPFQDN, "636"))
 	if err != nil {
 		return false, ""
 	}

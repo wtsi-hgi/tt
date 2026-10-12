@@ -27,11 +27,15 @@ package server
 
 import (
 	"embed"
+	"encoding/base64"
 	"html/template"
 	"io"
 	"io/fs"
 	"regexp"
+	"slices"
+	"strings"
 
+	"github.com/gin-gonic/gin"
 	gas "github.com/wtsi-hgi/go-authserver"
 	"github.com/wtsi-hgi/tt/database"
 )
@@ -65,11 +69,13 @@ type Config struct {
 	Key           string
 	TokenFileName string
 	AuthCallback  gas.AuthCallback
+	CookieName    string
 }
 
 // CheckValid returns nil if all required options have been supplied, or an
 // error if not.
-func (c Config) CheckValid() error {
+// TODO: gocyclo: cert as a single file.. what would this reduce
+func (c Config) CheckValid() error { //nolint:gocyclo
 	if c.HTTPLogger == nil {
 		return ErrNoLogger
 	}
@@ -97,7 +103,7 @@ func (c Config) CheckValid() error {
 	if c.AuthCallback == nil {
 		return ErrNoAuthCallBack
 	}
-
+	//TODO: make cookie required ?
 	return nil
 }
 
@@ -124,19 +130,15 @@ func New(conf Config) (*Server, error) {
 		db:                 conf.Database,
 		DefaultEmailDomain: conf.DefaultEmailDomain,
 	}
+
 	err := s.EnableAuthWithServerToken(conf.Cert, conf.Key, conf.TokenFileName, conf.AuthCallback)
 	if err != nil {
 		return nil, err
 	}
-	// easier middleware attempt:
-	// s.AuthRouter().Use(func(ctx *gin.Context) {
-	// 	user := s.GetUser(ctx)
-	// 	if user == nil || user.Username != serverUser.Username {
-	// 		ctx.Abort()
-	// 	}
 
-	// 	ctx.Next()
-	// })
+	if conf.CookieName != "" {
+		cookieAuth(s, conf)
+	}
 
 	// authGroup := s.AuthRouter() // from ibacklup to secure endpoints
 	s.AuthRouter().Use(gas.IncludeAbortErrorsInBody)
@@ -148,6 +150,27 @@ func New(conf Config) (*Server, error) {
 	}
 
 	return s, nil
+}
+
+func cookieAuth(s *Server, conf Config) {
+	ar := s.AuthRouter()
+
+	ar.Handlers = slices.Insert(ar.Handlers, 0, func(ctx *gin.Context) {
+		cookie, errc := ctx.Cookie(conf.CookieName)
+		if errc != nil {
+			return
+		}
+
+		data, errc := base64.StdEncoding.DecodeString(cookie)
+		if errc != nil {
+			return
+		}
+
+		user, _, _ := strings.Cut(string(data), ":")
+		ctx.Set("user", &gas.User{
+			Username: user,
+		})
+	})
 }
 
 func (s *Server) addEndPoints() error {

@@ -46,6 +46,7 @@ const (
 	serverCertEnvKey   = "TT_SERVER_CERT"
 	serverKeyEnvKey    = "TT_SERVER_KEY"
 	serverDomainEnvKey = "TT_SERVER_DEFAULT_EMAIL_DOMAIN"
+	serverCookieEnvKey = "TT_SERVER_COOKIE"
 )
 
 // RootCmd represents the base command when called without any subcommands.

@@ -27,6 +27,7 @@ package server
 
 import (
 	"bytes"
+	"encoding/base64"
 	"encoding/json"
 	"html/template"
 	"io"
@@ -49,7 +50,8 @@ import (
 )
 
 const (
-	ErrInvalidUserID = database.Error("No User found with that ID")
+	ErrInvalidUserID       = database.Error("No User found with that ID")
+	defaultTestEmailDomain = "@default.domain"
 )
 
 type mockDB struct {
@@ -148,7 +150,7 @@ func (m *mockDB) CreateThing(args database.CreateThingParams) (*database.Thing, 
 	}
 
 	if !found {
-		user, err := m.CreateUser(args.Creator, args.Creator+"@default.domain")
+		user, err := m.CreateUser(args.Creator, args.Creator+defaultTestEmailDomain)
 		if err != nil {
 			return nil, err
 		}
@@ -255,14 +257,13 @@ func TestServer(t *testing.T) {
 	Convey("Given a valid Config", t, func() {
 		logWriter := gas.NewStringLogger()
 		mdb := newMockDB()
-		defaultEmailDomain := "@default.domain"
 		serverCert, serverKey, err := gas.CreateTestCert(t)
 		So(err, ShouldBeNil)
 
 		conf := Config{
 			HTTPLogger:         logWriter,
 			Database:           mdb,
-			DefaultEmailDomain: defaultEmailDomain,
+			DefaultEmailDomain: defaultTestEmailDomain,
 			AuthCallback:       func(username, password string) (bool, string) { return true, "1" },
 			Key:                serverKey,
 			Cert:               serverCert,
@@ -295,7 +296,7 @@ func TestServer(t *testing.T) {
 
 		So(json.Unmarshal(w.Body.Bytes(), &jwt), ShouldBeNil)
 
-		SkipConvey("You can start and stop the server", func() {
+		Convey("You can start and stop the server", func() {
 			errCh := make(chan error, 1)
 
 			go func() {
@@ -490,44 +491,179 @@ func TestServer(t *testing.T) {
 			user.ID = 1
 			So(mdb.users[0], ShouldResemble, user)
 
-			Convey("You can POST your things to the Things endpoint if you are not Admin", func() {
-				_, thing, _ := internal.GetExampleResourceData()
-				thingParams := thing.ToCreateParams(mdb.users[0])
-
-				thing.ID = 0
-				thingJSON, err = json.Marshal(thingParams)
-				So(err, ShouldBeNil)
-
-				code := testEndpointCode(s, "POST", EndPointAuthThings, string(thingJSON), jwt)
-
-				So(code, ShouldEqual, http.StatusNoContent)
-				So(len(mdb.things), ShouldEqual, 1)
-				So(mdb.things[0], ShouldResemble, thing)
-
-				Convey("You are a subscriber to the thing you created", func() {
-					exampleSubscriber := database.Subscriber{
-						UserID:  1,
-						ThingID: thing.ID,
-						Creator: true,
-					}
-
-					So(len(mdb.subs), ShouldEqual, 1)
-					So(mdb.subs[0], ShouldResemble, exampleSubscriber)
-				})
-			})
+			thingPostAndSubTests(mdb, s, jwt)
+		})
+		Convey("You can not post things without a valid authentication method", func() {
+			code := testEndpointCode(s, "POST", EndPointAuthThings, "", 0)
+			So(code, ShouldEqual, http.StatusUnauthorized)
+			So(len(mdb.things), ShouldEqual, 0)
 		})
 	})
 }
 
-func testEndpoint(s *Server, method, target, jwt string) string { //nolint:unparam
-	recorder := recordRequest(s, method, target, "", jwt)
+func TestWebServerWithCookie(t *testing.T) {
+	Convey("Given a valid Config", t, func() {
+		logWriter := gas.NewStringLogger()
+		mdb := newMockDB()
+		serverCert, serverKey, err := gas.CreateTestCert(t)
+		So(err, ShouldBeNil)
+
+		conf := Config{
+			HTTPLogger:         logWriter,
+			Database:           mdb,
+			DefaultEmailDomain: defaultTestEmailDomain,
+			Key:                serverKey,
+			Cert:               serverCert,
+			TokenFileName:      serverTokenBasename,
+			AuthCallback:       func(username, password string) (bool, string) { return true, "1" },
+			CookieName:         "nginxauth",
+		}
+
+		s, err := New(conf)
+		So(err, ShouldBeNil)
+
+		user := "any"
+		cookie := &http.Cookie{ //nolint:gosec
+			Name:  "nginxauth",
+			Value: base64.StdEncoding.EncodeToString([]byte(user + ":")),
+		}
+
+		recorder := httptest.NewRecorder()
+		request := httptest.NewRequest(
+			http.MethodGet,
+			EndPointAuthThings,
+			nil,
+		)
+		request.AddCookie(cookie)
+		s.Router().ServeHTTP(recorder, request)
+		So(recorder.Code, ShouldEqual, http.StatusOK)
+
+		Convey("You can start and stop the server", func() {
+			errCh := make(chan error, 1)
+
+			go func() {
+				errCh <- s.Start(":0", "", "")
+			}()
+
+			<-time.After(1 * time.Second)
+
+			s.Stop()
+
+			err = <-errCh
+			So(err, ShouldBeNil)
+		})
+		Convey("You can use the root endpoint", func() {
+			actual := testEndpoint(s, "GET", pageRootPath, cookie)
+
+			expected, err := templatesFS.ReadFile("templates/root.html")
+			So(err, ShouldBeNil)
+
+			So(actual, ShouldEqual, string(expected))
+		})
+
+		Convey("You can GET the things endpoint", func() {
+			actual := testEndpoint(s, "GET", EndPointAuthThings, cookie)
+			So(actual, ShouldEqual, "")
+
+			mdb.users, mdb.things, mdb.subs = internal.GetExampleData()
+
+			expected := executeThingsTemplate(mdb.things)
+
+			actual = testEndpoint(s, "GET", EndPointAuthThings, cookie)
+			So(actual, ShouldEqual, expected)
+			So(strings.Count(actual, "</tr"), ShouldEqual, 10)
+			So(strings.Count(actual, "<td>"), ShouldEqual, 60)
+
+			things := sortAndFilterThings(mdb.things, database.GetThingsParams{
+				OrderDirection: database.OrderDesc,
+			})
+			expected = executeThingsTemplate(things)
+			actual = testEndpoint(s, "GET", EndPointAuthThings+"?dir=DESC", cookie)
+			So(actual, ShouldEqual, expected)
+
+			code := testEndpointCode(s, "GET", EndPointAuthThings+"?dir=BAD", "", cookie)
+			So(code, ShouldEqual, http.StatusBadRequest)
+
+			things = sortAndFilterThings(mdb.things, database.GetThingsParams{
+				OrderBy: database.OrderByAddress,
+			})
+			expected = executeThingsTemplate(things)
+			actual = testEndpoint(s, "GET", EndPointAuthThings+"?sort=address", cookie)
+			So(actual, ShouldEqual, expected)
+
+			code = testEndpointCode(s, "GET", EndPointAuthThings+"?sort=bad", "", cookie)
+			So(code, ShouldEqual, http.StatusBadRequest)
+
+			//!! not getting every type like testserver > do we need to? just checking difference in access methods
+		})
+
+		Convey("You can not POST to the user endpoint, unless you are posting yourself", func() {
+			userPost := internal.GetExampleUser(2)
+			thingJSON, err := json.Marshal(userPost)
+			So(err, ShouldBeNil)
+
+			code := testEndpointCode(s, "POST", EndPointAuthUser, string(thingJSON), cookie)
+			So(code, ShouldEqual, http.StatusUnauthorized)
+
+			So(len(mdb.users), ShouldEqual, 0)
+
+			userPost = &database.User{
+				ID:    1,
+				Name:  user,
+				Email: user + conf.DefaultEmailDomain,
+			}
+			thingJSON, err = json.Marshal(userPost)
+			So(err, ShouldBeNil)
+
+			code = testEndpointCode(s, "POST", EndPointAuthUser, string(thingJSON), cookie)
+			So(code, ShouldEqual, http.StatusNoContent)
+
+			So(len(mdb.users), ShouldEqual, 1)
+
+			userPost.ID = 1
+			So(mdb.users[0], ShouldResemble, userPost)
+
+			thingPostAndSubTests(mdb, s, cookie)
+			//TODO: actual SSE test
+		})
+	})
+}
+
+func thingPostAndSubTests(mdb *mockDB, s *Server, auth any) {
+	_, thing, _ := internal.GetExampleResourceData()
+	thingParams := thing.ToCreateParams(mdb.users[0])
+
+	thing.ID = 0
+	thingJSON, err := json.Marshal(thingParams)
+	So(err, ShouldBeNil)
+
+	code := testEndpointCode(s, "POST", EndPointAuthThings, string(thingJSON), auth)
+
+	So(code, ShouldEqual, http.StatusNoContent)
+	So(len(mdb.things), ShouldEqual, 1)
+	So(mdb.things[0], ShouldResemble, thing)
+
+	Convey("You are a subscriber to the thing you created", func() {
+		exampleSubscriber := database.Subscriber{
+			UserID:  1,
+			ThingID: thing.ID,
+			Creator: true,
+		}
+
+		So(len(mdb.subs), ShouldEqual, 1)
+		So(mdb.subs[0], ShouldResemble, exampleSubscriber)
+	})
+}
+
+func testEndpoint(s *Server, method, target string, auth any) string { //nolint:unparam
+	recorder := recordRequest(s, method, target, "", auth)
 	So(recorder.Code, ShouldEqual, http.StatusOK)
 	So(recorder.Header().Get("Content-Type"), ShouldEqual, "text/html; charset=utf-8")
 
 	return recorder.Body.String()
 }
 
-func recordRequest(s *Server, method, target, body, jwt string) *httptest.ResponseRecorder {
+func recordRequest(s *Server, method, target, body string, auth any) *httptest.ResponseRecorder {
 	var bodyReader io.Reader
 
 	if body != "" {
@@ -536,7 +672,13 @@ func recordRequest(s *Server, method, target, body, jwt string) *httptest.Respon
 
 	recorder := httptest.NewRecorder()
 	req := httptest.NewRequest(method, target, bodyReader)
-	req.Header.Set("Authorization", "Bearer "+jwt)
+
+	switch auth := auth.(type) {
+	case *http.Cookie:
+		req.AddCookie(auth)
+	case string:
+		req.Header.Set("Authorization", "Bearer "+auth)
+	}
 
 	if body != "" {
 		req.Header.Set("Content-Type", "application/json")
@@ -547,8 +689,8 @@ func recordRequest(s *Server, method, target, body, jwt string) *httptest.Respon
 	return recorder
 }
 
-func testEndpointCode(s *Server, method, target, body, jwt string) int {
-	recorder := recordRequest(s, method, target, body, jwt)
+func testEndpointCode(s *Server, method, target, body string, auth any) int {
+	recorder := recordRequest(s, method, target, body, auth)
 
 	return recorder.Code
 }

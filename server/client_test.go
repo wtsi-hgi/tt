@@ -52,7 +52,7 @@ func TestClient(t *testing.T) {
 		conf := Config{
 			HTTPLogger:         logWriter,
 			Database:           mdb,
-			DefaultEmailDomain: "@default.domain",
+			DefaultEmailDomain: defaultTestEmailDomain,
 			AuthCallback:       func(username, password string) (bool, string) { return true, "1" },
 			Key:                serverKey,
 			Cert:               serverCert,

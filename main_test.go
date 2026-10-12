@@ -30,6 +30,7 @@ import (
 	"bytes"
 	"context"
 	"crypto/tls"
+	"encoding/base64"
 	"errors"
 	"fmt"
 	"io"
@@ -357,6 +358,7 @@ func TestServerHelp(t *testing.T) {
 		os.Setenv("TT_SERVER_URL", "testURL")
 		os.Setenv("TT_SERVER_CERT", "testCert")
 		os.Setenv("TT_SERVER_KEY", "testKey")
+		os.Setenv("TT_SERVER_COOKIE", "testKey")
 
 		exit, std = runBinary(t, "server", "-h")
 		So(exit, ShouldBeZeroValue)
@@ -393,14 +395,14 @@ func TestCreateGet(t *testing.T) {
 		args := []string{"create", "--url", s.url, "--cert", s.cert} //nolint:prealloc
 
 		args = append(args, createFlags(map[string]string{
-			"name":          "something", //nolint:goconst
-			"version":       "1.2",
-			"description":   "Some thing",
-			"type":          "s3", //nolint:goconst
-			"requestSource": "dfdf",
+			"name":          "something",        //nolint:goconst
+			"version":       "1.2",              //nolint:goconst
+			"description":   "Some thing",       //nolint:goconst
+			"type":          "s3",               //nolint:goconst
+			"requestSource": "dfdf",             //nolint:goconst
 			"address":       "s3://bucket/path", //nolint:goconst
-			"reason":        "just because",
-			"creator":       "name",
+			"reason":        "just because",     //nolint:goconst
+			"creator":       "name",             //nolint:goconst
 		})...)
 
 		ec, out = runBinary(t, args...)
@@ -470,7 +472,7 @@ func TestCreateGet(t *testing.T) {
 			So(ec, ShouldBeZeroValue)
 		})
 		// !!
-		SkipConvey("You can't create a User or a Thing if you didn't start the server, unless you are creating yourself ", func() {
+		SkipConvey("You can't create a User or a Thing if you didn't start the server, unless you are creating yourself ", func() { //nolint:lll
 			newCLIUser := "root"
 
 			origUser := os.Getenv("USER")
@@ -497,7 +499,7 @@ func TestCreateGet(t *testing.T) {
 			So(out, ShouldBeBlank)
 			So(ec, ShouldBeZeroValue)
 
-			u, _ := user.Current()
+			u, _ := user.Current() //nolint:errcheck
 			So(u.Username, ShouldContainSubstring, " ??")
 
 			ec, out = runBinary(t, "user", "--url", s.url, "--cert", s.cert, "--user", "Not"+newCLIUser,
@@ -527,6 +529,67 @@ func TestCreateGet(t *testing.T) {
 		expected := "Post \"https://testURL/rest/v1/jwt\": dial tcp: lookup testURL on 127.0.0.53:53: server misbehaving"
 		So(out, ShouldContainSubstring, expected)
 		So(ec, ShouldNotBeZeroValue)
+	})
+}
+func TestServerWithCookie(t *testing.T) {
+	Convey("You can start a server with cookie authentication", t, func() {
+		s, err := NewTestServer(t, []string{"--cookie", "myCookieName"})
+		So(err, ShouldBeNil)
+
+		if err != nil {
+			SkipConvey("Skipping real server tests without .env.development.local", func() {})
+
+			return
+		}
+
+		Convey("You can access the things webpage given valid cookie config", func() {
+			user := "any"
+			cookie := &http.Cookie{ //nolint:gosec
+				Name:  "myCookieName",
+				Value: base64.StdEncoding.EncodeToString([]byte(user + ":")),
+			}
+			request, err := http.NewRequest(
+				http.MethodGet,
+				"https://"+s.url+server.EndPointAuthThings,
+				nil,
+			)
+			So(err, ShouldBeNil)
+
+			http.DefaultClient.Transport = &http.Transport{
+				TLSClientConfig: &tls.Config{
+					InsecureSkipVerify: true,
+				},
+			}
+
+			request.AddCookie(cookie)
+			resp, err := http.DefaultClient.Do(request)
+			So(err, ShouldBeNil)
+
+			So(resp.StatusCode, ShouldEqual, http.StatusOK)
+		})
+
+		Convey("You can still use CLI mode to create and get things ", func() {
+			ec, out := runBinary(t, "user", "--url", s.url, "--cert", s.cert, "--user", "name", "--email", "name@something")
+			So(out, ShouldBeBlank)
+			So(ec, ShouldBeZeroValue)
+
+			args := []string{"create", "--url", s.url, "--cert", s.cert} //nolint:prealloc
+			args = append(args, createFlags(map[string]string{
+				"name":          "something", //nolint:goconst
+				"version":       "1.2",
+				"description":   "Some thing",
+				"type":          "s3", //nolint:goconst
+				"requestSource": "dfdf",
+				"address":       "s3://bucket/path", //nolint:goconst
+				"reason":        "just because",
+				"creator":       "name",
+			})...)
+
+			ec, out = runBinary(t, args...)
+			So(out, ShouldBeBlank)
+			So(ec, ShouldBeZeroValue)
+		})
+		//TODO: check non admin after fixing other non admin test
 	})
 }
 
@@ -602,7 +665,7 @@ func generateFakeJWT(t *testing.T, s *testServer, user string) error {
 	fakeDir := t.TempDir()
 	os.Setenv("XDG_STATE_HOME", fakeDir)
 
-	defer os.WriteFile(filepath.Join(fakeDir, ".tt.token"), bytes.Repeat([]byte{'a'}, 44), 0600)
+	defer os.WriteFile(filepath.Join(fakeDir, ".tt.token"), bytes.Repeat([]byte{'a'}, 44), 0600) //nolint:errcheck
 
 	ts, err := server.New(server.Config{
 		HTTPLogger:         io.Discard,
@@ -624,9 +687,12 @@ func generateFakeJWT(t *testing.T, s *testServer, user string) error {
 
 	l.Close()
 
-	_, port, _ := net.SplitHostPort(l.Addr().String())
+	_, port, err := net.SplitHostPort(l.Addr().String())
+	if err != nil {
+		return err
+	}
 
-	go ts.Start("localhost:"+port, s.cert, s.key)
+	go ts.Start("localhost:"+port, s.cert, s.key) //nolint: errcheck
 	defer ts.Stop()
 
 	time.Sleep(time.Second)

@@ -42,10 +42,6 @@ const (
 	serverTokenBasename = ".tt.token"
 )
 
-// TODO: rename LDAP flags to ldap_server and ldap_dn
-// TODO: update help text to include LDAP flags
-// TODO:should LDAP not be required like in ibackup... go back and change tests too..
-//
 // serverCmd represents the server command.
 var serverCmd = &cobra.Command{
 	Use:   "server",
@@ -83,11 +79,15 @@ might want to filter away 'STATUS=200' to find problems.
 If --logfile is supplied, logs to that file instead of syslog.
 
 The server authenticates users using LDAP. You must provide the FQDN for your
-LDAP server, eg. --serverLDAPFQDN ldap.example.com, and the bind DN that you would
+LDAP server, eg. --ldap_server ldap.example.com, and the bind DN that you would
 supply to eg. 'ldapwhoami -D' to test user credentials, replacing the username
-part with '%s', eg. --serverLDAPBinDN 'uid=%s,ou=people,dc=example,dc=com'. If you don't
+part with '%s', eg. --ldap_dn 'uid=%s,ou=people,dc=example,dc=com'. If you don't
 supply both of these, you'll get a warning, but the server will work and assume
 all passwords are valid.
+
+The server website authenticates users using a cookie containing the users username.
+Provide the cookie name with the --cookie flag. If the name is not provided, it will 
+default to the environment variable TT_SERVER_COOKIE. 
 
 This command will block forever in the foreground; you can background it with
 ctrl-z; bg. Or better yet, use the daemonize program to daemonize this.
@@ -131,11 +131,24 @@ ctrl-z; bg. Or better yet, use the daemonize program to daemonize this.
 			return fmt.Errorf("failed to get database config: %w", err)
 		}
 
-		serverLDAPFQDN, _ := cmd.Flags().GetString("serverLDAPFQDN")     //nolint:errcheck
-		serverLDAPBindDN, _ := cmd.Flags().GetString("serverLDAPBindDN") //nolint:errcheck
-		if serverLDAPFQDN == "" || serverLDAPBindDN == "" {              //nolint:revive
+		serverLDAPFQDN, err := cmd.Flags().GetString("ldap_server") //nolint:errcheck
+		if err != nil {
+			return fmt.Errorf("failed to get database config: %w", err)
+		}
+
+		serverLDAPBindDN, err := cmd.Flags().GetString("ldap_dn") //nolint:errcheck
+		if err != nil {
+			return fmt.Errorf("failed to get database config: %w", err)
+		}
+
+		if serverLDAPFQDN == "" || serverLDAPBindDN == "" { //nolint:revive
 			//TODO: reimplement this but change the way that the main_test looks for output periodically and takes first output
 			// warn("ldap options not supplied, will assume all user passwords are correct!")
+		}
+
+		cookie, err := cmd.Flags().GetString("cookie")
+		if err != nil {
+			return err
 		}
 
 		database, err := mysql.New(config)
@@ -151,6 +164,7 @@ ctrl-z; bg. Or better yet, use the daemonize program to daemonize this.
 			Cert:               serverCert,
 			TokenFileName:      serverTokenBasename,
 			AuthCallback:       createCheckPassword(serverLDAPFQDN, serverLDAPBindDN),
+			CookieName:         cookie,
 		}
 
 		s, err := server.New(conf)
@@ -202,10 +216,12 @@ func init() {
 		"path to server key file")
 	serverCmd.Flags().String("domain", os.Getenv(serverDomainEnvKey),
 		"default domain of users")
-	serverCmd.Flags().String("serverLDAPFQDN", "",
+	serverCmd.Flags().String("ldap_server", "",
 		"fqdn of your ldap server")
-	serverCmd.Flags().String("serverLDAPBindDN", "",
+	serverCmd.Flags().String("ldap_dn", "",
 		"ldap bind dn, with username replaced with %s")
+	serverCmd.Flags().String("cookie", os.Getenv(serverCookieEnvKey),
+		"the name of the cookie for username authorisation")
 
 	serverCmd.MarkFlagsMutuallyExclusive("logfile", "logstderr")
 	serverCmd.MarkFlagRequired("url")    //nolint:errcheck
