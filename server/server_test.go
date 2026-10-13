@@ -332,7 +332,7 @@ func TestServer(t *testing.T) {
 			actual = testEndpoint(s, "GET", EndPointAuthThings, jwt)
 			So(actual, ShouldEqual, expected)
 			So(strings.Count(actual, "</tr"), ShouldEqual, 10)
-			So(strings.Count(actual, "<td>"), ShouldEqual, 60)
+			So(strings.Count(actual, "<td>"), ShouldEqual, 90)
 
 			things := sortAndFilterThings(mdb.things, database.GetThingsParams{
 				OrderDirection: database.OrderDesc,
@@ -456,7 +456,7 @@ func TestServer(t *testing.T) {
 				info := <-ch
 				info2 := <-ch2
 
-				So(info, ShouldEqual, "<tr hx-target=\"this\" hx-swap=\"outerHTML\">\t<td>address</td>\t<td>resource</td>\t<td>reason</td>\t<td>desc</td>\t<td>1971-01-02</td>\t<td>\t\t<button class=\"uk-button uk-button-danger\" hx-delete=\"/things/0\" hx-swap=\"swap:1s\">\t\t\tDelete\t\t</button>\t</td></tr>")
+				So(info, ShouldEqual, "<tr hx-target=\"this\" hx-swap=\"outerHTML\">\t<td>ResourceName</td>\t<td>address</td>\t<td>resource</td>\t<td>reason</td>\t<td>desc</td>\t<td>2</td>\t<td>Jira</td>\t<td>1971-01-02</td>\t<td>\t\t<button class=\"uk-button uk-button-danger\" hx-delete=\"/rest/v1/auth/things/0\" hx-swap=\"swap:1s\">\t\t\tDelete\t\t</button>\t</td></tr>")
 				So(info, ShouldEqual, info2)
 
 				Convey("You are a subscriber to the thing you created", func() {
@@ -609,7 +609,7 @@ func TestWebServerWithCookie(t *testing.T) {
 			actual = testEndpoint(s, "GET", EndPointAuthThings, cookie)
 			So(actual, ShouldEqual, expected)
 			So(strings.Count(actual, "</tr"), ShouldEqual, 10)
-			So(strings.Count(actual, "<td>"), ShouldEqual, 60)
+			So(strings.Count(actual, "<td>"), ShouldEqual, 90)
 
 			things := sortAndFilterThings(mdb.things, database.GetThingsParams{
 				OrderDirection: database.OrderDesc,
