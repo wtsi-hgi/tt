@@ -12,7 +12,7 @@ require (
 	github.com/joho/godotenv v1.5.1
 	github.com/smartystreets/goconvey v1.8.1
 	github.com/spf13/cobra v1.9.1
-	github.com/wtsi-hgi/go-authserver v1.6.2
+	github.com/wtsi-hgi/go-authserver v1.6.3-0.20261013122516-e546acce1eb8
 	gopkg.in/tylerb/graceful.v1 v1.2.15
 )
 

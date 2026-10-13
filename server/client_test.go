@@ -169,7 +169,7 @@ func TestClient(t *testing.T) {
 			things[0].Remove = time.Time{}
 			So(things[0].ToCreateParams(&database.User{
 				Name:  userName,
-				Email: userName + s.DefaultEmailDomain, // TODO: auto-create users when given only username
+				Email: userName + s.DefaultEmailDomain,
 			}), ShouldResemble, *thingPost)
 
 			// Getting both with no Type filter.

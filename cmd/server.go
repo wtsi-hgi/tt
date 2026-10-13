@@ -172,11 +172,6 @@ ctrl-z; bg. Or better yet, use the daemonize program to daemonize this.
 			return fmt.Errorf("failed to configure server: %w", err)
 		}
 
-		// err = s.EnableAuthWithServerToken(serverCert, serverKey, serverTokenBasename, checkPassword)
-		// if err != nil {
-		// 	return err
-		// }
-
 		go sayStarted()
 
 		err = s.Start(serverURL, serverCert, serverKey)

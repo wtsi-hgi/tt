@@ -31,6 +31,7 @@ import (
 	"encoding/json"
 	"html/template"
 	"io"
+	"net"
 	"net/http"
 	"net/http/httptest"
 	"os/user"
@@ -312,7 +313,7 @@ func TestServer(t *testing.T) {
 		})
 
 		Convey("You can use the root endpoint", func() {
-			actual := testEndpoint(s, "GET", pageRootPath, jwt) //!! does it need to be EndPointAuthRoot? broke a test when was
+			actual := testEndpoint(s, "GET", pageRootPath, jwt)
 
 			expected, err := templatesFS.ReadFile("templates/root.html")
 			So(err, ShouldBeNil)
@@ -412,6 +413,32 @@ func TestServer(t *testing.T) {
 			So(mdb.users[0], ShouldResemble, user)
 
 			Convey("You can POST thing details to the things endpoint and listen for SSE updates", func() {
+				// Get port
+				l, err := net.Listen("tcp", "127.0.0.1:0")
+				So(err, ShouldBeNil)
+
+				l.Close()
+
+				_, port, err := net.SplitHostPort(l.Addr().String())
+				So(err, ShouldBeNil)
+
+				//  and start
+				So(err, ShouldBeNil)
+
+				go func() {
+					s.Start("localhost:"+port, serverCert, serverKey) //nolint:errcheck
+				}()
+
+				Reset(s.Stop)
+				time.Sleep(1 * time.Second)
+
+				ch, err := gas.SSERead("https://localhost:"+port+EndPointAuthSseThingsEventName, serverCert)
+				So(err, ShouldBeNil)
+
+				ch2, err := gas.SSERead("https://localhost:"+port+EndPointAuthSseThingsEventName, serverCert)
+				So(err, ShouldBeNil)
+
+				// Post a thing
 				newUser, thing, exampleSubscriber := internal.GetExampleResourceData()
 				thingParams := thing.ToCreateParams(newUser)
 
@@ -424,6 +451,14 @@ func TestServer(t *testing.T) {
 				So(code, ShouldEqual, http.StatusNoContent)
 				So(len(mdb.things), ShouldEqual, 1)
 				So(mdb.things[0], ShouldResemble, thing)
+
+				// Listen to channels
+				info := <-ch
+				info2 := <-ch2
+
+				So(info, ShouldEqual, "<tr hx-target=\"this\" hx-swap=\"outerHTML\">\t<td>address</td>\t<td>resource</td>\t<td>reason</td>\t<td>desc</td>\t<td>1971-01-02</td>\t<td>\t\t<button class=\"uk-button uk-button-danger\" hx-delete=\"/things/0\" hx-swap=\"swap:1s\">\t\t\tDelete\t\t</button>\t</td></tr>")
+				So(info, ShouldEqual, info2)
+
 				Convey("You are a subscriber to the thing you created", func() {
 					newUser.ID = 2
 					newUser.Email = "user1" + s.DefaultEmailDomain
@@ -437,8 +472,6 @@ func TestServer(t *testing.T) {
 					So(len(mdb.subs), ShouldEqual, 1)
 					So(mdb.subs[0], ShouldResemble, exampleSubscriber)
 				})
-
-				//TODO: actual SSE test
 			})
 		})
 
@@ -627,7 +660,6 @@ func TestWebServerWithCookie(t *testing.T) {
 			Convey("You can POST your things to the thing endpoint ", func() {
 				thingPostAndSubTests(mdb, s, cookie)
 			})
-			//TODO: actual SSE test
 		})
 
 		Convey("You can POST a thing to the thing endpoint without being a user yet", func() {

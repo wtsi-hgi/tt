@@ -311,15 +311,3 @@ func (c *Client) GetThingAndSubscriberDetails(tID uint32) (*ThingWithSubscriberD
 
 	return &ThingWithSubscriberDetails{Thing: *thing, Subscribers: detailedSubs, Creator: creator}, err
 }
-
-// getObj gets obj decoded from JSON from the given url.
-func (c *Client) getObj(url string, obj interface{}) error { //nolint:unused
-	resp, err := c.request().ForceContentType("application/json").
-		SetResult(&obj).
-		Get(url)
-	if err != nil {
-		return err
-	}
-
-	return responseToErr(resp)
-}

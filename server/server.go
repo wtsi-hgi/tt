@@ -103,7 +103,7 @@ func (c Config) CheckValid() error { //nolint:gocyclo
 	if c.AuthCallback == nil {
 		return ErrNoAuthCallBack
 	}
-	//TODO: make cookie required ?
+
 	return nil
 }
 
@@ -193,7 +193,7 @@ func (s *Server) addEndPoints() error {
 	s.Router().GET(pageRootPath, s.pageRoot)
 	s.AuthRouter().GET(thingsPath, s.getThings)
 	s.AuthRouter().GET(thingIDPath, s.getThingByID)
-	s.AuthRouter().GET(thingsListenPath, s.SSESender(sseThingsEventName))
+	s.Router().GET(thingsListenPath, s.SSESender(sseThingsEventName))
 	s.AuthRouter().POST(thingsPath, s.postThing)
 	s.AuthRouter().POST(userPath, s.postUser)
 	s.AuthRouter().GET(userPath, s.getUser)

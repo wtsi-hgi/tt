@@ -306,7 +306,7 @@ func TestServer(t *testing.T) {
 
 		So(s.stderr.String(), ShouldContainSubstring, "server started")
 
-		Convey("You can access the webpage", func() { //TODO: accessing webpage securely //!!
+		Convey("You can access the webpage", func() {
 			html, err := getHTML("https://" + s.url)
 
 			So(err, ShouldBeNil)
@@ -544,9 +544,7 @@ func TestCreateGet(t *testing.T) {
 			So(ec, ShouldBeZeroValue)
 		})
 		//TODO: test that we can't use protected client methods without being the user that started the server
-
-		//TODO: test where you change $USER and $HOME so that you are not the user that started the server: cli should fail
-		// test as the server starter, but after deleting the server token file: should also fail
+		//  test where you change $USER and $HOME so that you are not the user that started the server: cli should fail
 	})
 
 	Convey("You can not (Create a user, Create a Thing, and Get a Thing) without starting the server", t, func() {
@@ -625,7 +623,7 @@ func TestServerWithCookie(t *testing.T) {
 			So(out, ShouldBeBlank)
 			So(ec, ShouldBeZeroValue)
 		})
-		//TODO: check non admin after fixing other non admin test
+		//TODO: maybe check non admin after fixing other non admin test..
 	})
 }
 

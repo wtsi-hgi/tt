@@ -184,6 +184,8 @@ github.com/wtsi-hgi/go-authserver v1.6.2-0.20261008132137-7ee8b846027a h1:5xviwC
 github.com/wtsi-hgi/go-authserver v1.6.2-0.20261008132137-7ee8b846027a/go.mod h1:CiuYjnSE2tBqu7EETZX4wCGN1HX9WoriovvLEFjPJjA=
 github.com/wtsi-hgi/go-authserver v1.6.2 h1:4wN1GOYitO472zo9MWQBYJEdWM0S3D7p3ZUXkpakgGI=
 github.com/wtsi-hgi/go-authserver v1.6.2/go.mod h1:CiuYjnSE2tBqu7EETZX4wCGN1HX9WoriovvLEFjPJjA=
+github.com/wtsi-hgi/go-authserver v1.6.3-0.20261013122516-e546acce1eb8 h1:/Yvoto4KQAZDlh8ewrRteF9DZqwccSDlcDzaXA5PRlw=
+github.com/wtsi-hgi/go-authserver v1.6.3-0.20261013122516-e546acce1eb8/go.mod h1:CiuYjnSE2tBqu7EETZX4wCGN1HX9WoriovvLEFjPJjA=
 github.com/wtsi-hgi/graceful v1.2.16 h1:Z0gaL4V/fPv3l3v5M3IaUXp6Bf3ljYqau4u55IZmU1M=
 github.com/wtsi-hgi/graceful v1.2.16/go.mod h1:JGggdApmVnQRKTgbWfGf8zCDnsIu76Uao4p3hxnXmII=
 github.com/youmark/pkcs8 v0.0.0-20240726163527-a2c0da244d78 h1:ilQV1hzziu+LLM3zUTJ0trRztfwgjqKnBWNtSRkbmwM=
