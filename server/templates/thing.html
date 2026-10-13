@@ -8,7 +8,7 @@
 	<td>{{ .RequestSource}}</td>
 	<td>{{ .Remove.Format "2006-01-02" }}</td>
 	<td>
-		<button class="uk-button uk-button-danger" hx-delete="/things/{{ .ID }}" hx-swap="swap:1s">
+		<button class="uk-button uk-button-danger" hx-delete="/rest/v1/auth/things/{{ .ID }}" hx-swap="swap:1s">
 			Delete
 		</button>
 	</td>

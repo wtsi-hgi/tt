@@ -180,12 +180,8 @@ github.com/twitchyliquid64/golang-asm v0.15.1 h1:SU5vSMR7hnwNxj24w34ZyCi/FmDZTkS
 github.com/twitchyliquid64/golang-asm v0.15.1/go.mod h1:a1lVb/DtPvCB8fslRZhAngC2+aY1QWCk3Cedj/Gdt08=
 github.com/ugorji/go/codec v1.3.1 h1:waO7eEiFDwidsBN6agj1vJQ4AG7lh2yqXyOXqhgQuyY=
 github.com/ugorji/go/codec v1.3.1/go.mod h1:pRBVtBSKl77K30Bv8R2P+cLSGaTtex6fsA2Wjqmfxj4=
-github.com/wtsi-hgi/go-authserver v1.6.2-0.20261008132137-7ee8b846027a h1:5xviwCDD8jyVxwx89XnT16WdTj1sO+QpwN4+zYrs8b0=
-github.com/wtsi-hgi/go-authserver v1.6.2-0.20261008132137-7ee8b846027a/go.mod h1:CiuYjnSE2tBqu7EETZX4wCGN1HX9WoriovvLEFjPJjA=
-github.com/wtsi-hgi/go-authserver v1.6.2 h1:4wN1GOYitO472zo9MWQBYJEdWM0S3D7p3ZUXkpakgGI=
-github.com/wtsi-hgi/go-authserver v1.6.2/go.mod h1:CiuYjnSE2tBqu7EETZX4wCGN1HX9WoriovvLEFjPJjA=
-github.com/wtsi-hgi/go-authserver v1.6.3-0.20261013122516-e546acce1eb8 h1:/Yvoto4KQAZDlh8ewrRteF9DZqwccSDlcDzaXA5PRlw=
-github.com/wtsi-hgi/go-authserver v1.6.3-0.20261013122516-e546acce1eb8/go.mod h1:CiuYjnSE2tBqu7EETZX4wCGN1HX9WoriovvLEFjPJjA=
+github.com/wtsi-hgi/go-authserver v1.6.3 h1:zfkSw3JnJQ1y4higU1I3aS5rNKHoRYG1fzrnH8tWyV8=
+github.com/wtsi-hgi/go-authserver v1.6.3/go.mod h1:CiuYjnSE2tBqu7EETZX4wCGN1HX9WoriovvLEFjPJjA=
 github.com/wtsi-hgi/graceful v1.2.16 h1:Z0gaL4V/fPv3l3v5M3IaUXp6Bf3ljYqau4u55IZmU1M=
 github.com/wtsi-hgi/graceful v1.2.16/go.mod h1:JGggdApmVnQRKTgbWfGf8zCDnsIu76Uao4p3hxnXmII=
 github.com/youmark/pkcs8 v0.0.0-20240726163527-a2c0da244d78 h1:ilQV1hzziu+LLM3zUTJ0trRztfwgjqKnBWNtSRkbmwM=
