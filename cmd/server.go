@@ -38,6 +38,10 @@ import (
 	"github.com/wtsi-hgi/tt/server"
 )
 
+const (
+	serverTokenBasename = ".tt.token"
+)
+
 // serverCmd represents the server command.
 var serverCmd = &cobra.Command{
 	Use:   "server",
@@ -51,7 +55,8 @@ Your --url (in this context, think of it as the bind address) should include the
 port, and for it to work with your --cert, you probably need to specify it as
 fqdn:port. --url defaults to the TT_SERVER_URL env var. --cert and --key (both
 required) defaults to the TT_SERVER_CERT and TT_SERVER_KEY env vars
-respectively.
+respectively. --domain is the default email domain of users, this defaults to 
+TT_SERVER_DEFAULT_EMAIL_DOMAIN env var.
 
 You will also need your database connection details in env vars:
 export TT_SQL_HOST=localhost
@@ -72,6 +77,17 @@ except for non-graceful stops of the server, which are sent at the CRIT level or
 include 'panic' in the message. The messages are tagged 'tt-server', and you
 might want to filter away 'STATUS=200' to find problems.
 If --logfile is supplied, logs to that file instead of syslog.
+
+The server authenticates users using LDAP. You must provide the FQDN for your
+LDAP server, eg. --ldap_server ldap.example.com, and the bind DN that you would
+supply to eg. 'ldapwhoami -D' to test user credentials, replacing the username
+part with '%s', eg. --ldap_dn 'uid=%s,ou=people,dc=example,dc=com'. If you don't
+supply both of these, you'll get a warning, but the server will work and assume
+all passwords are valid.
+
+The server website authenticates users using a cookie containing the users username.
+Provide the cookie name with the --cookie flag. If the name is not provided, it will 
+default to the environment variable TT_SERVER_COOKIE. 
 
 This command will block forever in the foreground; you can background it with
 ctrl-z; bg. Or better yet, use the daemonize program to daemonize this.
@@ -103,11 +119,36 @@ ctrl-z; bg. Or better yet, use the daemonize program to daemonize this.
 			return err
 		}
 
+		serverDefaultEmailDomain, err := cmd.Flags().GetString("domain")
+		if err != nil {
+			return err
+		}
+
 		logWriter := setServerLogger(serverLogPath, serverLogStdErr)
 
 		config, err := mysql.ConfigFromEnv()
 		if err != nil {
 			return fmt.Errorf("failed to get database config: %w", err)
+		}
+
+		serverLDAPFQDN, err := cmd.Flags().GetString("ldap_server")
+		if err != nil {
+			return err
+		}
+
+		serverLDAPBindDN, err := cmd.Flags().GetString("ldap_dn")
+		if err != nil {
+			return err
+		}
+
+		if serverLDAPFQDN == "" || serverLDAPBindDN == "" {
+			// main_test looks for output periodically and takes first output so "server started should be said first? "
+			defer warn("ldap options not supplied, will assume all user passwords are correct!")
+		}
+
+		cookie, err := cmd.Flags().GetString("cookie")
+		if err != nil {
+			return err
 		}
 
 		database, err := mysql.New(config)
@@ -116,8 +157,14 @@ ctrl-z; bg. Or better yet, use the daemonize program to daemonize this.
 		}
 
 		conf := server.Config{
-			HTTPLogger: logWriter,
-			Database:   database,
+			HTTPLogger:         logWriter,
+			Database:           database,
+			DefaultEmailDomain: serverDefaultEmailDomain,
+			Key:                serverKey,
+			Cert:               serverCert,
+			TokenFileName:      serverTokenBasename,
+			AuthCallback:       createCheckPassword(serverLDAPFQDN, serverLDAPBindDN),
+			CookieName:         cookie,
 		}
 
 		s, err := server.New(conf)
@@ -152,10 +199,21 @@ func init() {
 		"path to server certificate file")
 	serverCmd.Flags().String("key", os.Getenv(serverKeyEnvKey),
 		"path to server key file")
+	serverCmd.Flags().String("domain", os.Getenv(serverDomainEnvKey),
+		"default domain of users")
+	serverCmd.Flags().String("ldap_server", "",
+		"fqdn of your ldap server")
+	serverCmd.Flags().String("ldap_dn", "",
+		"ldap bind dn, with username replaced with %s")
+	serverCmd.Flags().String("cookie", os.Getenv(serverCookieEnvKey),
+		"the name of the cookie for username authorisation")
+
 	serverCmd.MarkFlagsMutuallyExclusive("logfile", "logstderr")
-	serverCmd.MarkFlagRequired("url")  //nolint:errcheck
-	serverCmd.MarkFlagRequired("cert") //nolint:errcheck
-	serverCmd.MarkFlagRequired("key")  //nolint:errcheck
+	serverCmd.MarkFlagRequired("url")    //nolint:errcheck
+	serverCmd.MarkFlagRequired("cert")   //nolint:errcheck
+	serverCmd.MarkFlagRequired("key")    //nolint:errcheck
+	serverCmd.MarkFlagRequired("domain") //nolint:errcheck
+	serverCmd.MarkFlagRequired("cert")   //nolint:errcheck
 }
 
 // setServerLogger makes our appLogger log to stderr if our stdErrMode is true,

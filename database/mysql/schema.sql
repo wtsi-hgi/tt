@@ -11,7 +11,7 @@ CREATE TABLE users (
 CREATE TABLE things (
     id int unsigned NOT NULL AUTO_INCREMENT PRIMARY KEY,
     address varchar(4096) NOT NULL,
-    type enum('dir', 'file', 'irods', 'openstack', 's3') NOT NULL,
+    type enum('dir', 'file', 'irods', 'openstack', 's3', 'resource') NOT NULL,
     created date NOT NULL,
     description text(4096),
     reason tinytext NOT NULL,
@@ -19,6 +19,13 @@ CREATE TABLE things (
     warned1 date,
     warned2 date,
     removed bool NOT NULL default 0,
+    license text(4096),
+    version tinytext,
+    name tinytext, 
+    url text(4096),
+    download_method text(4096),
+    request_source text(4096),
+    creation_date date, 
     UNIQUE(address(170), type)
 ) ENGINE=INNODB;
 

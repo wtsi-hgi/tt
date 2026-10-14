@@ -41,6 +41,10 @@ func TestNewThingsTypes(t *testing.T) {
 		So(err, ShouldBeNil)
 		So(tt, ShouldEqual, ThingsTypeDir)
 
+		tt, err = NewThingsType("resource")
+		So(err, ShouldBeNil)
+		So(tt, ShouldEqual, ThingsTypeResource)
+
 		tt, err = NewThingsType("file")
 		So(err, ShouldBeNil)
 		So(tt, ShouldEqual, ThingsTypeFile)
@@ -105,5 +109,25 @@ func TestNewOrderDirection(t *testing.T) {
 
 		_, err = NewOrderDirection("invalid")
 		So(err, ShouldNotBeNil)
+	})
+}
+
+func TestNewGetThingsParams(t *testing.T) {
+	Convey("You can convert strings to a GetThingsParams, unless it's invalid", t, func() {
+		tType := "irods"
+		orderBy := "address"
+		orderDir := "ASC"
+		page := "2"
+		perPage := "3"
+
+		gtp, err := NewGetThingsParams(tType, orderBy, orderDir, page, perPage)
+		So(err, ShouldBeNil)
+		So(gtp, ShouldResemble, GetThingsParams{
+			FilterOnType:   ThingsTypeIrods,
+			OrderBy:        OrderByAddress,
+			OrderDirection: OrderAsc,
+			Page:           2,
+			ThingsPerPage:  3,
+		})
 	})
 }

@@ -12,6 +12,16 @@ jobs:
     steps:
       - uses: actions/checkout@v7.0.0
       
+      - name: Setup MySQL
+        uses: mirromutth/mysql-action@v1.1
+        with:
+          mysql database: 'my_db' 
+          mysql user: 'dev' 
+          mysql password: devpass 
+
+      - name: Create env file
+        run: echo -e "export TT_SQL_HOST=127.0.0.1\nexport TT_SQL_PORT=3306\nexport TT_SQL_USER=dev\nexport TT_SQL_PASS=devpass\nexport TT_SQL_DB=my_db\nTT_SQL_DO_TESTS=TABLES_WILL_BE_DROPPED" > .env.development.local
+      
       - name: Setup Go
         uses: actions/setup-go@v6.4.0
         with:

@@ -32,6 +32,18 @@ type Queries interface {
 	// user will have its ID set.
 	CreateUser(name, email string) (*User, error)
 
+	// GetUserByName returns a user with a given name if that user exists in the
+	// database.
+	GetUserByName(name string) (*User, error)
+
+	// GetUserByID returns a user with a given user ID if that user exists in the
+	// database.
+	GetUserByID(uid uint32) (*User, error)
+
+	// GetSubscribers returns a list of subscribers to a given Thing providing
+	// the things ID.
+	GetSubscribers(id uint32) ([]Subscriber, error)
+
 	// CreateThing creates a new Thing with the given details. The returned
 	// Thing will have its ID set to an auto-increment value, and Created time
 	// set to now. The supplied Creator must match the Name of an existing User,
@@ -42,6 +54,10 @@ type Queries interface {
 	// result is the last page that would return things if Page and
 	// ThingsPerPage are > 0.
 	GetThings(params GetThingsParams) (*GetThingsResult, error)
+
+	// GetThingByID returns a thing with a given thing ID if that thing
+	// exists in the database.
+	GetThingByID(id uint32) (*Thing, error)
 
 	// DeleteUser deletes the user with the given ID. This will also delete any
 	// subscriptions the user had (but not any Things the user created).

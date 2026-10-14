@@ -26,16 +26,49 @@
 package server
 
 import (
+	"errors"
 	"net/http"
 	"strconv"
+	"time"
 
 	"github.com/gin-gonic/gin"
+	gas "github.com/wtsi-hgi/go-authserver"
 	"github.com/wtsi-hgi/tt/database"
 )
 
 const (
 	defaultPage    = 1
 	defaultPerPage = 50
+	fiveYear       = time.Hour * 24 * 365 * 5
+	jsonType       = "application/json"
+)
+
+type Error string
+
+func (e Error) Error() string { return string(e) }
+
+const (
+	ErrInvalidEmail    = Error("Invalid email")
+	ErrInvalidUserName = Error("Invalid username")
+	ErrInvalidThingID  = Error("Invalid thing ID")
+	ErrUnauthorized    = Error("Unauthorized") //nolint:misspell
+	ErrNoUser          = database.Error("No User found with that name")
+)
+
+const (
+	pageRootPath     = "/"
+	thingsPath       = "/things"
+	thingIDPath      = "/things/:id"
+	userPath         = "/user"
+	thingsListenPath = "/things/listen"
+	subscribersPath  = "/subscribers"
+
+	EndPointAuthRoot               = gas.EndPointAuth + pageRootPath
+	EndPointAuthUser               = gas.EndPointAuth + userPath
+	EndPointAuthThings             = gas.EndPointAuth + thingsPath
+	EndPointAuthThingID            = gas.EndPointAuth + thingIDPath
+	EndPointAuthSseThingsEventName = thingsListenPath
+	EndPointAuthSubscribers        = gas.EndPointAuth + subscribersPath
 )
 
 // pageRoot takes no user input; it's for the overall main html page at /.
@@ -56,22 +89,20 @@ func (s *Server) pageRoot(c *gin.Context) {
 // page=<int>&per_page=<int> : get a particular page of results, where each page
 // has per_page Things. Page defaults to 1, and per_page defaults to 50.
 func (s *Server) getThings(c *gin.Context) {
-	orderBy, orderDirection, thingType, page, perPage, err := parseGetThingsParams(c)
+	filter, err := database.NewGetThingsParams(c.Query("type"), c.Query("sort"), c.Query("dir"), c.Query("page"), c.Query("per_page")) //nolint:lll
 	if err != nil {
 		c.AbortWithError(http.StatusBadRequest, err) //nolint: errcheck
+	}
+
+	result, err := s.db.GetThings(filter)
+	if err != nil {
+		c.AbortWithError(http.StatusInternalServerError, err) //nolint: errcheck
 
 		return
 	}
 
-	result, err := s.db.GetThings(database.GetThingsParams{
-		FilterOnType:   thingType,
-		OrderBy:        orderBy,
-		OrderDirection: orderDirection,
-		Page:           page,
-		ThingsPerPage:  perPage,
-	})
-	if err != nil {
-		c.AbortWithError(http.StatusInternalServerError, err) //nolint: errcheck
+	if c.Request.Header.Get("Accept") == jsonType {
+		c.JSON(http.StatusOK, result.Things)
 
 		return
 	}
@@ -79,37 +110,35 @@ func (s *Server) getThings(c *gin.Context) {
 	c.HTML(http.StatusOK, "templates/things.html", result.Things)
 }
 
-func parseGetThingsParams(c *gin.Context) (orderBy database.OrderBy,
-	orderDirection database.OrderDirection, thingsType database.ThingsType, page int, perPage int, err error) {
-	orderBy, err = database.NewOrderBy(c.Query("sort"))
+// getThingByID returns the row in the Things table in the database. The id of
+// the desired thing can be supplied as a query param by the User.
+func (s *Server) getThingByID(c *gin.Context) {
+	tID := c.Query("id")
+	if tID == "" {
+		return
+	}
+
+	id, err := strconv.Atoi(tID)
 	if err != nil {
-		return //nolint:nakedret
+		c.AbortWithError(http.StatusInternalServerError, err) //nolint: errcheck
+
+		return
 	}
 
-	orderDirection, err = database.NewOrderDirection(c.Query("dir"))
+	result, err := s.db.GetThingByID(uint32(id)) //nolint:gosec
 	if err != nil {
-		return //nolint:nakedret
+		c.AbortWithError(http.StatusInternalServerError, err) //nolint: errcheck
+
+		return
 	}
 
-	thingsType, err = database.NewThingsType(c.Query("type"))
-	if err != nil {
-		return //nolint:nakedret
+	if c.Request.Header.Get("Accept") == jsonType {
+		c.JSON(http.StatusOK, result)
+
+		return
 	}
 
-	page = atoiWithDefault(c.Query("page"), defaultPage)
-	perPage = atoiWithDefault(c.Query("per_page"), defaultPerPage)
-
-	return //nolint:nakedret
-}
-
-func atoiWithDefault(text string, defaultVal int) int {
-	num, err := strconv.Atoi(text)
-
-	if err != nil || num < 1 {
-		return defaultVal
-	}
-
-	return num
+	c.HTML(http.StatusOK, "templates/things.html", result)
 }
 
 // postThing posts all required fields of a Thing to /things, along with Creator
@@ -121,18 +150,15 @@ func atoiWithDefault(text string, defaultVal int) int {
 func (s *Server) postThing(c *gin.Context) {
 	var postedThing database.CreateThingParams
 
-	if err := c.ShouldBind(&postedThing); err != nil {
-		c.AbortWithError(http.StatusBadRequest, err) //nolint: errcheck
-
-		return
-	}
-
-	_, err := database.NewThingsType(string(postedThing.Type))
+	err := s.postThingValidate(&postedThing, c)
 	if err != nil {
 		c.AbortWithError(http.StatusBadRequest, err) //nolint: errcheck
 
 		return
 	}
+
+	user := userCheck(s, c, postedThing)
+	postedThing.CreatorID = user.ID
 
 	thing, err := s.db.CreateThing(postedThing)
 	if err != nil {
@@ -148,7 +174,51 @@ func (s *Server) postThing(c *gin.Context) {
 		return
 	}
 
-	c.Status(http.StatusOK)
+	c.Status(http.StatusNoContent)
+}
+
+func userCheck(s *Server, c *gin.Context, postedThing database.CreateThingParams) *database.User {
+	if !s.AllowedAccess(c, postedThing.Creator) {
+		c.AbortWithError(http.StatusUnauthorized, ErrUnauthorized) //nolint: errcheck
+
+		return nil
+	}
+
+	user, err := s.db.GetUserByName(postedThing.Creator)
+	if errors.Is(err, ErrNoUser) {
+		user, err = s.db.CreateUser(postedThing.Creator, postedThing.Creator+s.DefaultEmailDomain)
+	}
+
+	if err != nil && !errors.Is(err, ErrNoUser) {
+		c.AbortWithError(http.StatusInternalServerError, err) //nolint: errcheck
+
+		return nil
+	}
+
+	return user
+}
+
+func (s *Server) postThingValidate(postedThing *database.CreateThingParams, c *gin.Context) error {
+	if err := c.ShouldBind(postedThing); err != nil {
+		return err
+	}
+
+	// Set defaults.
+	if postedThing.Remove.IsZero() {
+		if postedThing.CreationDate.Valid {
+			postedThing.Remove = postedThing.CreationDate.Time.Add(fiveYear)
+		}
+
+		postedThing.Remove = time.Now().Add(fiveYear)
+	}
+
+	// Validating values.
+	err := database.ValidateCreateThingsParams(*postedThing)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
 // deleteThing deletes the thing with the id in the url /things/id from the
@@ -169,4 +239,125 @@ func (s *Server) deleteThing(c *gin.Context) {
 	}
 
 	c.Status(http.StatusOK)
+}
+
+func (s *Server) postUser(c *gin.Context) {
+	var userPost database.User
+
+	if err := c.ShouldBind(&userPost); err != nil {
+		c.AbortWithError(http.StatusBadRequest, err) //nolint: errcheck
+
+		return
+	}
+
+	if !s.AllowedAccess(c, userPost.Name) {
+		c.AbortWithError(http.StatusUnauthorized, ErrUnauthorized) //nolint: errcheck
+
+		return
+	}
+
+	if userPost.Name == "" {
+		c.AbortWithError(http.StatusBadRequest, ErrInvalidUserName) //nolint: errcheck
+
+		return
+	}
+
+	if userPost.Email == "" {
+		userPost.Email = userPost.Name + s.DefaultEmailDomain
+	}
+
+	_, err := s.db.CreateUser(userPost.Name, userPost.Email)
+	if err != nil {
+		c.AbortWithError(http.StatusBadRequest, err) //nolint:errcheck
+
+		return
+	}
+
+	c.Status(http.StatusNoContent)
+}
+
+func (s *Server) getUser(c *gin.Context) {
+	username := c.Query("name")
+	uID := c.Query("id")
+
+	if username == "" && uID == "" {
+		c.AbortWithError(http.StatusBadRequest, ErrInvalidUserName) //nolint: errcheck
+
+		return
+	}
+
+	if username != "" {
+		s.getUserByName(username, c)
+
+		return
+	}
+	// case when id != ""
+	s.getUserByID(uID, c)
+}
+
+func (s *Server) getUserByName(username string, c *gin.Context) {
+	result, err := s.db.GetUserByName(username)
+	if err != nil {
+		c.AbortWithError(http.StatusInternalServerError, err) //nolint: errcheck
+
+		return
+	}
+
+	if c.Request.Header.Get("Accept") == jsonType {
+		c.JSON(http.StatusOK, result)
+
+		return
+	}
+
+	c.HTML(http.StatusOK, "templates/things.html", result)
+}
+
+func (s *Server) getUserByID(uID string, c *gin.Context) {
+	id, err := strconv.Atoi(uID)
+	if err != nil {
+		c.AbortWithError(http.StatusInternalServerError, err) //nolint: errcheck
+
+		return
+	}
+
+	result, err := s.db.GetUserByID(uint32(id)) //nolint:gosec
+	if err != nil {
+		c.AbortWithError(http.StatusInternalServerError, err) //nolint: errcheck
+
+		return
+	}
+
+	if c.Request.Header.Get("Accept") == jsonType {
+		c.JSON(http.StatusOK, result)
+
+		return
+	}
+
+	c.HTML(http.StatusOK, "templates/things.html", result)
+}
+
+func (s *Server) getSubscribers(c *gin.Context) {
+	tID := c.Query("id")
+
+	id, err := strconv.Atoi(tID)
+	if err != nil {
+		c.AbortWithError(http.StatusBadRequest, ErrInvalidThingID) //nolint: errcheck
+
+		return
+	}
+
+	result, errc := s.db.GetSubscribers(uint32(id)) //nolint:gosec
+	if errc != nil {
+		c.AbortWithError(http.StatusBadRequest, errc) //nolint: errcheck
+
+		return
+	}
+
+	if c.Request.Header.Get("Accept") == jsonType {
+		c.JSON(http.StatusOK, result)
+
+		return
+	}
+
+	c.HTML(http.StatusOK, "templates/things.html", result)
 }

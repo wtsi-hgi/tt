@@ -42,9 +42,11 @@ import (
 var appLogger = log15.New()
 
 const (
-	serverURLEnvKey  = "TT_SERVER_URL"
-	serverCertEnvKey = "TT_SERVER_CERT"
-	serverKeyEnvKey  = "TT_SERVER_KEY"
+	serverURLEnvKey    = "TT_SERVER_URL"
+	serverCertEnvKey   = "TT_SERVER_CERT"
+	serverKeyEnvKey    = "TT_SERVER_KEY"
+	serverDomainEnvKey = "TT_SERVER_DEFAULT_EMAIL_DOMAIN"
+	serverCookieEnvKey = "TT_SERVER_COOKIE"
 )
 
 // RootCmd represents the base command when called without any subcommands.
@@ -53,7 +55,6 @@ var RootCmd = &cobra.Command{
 	Short: "tt helps you keep track of and clean up temporary things",
 	Long: `tt helps you keep track of and clean up temporary things.
 
-TODO: help text
 `,
 }
 
