@@ -214,20 +214,21 @@ func (c *Client) GetSubscribers(thingID uint32) ([]database.Subscriber, error) {
 // TODO: post a subscriber
 func (c *Client) Subscribe(id uint32) error { //pass in subscriber type > ammending this table...
 	//subscriber:= database.Subscriber{}
+
 	return nil
 }
 
 // TODO: delete a subscriber
 func (c *Client) Unsubscribe(id uint32) error { //pass in subscriber type?
-	return nil
 
+	return nil
 }
 
 // TODO: get a users subscriptions
 func (c *Client) GetSubscriptions(userID uint32) ([]database.Thing, error) {
-	//does this get things or get subs.. things more useful for display..
-	return nil, nil
+	// does this get things or get subs.. things more useful for display..
 
+	return nil, nil
 }
 
 // GetUserByID gets a user given the user ID.
