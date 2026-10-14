@@ -150,6 +150,25 @@ func buildSelf() func() {
 	return func() { os.Remove(testBinaryPath) }
 }
 
+type lockedBuffer struct {
+	sync.RWMutex
+	buf bytes.Buffer
+}
+
+func (l *lockedBuffer) Write(p []byte) (int, error) {
+	l.Lock()
+	defer l.Unlock()
+
+	return l.buf.Write(p)
+}
+
+func (l *lockedBuffer) String() string {
+	l.RLock()
+	defer l.RUnlock()
+
+	return l.buf.String()
+}
+
 type testServer struct {
 	key     string
 	cert    string
@@ -157,8 +176,8 @@ type testServer struct {
 	stopped bool
 
 	cmd    *exec.Cmd
-	stdout bytes.Buffer
-	stderr bytes.Buffer
+	stdout lockedBuffer
+	stderr lockedBuffer
 }
 
 func NewTestServer(t *testing.T, args []string) (*testServer, error) {
