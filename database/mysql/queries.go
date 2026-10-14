@@ -169,6 +169,18 @@ func (m *DB) GetSubscribers(thingID uint32) ([]database.Subscriber, error) {
 	return subscribers, rows.Err()
 }
 
+const getSubscriptionsByUser = `
+SELECT user_id, thing_id, creator
+FROM subscribers
+WHERE user_id = ?
+`
+
+// is this like a filter of things then? but we need
+// maybe client should get []subscibers then friendly getThingsSubscribedTo (return []things)
+func (m *DB) GetSubscriptions(userID uint32) ([]database.Thing, error) {
+	return nil, nil
+}
+
 const createThing = `
 INSERT INTO things (
   address, type, created, description, reason, remove, license, ` +

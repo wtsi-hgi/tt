@@ -193,13 +193,13 @@ func (c *Client) PostThing(t *database.CreateThingParams) error {
 }
 
 // GetSubscribers gets the subscribers to a thing given the Thing ID.
-func (c *Client) GetSubscribers(id uint32) ([]database.Subscriber, error) {
+func (c *Client) GetSubscribers(thingID uint32) ([]database.Subscriber, error) {
 	subscribers := []database.Subscriber{}
 
 	resp, err := c.request().SetHeader("Accept", "application/json").
-		SetQueryParam("id", strconv.Itoa(int(id))).
+		SetQueryParam("id", strconv.Itoa(int(thingID))).
 		SetResult(&subscribers).
-		Get(EndPointAuthSubscribers)
+		Get(EndPointAuthSubscribersThingID) //!!
 	if err != nil {
 		return nil, err
 	}
@@ -209,6 +209,25 @@ func (c *Client) GetSubscribers(id uint32) ([]database.Subscriber, error) {
 	}
 
 	return subscribers, responseToErr(resp)
+}
+
+// TODO: post a subscriber
+func (c *Client) Subscribe(id uint32) error { //pass in subscriber type > ammending this table...
+	//subscriber:= database.Subscriber{}
+	return nil
+}
+
+// TODO: delete a subscriber
+func (c *Client) Unsubscribe(id uint32) error { //pass in subscriber type?
+	return nil
+
+}
+
+// TODO: get a users subscriptions
+func (c *Client) GetSubscriptions(userID uint32) ([]database.Thing, error) {
+	//does this get things or get subs.. things more useful for display..
+	return nil, nil
+
 }
 
 // GetUserByID gets a user given the user ID.

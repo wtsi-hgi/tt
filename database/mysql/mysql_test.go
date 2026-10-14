@@ -298,11 +298,6 @@ func TestMySQL(t *testing.T) {
 					So(len(subscribers), ShouldEqual, 1)
 					So(subscribers[0], ShouldResemble, database.Subscriber{UserID: creator.ID, ThingID: thing.ID, Creator: true})
 				}
-				// // Remove this test as we no longer get the invalid user error
-				// _, err = db.CreateThing(expectedThings[0].ToCreateParams(database.User{Name: "invalid"}))
-
-				// So(err, ShouldNotBeNil)
-				// So(err, ShouldEqual, ErrNoUser)
 
 				numThings := len(expectedThings)
 				count, err = countTableRows(db.pool, "things")
@@ -508,6 +503,17 @@ func TestMySQL(t *testing.T) {
 					So(err, ShouldBeNil)
 					So(count, ShouldEqual, (numThings/2)-1)
 				})
+				//TODO:
+				Convey("Then you can subscribe to additional things", func() {
+					Convey("Then you can get the things you are subscribed to", func() { //getting from subs table or getting from things table?
+
+					})
+					//(unless you are the creator)> does everything needs a creator? > causes issues when people leave?
+					Convey("Then you can delete your subscriptions (unless you are the creator)", func() {
+
+					})
+				})
+				//TODO: do we have test for get subcribers to a thing?
 			})
 
 			Convey("You can then add a user and a resource", func() {

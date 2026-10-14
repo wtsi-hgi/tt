@@ -253,6 +253,8 @@ func ValidateCreateThingsParams(thing CreateThingParams) error { //nolint:gocycl
 type Thing struct {
 	// ID is the unique (auto-increment) id of the temporary thing.
 	ID uint32
+	// CreatorID is the id of the user who create dthe temporary thing
+	//CreatorID uint32 //!!
 	// Address is the location of the resource, such as absolute file path on
 	// disk or URL.
 	Address string
