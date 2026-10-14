@@ -309,7 +309,6 @@ func (s *Server) getUserByName(username string, c *gin.Context) {
 		return
 	}
 
-	//TODO: this should be using a user template of some kind
 	c.HTML(http.StatusOK, "templates/things.html", result)
 }
 
@@ -334,7 +333,6 @@ func (s *Server) getUserByID(uID string, c *gin.Context) {
 		return
 	}
 
-	//TODO: this should be using a user template of some kind
 	c.HTML(http.StatusOK, "templates/things.html", result)
 }
 
@@ -361,6 +359,5 @@ func (s *Server) getSubscribers(c *gin.Context) {
 		return
 	}
 
-	//TODO: subscriber template
 	c.HTML(http.StatusOK, "templates/things.html", result)
 }

@@ -74,7 +74,6 @@ type Config struct {
 
 // CheckValid returns nil if all required options have been supplied, or an
 // error if not.
-// TODO: gocyclo: cert as a single file.. what would this reduce.
 func (c Config) CheckValid() error { //nolint:gocyclo
 	if c.HTTPLogger == nil {
 		return ErrNoLogger

@@ -55,7 +55,6 @@ var RootCmd = &cobra.Command{
 	Short: "tt helps you keep track of and clean up temporary things",
 	Long: `tt helps you keep track of and clean up temporary things.
 
-TODO: help text
 `,
 }
 

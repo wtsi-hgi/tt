@@ -562,8 +562,6 @@ func TestCreateGet(t *testing.T) {
 			So(out, ShouldContainSubstring, " ??")
 			So(ec, ShouldBeZeroValue)
 		})
-		//TODO: test that we can't use protected client methods without being the user that started the server
-		//  test where you change $USER and $HOME so that you are not the user that started the server: cli should fail
 	})
 
 	Convey("You can not (Create a user, Create a Thing, and Get a Thing) without starting the server", t, func() {
@@ -642,7 +640,6 @@ func TestServerWithCookie(t *testing.T) {
 			So(out, ShouldBeBlank)
 			So(ec, ShouldBeZeroValue)
 		})
-		//TODO: maybe check non admin after fixing other non admin test..
 	})
 }
 
