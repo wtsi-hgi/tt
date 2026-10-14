@@ -12,6 +12,18 @@ jobs:
     steps:
       - uses: actions/checkout@v7.0.0
       
+      - name: Setup MySQL
+        uses: kayqueGovetri/setup-mysql@v1
+        with:
+          mysql_root_password: 'rootpass'
+          mysql_database: 'my_db'
+          mysql_user: 'dev'
+          mysql_user_password: 'devpass'
+          mysql_port: 3306
+
+      - name: Create env file
+        run: echo -e "export TT_SQL_HOST=127.0.0.1\nexport TT_SQL_PORT=3306\nexport TT_SQL_USER=dev\nexport TT_SQL_PASS=devpass\nexport TT_SQL_DB=my_db\nTT_SQL_DO_TESTS=TABLES_WILL_BE_DROPPED" > .env.development.local
+      
       - name: Setup Go
         uses: actions/setup-go@v6.4.0
         with:

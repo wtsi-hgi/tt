@@ -240,6 +240,21 @@ func (m *mockDB) GetSubscribers(id uint32) ([]database.Subscriber, error) {
 	return subscribers, nil
 }
 
+// TODO: fill out these
+func (m *mockDB) GetSubscriptions(id uint32) ([]database.Thing, error) {
+	return nil, nil
+
+}
+
+// func (m *mockDB) PostSubscription(id uint32) error {
+// 	return nil
+
+// }
+// func (m *mockDB) DeleteSubscriptions(id uint32) error {
+// 	return nil
+
+// }
+
 func (m *mockDB) DeleteThing(id uint32) error {
 	for i, thing := range m.things {
 		if thing.ID == id {
