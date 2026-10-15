@@ -39,10 +39,8 @@ import (
 )
 
 const (
-	ErrInvalidInput = Error("Invalid input")
-	ErrInternal     = Error("internal error")
-)
-const (
+	ErrInvalidInput     = Error("Invalid input")
+	ErrInternal         = Error("internal error")
 	serverTokenBasename = ".tt.token"
 )
 
@@ -52,7 +50,6 @@ type Client struct {
 	url  string
 	cert string
 	jwt  string
-	// logger log15.Logger
 }
 
 type SubscriberWithUserDetails struct {
@@ -260,7 +257,7 @@ func (c *Client) GetThingByID(id uint32) (*database.Thing, error) {
 	return thing, responseToErr(resp)
 }
 
-// SubscriberAndserDetails gets the subscribers to a thing given the Thing ID.
+// GetSubscriberAndUserDetails gets the subscribers to a thing given the Thing ID.
 func (c *Client) GetSubscriberAndUserDetails(sub *database.Subscriber) (*SubscriberWithUserDetails, error) {
 	detailedSub := &SubscriberWithUserDetails{
 		Creator: sub.Creator,

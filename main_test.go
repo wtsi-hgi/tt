@@ -522,7 +522,7 @@ func TestCreateGet(t *testing.T) {
 			So(ec, ShouldNotBeZeroValue)
 
 			ec, out = runBinary(t, "get", "--url", s.url, "--cert", s.cert)
-			So(out, ShouldContainSubstring, "authentication failed") // TODO: the CLI is constantly asking for a password, even on successufl auth; the JWT is expiring immediately? Also it doesn't matter what password I enter; it still works. Also, in real life this works. Debug...
+			So(out, ShouldContainSubstring, "authentication failed")
 			So(ec, ShouldNotBeZeroValue)
 		})
 
@@ -551,9 +551,6 @@ func TestCreateGet(t *testing.T) {
 				"--email", newCLIUser+"@something")
 			So(out, ShouldBeBlank)
 			So(ec, ShouldBeZeroValue)
-
-			// u, _ := user.Current() //nolint:errcheck
-			// So(u.Username, ShouldContainSubstring, " ??")
 
 			ec, out = runBinary(t, "user", "--url", s.url, "--cert", s.cert, "--user", "Not"+newCLIUser,
 				"--email", "Not"+newCLIUser+"@something")

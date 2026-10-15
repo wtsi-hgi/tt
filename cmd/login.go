@@ -65,7 +65,6 @@ func checkLDAPPassword(username, password, serverLDAPFQDN, serverLDAPBindDN stri
 		return false, ""
 	}
 
-	// l, err := ldap.DialURL("ldaps://" + net.JoinHostPort(serverLDAPFQDN, "636"))
 	l, err := ldap.DialURL("ldaps://" + net.JoinHostPort(serverLDAPFQDN, "636"))
 	if err != nil {
 		return false, ""

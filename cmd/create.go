@@ -81,7 +81,7 @@ If applicable, the following flags can also be supplied with strings:
 	years from the creation date.
 	
 This command can only be used by the person who started the server.
-The creator field will default to the user who started the server 
+The creator field will default to the user who started the server.
 	`,
 
 	RunE: func(cmd *cobra.Command, args []string) error { //nolint: revive

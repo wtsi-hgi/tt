@@ -144,7 +144,6 @@ ctrl-z; bg. Or better yet, use the daemonize program to daemonize this.
 		}
 
 		if serverLDAPFQDN == "" || serverLDAPBindDN == "" {
-			// main_test looks for output periodically and takes first output so "server started should be said first? "
 			defer warn("ldap options not supplied, will assume all user passwords are correct!")
 		}
 

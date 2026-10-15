@@ -46,8 +46,8 @@ const (
 	ErrBadVersion        = Error("Invalid things version")
 	ErrBadName           = Error("Invalid things name")
 	ErrBadRequestSource  = Error("Invalid things request source")
-	ErrBadRemove         = Error("Invalid things remove  ")
-	ErrBadCreationDate   = Error("Invalid things creation date  ")
+	ErrBadRemove         = Error("Invalid things remove")
+	ErrBadCreationDate   = Error("Invalid things creation date ")
 )
 const (
 	defaultPage    = 1
@@ -204,49 +204,45 @@ type CreateThingParams struct {
 	CreatorID      uint32
 }
 
-// Validate that all fields in thing are okay.
+// Validate that the necessary fields in the Thing are valid.
 func ValidateCreateThingsParams(thing CreateThingParams) error { //nolint:gocyclo
-	// Validate  Address.
 	if thing.Address == "" {
 		return ErrBadAddress
 	}
-	// Validate Type.
+
 	_, err := NewThingsType(string(thing.Type))
 	if err != nil {
 		return err
 	}
-	// Validate Description
+
 	if thing.Description == "" {
 		return ErrBadDescription
 	}
-	// Validate Reason
+
 	if thing.Reason == "" {
 		return ErrBadReason
 	}
-	// Validate Remove !!
+
 	if thing.Remove.IsZero() {
 		return ErrBadRemove
 	}
-	// Validate Version
+
 	if thing.Version == "" {
 		return ErrBadVersion
 	}
-	// Validate Name
+
 	if thing.Name == "" {
 		return ErrBadName
 	}
-	// Validate RequestSource
+
 	if thing.RequestSource == "" {
 		return ErrBadRequestSource
 	}
-	// Validate CreationDate
+
 	if time.Now().Before(thing.CreationDate.Time) {
 		return ErrBadCreationDate
 	}
 
-	// .License can be empty
-	// URL may be empty
-	// DownloadMethod mey empty
 	return nil
 }
 

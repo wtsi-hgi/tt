@@ -89,7 +89,7 @@ func (m *DB) GetUserByName(name string) (*database.User, error) {
 	return getUserHelper(rows)
 }
 
-const GetUserByID = `
+const getUserByID = `
 SELECT id, name, email
 FROM users
 WHERE id = ?
@@ -97,13 +97,14 @@ WHERE id = ?
 
 // GetUserByID returns the user with the given user ID.
 func (m *DB) GetUserByID(id uint32) (*database.User, error) {
-	rows, err := m.pool.Query(GetUserByID, id)
+	rows, err := m.pool.Query(getUserByID, id)
 	if err != nil {
 		return nil, err
 	}
 
 	return getUserHelper(rows)
 }
+
 func getUserHelper(rows *sql.Rows) (*database.User, error) {
 	defer rows.Close()
 
@@ -138,6 +139,7 @@ FROM subscribers
 WHERE thing_id = ?
 `
 
+// Get subscribers returns a list of subscribers to a given thing, given that things ID.
 func (m *DB) GetSubscribers(thingID uint32) ([]database.Subscriber, error) {
 	rows, err := m.pool.Query(getSubscriberByThing, thingID)
 	if err != nil {
@@ -294,16 +296,16 @@ func (m *DB) GetThings(params database.GetThingsParams) (*database.GetThingsResu
 	}, nil
 }
 
-const GetThingByID = `
+const getThingByID = `
 SELECT things.id, address, type, created, description, reason, remove, warned1, warned2, ` +
 	`removed, license, version, name, url, download_method, request_source, creation_date
 FROM things
 WHERE things.id = ?
 `
 
-// GetThingByID returns a Thing correlating to a given ID.
+// GetThingByID returns a Thing with the given Thing ID.
 func (m *DB) GetThingByID(id uint32) (*database.Thing, error) {
-	rows, err := m.pool.Query(GetThingByID, id)
+	rows, err := m.pool.Query(getThingByID, id)
 	if err != nil {
 		return nil, err
 	}
@@ -314,7 +316,6 @@ func (m *DB) GetThingByID(id uint32) (*database.Thing, error) {
 		return nil, ErrNoUser
 	}
 
-	// var thing database.Thing
 	thing, err := getThingRowScan(rows)
 	if err != nil {
 		return nil, err

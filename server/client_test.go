@@ -41,6 +41,14 @@ import (
 
 func TestClient(t *testing.T) {
 	Convey("Given a started Server and connected Client", t, func() {
+		home := os.Getenv("XDG_STATE_HOME")
+
+		Reset(func() { t.Setenv("XDG_STATE_HOME", home) })
+
+		fakeDir := t.TempDir()
+
+		t.Setenv("XDG_STATE_HOME", fakeDir)
+
 		serverURL, err := getTestServerAddress()
 		So(err, ShouldBeNil)
 
@@ -63,13 +71,6 @@ func TestClient(t *testing.T) {
 		s, err := New(conf)
 		So(err, ShouldBeNil)
 
-		// done server side now
-		// err = s.EnableAuthWithServerToken(serverCert, serverKey, serverTokenBasename,
-		// 	func(username, password string) (bool, string) {
-		// 		return true, ""
-		// 	})
-		// So(err, ShouldBeNil)
-
 		errCh := make(chan error)
 
 		go func() {
@@ -83,18 +84,10 @@ func TestClient(t *testing.T) {
 			So(err, ShouldBeNil)
 		})
 
-		home := os.Getenv("XDG_STATE_HOME")
-
-		Reset(func() { t.Setenv("XDG_STATE_HOME", home) })
-
-		fakeDir := t.TempDir()
-
-		t.Setenv("XDG_STATE_HOME", fakeDir)
-
 		time.Sleep(1 * time.Second)
 
 		//user, err := user.Current()
-		//So(err, ShouldBeNil)
+		So(err, ShouldBeNil)
 		client, err := NewClient(serverURL, serverCert)
 		So(err, ShouldBeNil)
 

@@ -106,6 +106,7 @@ func exampleUser(id uint32) *database.User {
 		Email: fmt.Sprintf("user%d@example.com", id),
 	}
 }
+
 func GetExampleUser(id uint32) *database.User {
 	expectedUser := &database.User{
 		ID:    id,
@@ -115,6 +116,7 @@ func GetExampleUser(id uint32) *database.User {
 
 	return expectedUser
 }
+
 func GetExampleResourceData() (*database.User, database.Thing, database.Subscriber) {
 	expectedThing := database.Thing{
 		ID:             1,

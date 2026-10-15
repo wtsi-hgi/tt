@@ -39,22 +39,23 @@ import (
 // serverCmd represents the server command.
 var getCmd = &cobra.Command{
 	Use:   "get",
-	Short: "Get a Thing",
-	Long: `Get a Thing 
+	Short: "Get Things",
+	Long: `Get Things 
 This command is usable by anyone. 
-tt get connects to the started server in order to retrieve data in a table 
+get connects to the started server in order to retrieve data in a table. 
 
 For example, 
 tt get --url [] --cert [] 
-Will retrieve all things in the things table 
-The --url of the started tt server, including its port, and for it to work
-with your --cert, you probably need to specify it as
-fqdn:port. --url defaults to the TT_SERVER_URL env var. --cert 
-defaults to the TT_SERVER_CERT env var.
-You can add additional optional filtering this using the --type flag.
-This will retrieve all Things of the specified type 
+Will retrieve all things in the things table. 
 
-Further filter flags will be made available 
+The --url of the started tt server, including its port, and for it to work
+with your --cert, you probably need to specify it as fqdn:port. 
+--url defaults to the TT_SERVER_URL env var.
+--cert defaults to the TT_SERVER_CERT env var.
+
+You can add optional filtering this using the --type flag.
+This will retrieve all Things of the specified type.
+Further filter flags will be made available.
 	`,
 
 	RunE: func(cmd *cobra.Command, args []string) error { //nolint: revive
