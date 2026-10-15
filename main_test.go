@@ -408,8 +408,7 @@ func TestCreateGet(t *testing.T) {
 
 			return
 		}
-		// user, err := user.Current()
-		// So(err, ShouldBeNil)
+
 		ec, out := runBinary(t, "user", "--url", s.url, "--cert", s.cert, "--user", "name", "--email", "name@something")
 		So(out, ShouldBeBlank)
 		So(ec, ShouldBeZeroValue)
@@ -494,7 +493,6 @@ func TestCreateGet(t *testing.T) {
 			So(ec, ShouldBeZeroValue)
 		})
 
-		// !!
 		Convey("You can't interact with protected endpoints if the server credentials are deleted", func() {
 			tokenFile := filepath.Join(stateDir, ".tt.token")
 			err := os.Remove(tokenFile)
@@ -681,25 +679,6 @@ func getHTML(url string) (string, error) {
 
 	return string(html), nil
 }
-
-// function sets some env changes and also returns original env so that we can reinstate
-// this where we call it
-// func (s *testServer) impersonateUser(t *testing.T, username string) ([]string, error) {
-// 	t.Helper()
-
-// 	originalEnv := slices.Clone(s.env)
-
-// 	fakeDir, err := generateFakeJWT(t, s, username)
-// 	if err != nil {
-// 		return originalEnv, err
-// 	}
-
-// 	s.env = append(slices.DeleteFunc(s.env, func(str string) bool {
-// 		return strings.HasPrefix(str, "XDG_STATE_HOME")
-// 	}), "XDG_STATE_HOME="+fakeDir)
-
-// 	return originalEnv, nil
-// }
 
 type mockDB struct {
 	mysql.DB

@@ -1,7 +1,8 @@
 /*******************************************************************************
- * Copyright (c) 2025 Genome Research Ltd.
+ * Copyright (c) 202g Genome Research Ltd.
  *
  * Author: Sendu Bala <sb10@sanger.ac.uk>
+ *         Amber Faruque <af35@sanger.ac.uk>
  *
  * Permission is hereby granted, free of charge, to any person obtaining
  * a copy of this software and associated documentation files (the
@@ -61,18 +62,18 @@ with your --cert, you probably need to specify it as
 fqdn:port. --url defaults to the TT_SERVER_URL env var. --cert 
 defaults to the TT_SERVER_CERT env var.
 
-The information would indicated that the temporary thing "item" version 
-"1.2" is a "s3". It does "something" and was requested through "jira" because
-"xyz" and can be found in the directory "s3://bucket/path".
+The values provided would indicated the temporary Thing "item", of version 
+"1.2" is of the type "s3". It does "something" and was requested through "jira" 
+because "xyz" and can be found in the directory "s3://bucket/path".
 The type of thing you supply will be validated.
 
 If applicable, the following flags can also be supplied with strings:
 --downloadMethod, --downloadURL, --license 
-	These fields may not be applicable to every type of thing 
+	These fields are specific the resource type
 --created, --delete, 
 	These are fields that may not be known.
-	If a value is not supplied for the creation date, it will default to the 
-	date of table entry, If a value is not supplied for the deletion date, 
+	If a value is not supplied for the creation date, it will default to now,
+	If a value is not supplied for the deletion date, 
 	it will default to five years from the creation date.
 	
 This command can only be used by the person who started the server.

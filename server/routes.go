@@ -291,7 +291,7 @@ func (s *Server) getUser(c *gin.Context) {
 
 		return
 	}
-	// case when id != ""
+
 	s.getUserByID(uID, c)
 }
 
