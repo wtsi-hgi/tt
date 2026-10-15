@@ -320,7 +320,7 @@ func TestServer(t *testing.T) {
 		So(s.stdout.String(), ShouldBeBlank)
 
 		waitForSomething(func() bool {
-			return s.stderr.String() != ""
+			return strings.Contains(s.stderr.String(), "server started")
 		})
 
 		So(s.stderr.String(), ShouldContainSubstring, "server started")

@@ -293,7 +293,7 @@ type Thing struct {
 	CreationDate null.Time
 }
 
-// ToCreateParams converts thing Thing to a CreateThingParams with given user
+// ToCreateParams converts Thing to a CreateThingParams with given user
 // name.
 func (t Thing) ToCreateParams(u *User) CreateThingParams {
 	return CreateThingParams{

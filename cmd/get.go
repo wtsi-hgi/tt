@@ -28,7 +28,6 @@
 package cmd
 
 import (
-	"fmt"
 	"os"
 
 	"github.com/spf13/cobra"
@@ -94,8 +93,7 @@ Further filter flags will be made available.
 		}
 
 		if len(things) == 0 {
-			fmt.Println("No Results")
-
+			warn("No Results")
 			return nil
 		}
 
@@ -105,7 +103,7 @@ Further filter flags will be made available.
 				return err
 			}
 
-			fmt.Printf("%s\t%s\t%s\t%s\n", thing.Name, thing.Version, thing.Type, thingWithSubs.Creator.Name)
+			cliPrint("%s\t%s\t%s\t%s\n", thing.Name, thing.Version, thing.Type, thingWithSubs.Creator.Name)
 		}
 
 		return nil

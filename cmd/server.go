@@ -144,7 +144,7 @@ ctrl-z; bg. Or better yet, use the daemonize program to daemonize this.
 		}
 
 		if serverLDAPFQDN == "" || serverLDAPBindDN == "" {
-			defer warn("ldap options not supplied, will assume all user passwords are correct!")
+			warn("ldap options not supplied, will assume all user passwords are correct!")
 		}
 
 		cookie, err := cmd.Flags().GetString("cookie")
