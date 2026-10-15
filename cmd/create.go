@@ -1,8 +1,9 @@
 /*******************************************************************************
- * Copyright (c) 202g Genome Research Ltd.
+ * Copyright (c) 2026 Genome Research Ltd.
  *
- * Author: Sendu Bala <sb10@sanger.ac.uk>
- *         Amber Faruque <af35@sanger.ac.uk>
+ * Authors:
+ *	- Sendu Bala <sb10@sanger.ac.uk>
+ *  - Amber Faruque <af35@sanger.ac.uk>
  *
  * Permission is hereby granted, free of charge, to any person obtaining
  * a copy of this software and associated documentation files (the
@@ -40,7 +41,10 @@ var createCmd = &cobra.Command{
 	Short: "Create a Thing",
 	Long: `Create a Thing.
 
-A thing is...
+A Thing is something of types that has been created for temporary usage.
+It can be of the following types: 
+'dir', 'file', 'irods', 'openstack', 's3', 'resource'
+
 For example,
 tt create 
 			--url 			[]
