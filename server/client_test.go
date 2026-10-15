@@ -30,7 +30,6 @@ package server
 import (
 	"net"
 	"os"
-	"os/user"
 	"strconv"
 	"testing"
 	"time"
@@ -94,9 +93,9 @@ func TestClient(t *testing.T) {
 
 		time.Sleep(1 * time.Second)
 
-		user, err := user.Current()
-		So(err, ShouldBeNil)
-		client, err := NewClient(serverURL, serverCert, user.Username, "pass")
+		//user, err := user.Current()
+		//So(err, ShouldBeNil)
+		client, err := NewClient(serverURL, serverCert)
 		So(err, ShouldBeNil)
 
 		Convey("You can create and get a User", func() {

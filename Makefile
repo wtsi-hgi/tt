@@ -21,7 +21,7 @@ install:
 
 dev: export TT_ENV = development
 dev:
-	air server --url :4563 --cert cert.pem --key key.pem --logstderr --domain "@default.com" --cookie "nginxauth"
+	air server --url :4563 --cert cert.pem --key key.pem --logstderr --domain "@default.com" --cookie "nginxauth" --ldap_server ldap-ro.internal.sanger.ac.uk --ldap_dn uid=%s,ou=people,dc=sanger,dc=ac,dc=uk
 
 test:
 	@go test -tags netgo --count 1 -p 1 ./...

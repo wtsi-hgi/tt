@@ -74,14 +74,10 @@ type ThingWithSubscriberDetails struct {
 //
 // Optionally provide a username and password in order to login.
 // This will check the user has the correct authority in a JWT.
-func NewClient(url, cert string, userpass ...string) (*Client, error) {
+func NewClient(url, cert string) (*Client, error) {
 	c, err := gas.NewClientCLI(".tt.jwt", serverTokenBasename, url, cert, false)
 	if err != nil {
 		return nil, err
-	}
-
-	if errc := c.Login(userpass...); errc != nil {
-		return nil, errc
 	}
 
 	jwt, err := c.GetJWT()

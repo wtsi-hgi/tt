@@ -77,8 +77,8 @@ If applicable, the following flags can also be supplied with strings:
 --created, --delete, 
 	These are fields that may not be known.
 	If a value is not supplied for the creation date, it will default to now,
-	If a value is not supplied for the deletion date, 
-	it will default to five years from the creation date.
+	If a value is not supplied for the deletion date, it will default to five 
+	years from the creation date.
 	
 This command can only be used by the person who started the server.
 The creator field will default to the user who started the server 
