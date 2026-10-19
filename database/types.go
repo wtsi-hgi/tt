@@ -205,7 +205,7 @@ type CreateThingParams struct {
 }
 
 // Validate that the necessary fields in the Thing are valid.
-func ValidateCreateThingsParams(thing CreateThingParams) error { //nolint:gocyclo
+func ValidateCreateThingsParams(thing CreateThingParams) error { //nolint:gocyclo,funlen
 	if thing.Address == "" {
 		return ErrBadAddress
 	}
@@ -320,6 +320,8 @@ type Subscriber struct {
 	Creator bool
 }
 
+// NewGetThingsParams returns a new filter of type GetThingsParams with provided filters, after
+// validating the filter types.
 func NewGetThingsParams(typ, orderBy, dir, page, perPage string) (GetThingsParams, error) {
 	var filter GetThingsParams
 

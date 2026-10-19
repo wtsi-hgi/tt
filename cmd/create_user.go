@@ -39,7 +39,7 @@ import (
 var createUser = &cobra.Command{
 	Use:   "user",
 	Short: "Create a User",
-	Long: `"Create a User. 
+	Long: `Create a User.
 The tt user command is used to add a new user to the users table.
 For example,
 tt user --url [] --cert [] --user "username" --email "username@something.com"
@@ -53,8 +53,7 @@ defaults to the TT_SERVER_CERT env var.
 
 This command is only usable by the user who created the server. Access has been limited as 
 users are automatically created when they access our web server so user creation will only be used 
-with caution, when necessary, by admins. 
-`,
+with caution, when necessary, by admins.`,
 
 	RunE: func(cmd *cobra.Command, args []string) error { //nolint: revive
 		var url, cert string
@@ -87,15 +86,15 @@ func init() {
 	RootCmd.AddCommand(createUser)
 
 	// flags specific to this sub-command
-	createUser.Flags().String("url", os.Getenv(serverURLEnvKey),
+	createUser.Flags().StringP("url", "u", os.Getenv(serverURLEnvKey),
 		"tt server URL in the form host:port")
-	createUser.Flags().String("cert", os.Getenv(serverCertEnvKey),
+	createUser.Flags().StringP("cert", "c", os.Getenv(serverCertEnvKey),
 		"path to server certificate file")
 	createUser.MarkFlagRequired("url")  //nolint:errcheck
 	createUser.MarkFlagRequired("cert") //nolint:errcheck
 
-	createUser.Flags().String("user", "",
+	createUser.Flags().StringP("user", "n", "",
 		"username of user")
-	createUser.Flags().String("email", "",
+	createUser.Flags().StringP("email", "e", "",
 		"email of user")
 }

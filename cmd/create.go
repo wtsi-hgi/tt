@@ -42,7 +42,7 @@ var createCmd = &cobra.Command{
 	Long: `Create a Thing.
 
 A Thing is something of types that has been created for temporary usage.
-It can be of the following types: 
+A Thing can be of the following types: 
 'dir', 'file', 'irods', 'openstack', 's3', 'resource'
 
 For example,
@@ -73,7 +73,7 @@ The type of thing you supply will be validated.
 
 If applicable, the following flags can also be supplied with strings:
 --downloadMethod, --downloadURL, --license 
-	These fields are specific the resource type
+	These fields are specific the resource type.
 --created, --delete, 
 	These are fields that may not be known.
 	If a value is not supplied for the creation date, it will default to now,
@@ -81,8 +81,7 @@ If applicable, the following flags can also be supplied with strings:
 	years from the creation date.
 	
 This command can only be used by the person who started the server.
-The creator field will default to the user who started the server.
-	`,
+The creator field will default to the user who started the server.`,
 
 	RunE: func(cmd *cobra.Command, args []string) error { //nolint: revive
 		var url, cert, typ, creationDate, remove string
@@ -137,38 +136,38 @@ func init() { //nolint:funlen
 	RootCmd.AddCommand(createCmd)
 
 	// flags specific to this sub-command
-	createCmd.Flags().String("url", os.Getenv(serverURLEnvKey),
+	createCmd.Flags().StringP("url", "u", os.Getenv(serverURLEnvKey),
 		"tt server URL in the form host:port")
-	createCmd.Flags().String("cert", os.Getenv(serverCertEnvKey),
+	createCmd.Flags().StringP("cert", "c", os.Getenv(serverCertEnvKey),
 		"path to server certificate file")
 	createCmd.MarkFlagRequired("url")  //nolint:errcheck
 	createCmd.MarkFlagRequired("cert") //nolint:errcheck
 
-	createCmd.Flags().String("address", "",
+	createCmd.Flags().StringP("address", "a", "",
 		"address of thing")
-	createCmd.Flags().String("type", "",
+	createCmd.Flags().StringP("type", "t", "",
 		"type of thing")
-	createCmd.Flags().String("description", "",
+	createCmd.Flags().StringP("description", "d", "",
 		"description of thing")
-	createCmd.Flags().String("name", "",
+	createCmd.Flags().StringP("name", "n", "",
 		"name of thing")
-	createCmd.Flags().String("reason", "",
+	createCmd.Flags().StringP("reason", "r", "",
 		"reason for thing existing")
-	createCmd.Flags().String("requestSource", "",
+	createCmd.Flags().StringP("requestSource", "s", "",
 		"source of thing")
-	createCmd.Flags().String("version", "",
+	createCmd.Flags().StringP("version", "v", "",
 		"version of thing")
-	createCmd.Flags().String("downloadMethod", "",
+	createCmd.Flags().StringP("downloadMethod", "m", "",
 		"download method of thing")
-	createCmd.Flags().String("downloadURL", "",
+	createCmd.Flags().StringP("downloadURL", "w", "",
 		"url of thing")
-	createCmd.Flags().String("created", "",
+	createCmd.Flags().StringP("created", "k", "",
 		"creation date of thing")
-	createCmd.Flags().String("delete", "",
+	createCmd.Flags().StringP("delete", "x", "",
 		"deletion date of thing")
-	createCmd.Flags().String("license", "",
+	createCmd.Flags().StringP("license", "l", "",
 		"license of thing")
-	createCmd.Flags().String("creator", os.Getenv("USER"),
+	createCmd.Flags().StringP("creator", "o", os.Getenv("USER"),
 		"creator of thing")
 	createCmd.MarkFlagRequired("address")       //nolint:errcheck
 	createCmd.MarkFlagRequired("type")          //nolint:errcheck

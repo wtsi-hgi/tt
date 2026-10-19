@@ -53,9 +53,7 @@ const (
 var RootCmd = &cobra.Command{
 	Use:   "tt",
 	Short: "tt helps you keep track of and clean up temporary things",
-	Long: `tt helps you keep track of and clean up temporary things.
-
-`,
+	Long:  `tt helps you keep track of and clean up temporary things.`,
 }
 
 // Execute adds all child commands to the root command and sets flags

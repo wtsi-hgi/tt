@@ -152,14 +152,14 @@ func (s *Server) getThingByID(c *gin.Context) {
 func (s *Server) postThing(c *gin.Context) {
 	var postedThing database.CreateThingParams
 
-	err := s.postThingValidate(&postedThing, c)
+	err := s.postThingValidate(c, &postedThing)
 	if err != nil {
 		c.AbortWithError(http.StatusBadRequest, err) //nolint: errcheck
 
 		return
 	}
 
-	user := userCheck(s, c, postedThing)
+	user := validateOrCreateUser(c, s, postedThing)
 	postedThing.CreatorID = user.ID
 
 	thing, err := s.db.CreateThing(postedThing)
@@ -179,7 +179,7 @@ func (s *Server) postThing(c *gin.Context) {
 	c.Status(http.StatusNoContent)
 }
 
-func userCheck(s *Server, c *gin.Context, postedThing database.CreateThingParams) *database.User {
+func validateOrCreateUser(c *gin.Context, s *Server, postedThing database.CreateThingParams) *database.User {
 	if !s.AllowedAccess(c, postedThing.Creator) {
 		c.AbortWithError(http.StatusUnauthorized, ErrUnauthorized) //nolint: errcheck
 
@@ -200,7 +200,7 @@ func userCheck(s *Server, c *gin.Context, postedThing database.CreateThingParams
 	return user
 }
 
-func (s *Server) postThingValidate(postedThing *database.CreateThingParams, c *gin.Context) error {
+func (s *Server) postThingValidate(c *gin.Context, postedThing *database.CreateThingParams) error {
 	if err := c.ShouldBind(postedThing); err != nil {
 		return err
 	}
@@ -208,9 +208,9 @@ func (s *Server) postThingValidate(postedThing *database.CreateThingParams, c *g
 	// Set defaults.
 	if postedThing.Remove.IsZero() {
 		if postedThing.CreationDate.Valid {
-			postedThing.Remove = postedThing.CreationDate.Time.Add(fiveYear)
+			postedThing.Remove = postedThing.CreationDate.Time.Add(fiveYear) //!! always gets overriden..
 		}
-
+		//else{}
 		postedThing.Remove = time.Now().Add(fiveYear)
 	}
 
@@ -289,15 +289,15 @@ func (s *Server) getUser(c *gin.Context) {
 	}
 
 	if username != "" {
-		s.getUserByName(username, c)
+		s.getUserByName(c, username)
 
 		return
 	}
 
-	s.getUserByID(uID, c)
+	s.getUserByID(c, uID)
 }
 
-func (s *Server) getUserByName(username string, c *gin.Context) {
+func (s *Server) getUserByName(c *gin.Context, username string) {
 	result, err := s.db.GetUserByName(username)
 	if err != nil {
 		c.AbortWithError(http.StatusInternalServerError, err) //nolint: errcheck
@@ -314,7 +314,7 @@ func (s *Server) getUserByName(username string, c *gin.Context) {
 	c.HTML(http.StatusOK, "templates/things.html", result)
 }
 
-func (s *Server) getUserByID(uID string, c *gin.Context) {
+func (s *Server) getUserByID(c *gin.Context, uID string) {
 	id, err := strconv.Atoi(uID)
 	if err != nil {
 		c.AbortWithError(http.StatusInternalServerError, err) //nolint: errcheck

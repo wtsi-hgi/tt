@@ -434,23 +434,15 @@ func TestServer(t *testing.T) {
 
 				l.Close()
 
-				_, port, err := net.SplitHostPort(l.Addr().String())
-				So(err, ShouldBeNil)
-
 				//  and start
+				addr, stopServerFunc, err := gas.StartTestServer(s, serverCert, serverKey)
+				So(err, ShouldBeNil)
+				defer stopServerFunc() //nolint: errcheck
+
+				ch, err := gas.SSERead("https://"+addr+EndPointAuthSseThingsEventName, serverCert)
 				So(err, ShouldBeNil)
 
-				go func() {
-					s.Start("localhost:"+port, serverCert, serverKey) //nolint:errcheck
-				}()
-
-				Reset(s.Stop)
-				time.Sleep(1 * time.Second)
-
-				ch, err := gas.SSERead("https://localhost:"+port+EndPointAuthSseThingsEventName, serverCert)
-				So(err, ShouldBeNil)
-
-				ch2, err := gas.SSERead("https://localhost:"+port+EndPointAuthSseThingsEventName, serverCert)
+				ch2, err := gas.SSERead("https://"+addr+EndPointAuthSseThingsEventName, serverCert)
 				So(err, ShouldBeNil)
 
 				// Post a thing

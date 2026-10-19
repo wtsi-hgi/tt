@@ -52,10 +52,12 @@ with your --cert, you probably need to specify it as fqdn:port.
 --url defaults to the TT_SERVER_URL env var.
 --cert defaults to the TT_SERVER_CERT env var.
 
-You can add optional filtering this using the --type flag.
-This will retrieve all Things of the specified type.
-Further filter flags will be made available.
-	`,
+You can add optional filtering:
+The --type flag will retrieve all Things of the specified type.
+The --orderBy flag will order the Things returned by the provided field.
+The --orderDir flag will sort the Things returned by asc/desc.
+The --page flag and --perPage flag can be used to reduce the list of things 
+returned. These default to 1 and 50 respectively.`,
 
 	RunE: func(cmd *cobra.Command, args []string) error { //nolint: revive
 		var url, cert, typ, orderBy, orderDir, page, perPage string
@@ -94,6 +96,7 @@ Further filter flags will be made available.
 
 		if len(things) == 0 {
 			warn("No Results")
+
 			return nil
 		}
 
@@ -114,21 +117,21 @@ func init() {
 	RootCmd.AddCommand(getCmd)
 
 	// flags specific to this sub-command
-	getCmd.Flags().String("url", os.Getenv(serverURLEnvKey),
+	getCmd.Flags().StringP("url", "u", os.Getenv(serverURLEnvKey),
 		"tt server URL in the form host:port")
-	getCmd.Flags().String("cert", os.Getenv(serverCertEnvKey),
+	getCmd.Flags().StringP("cert", "c", os.Getenv(serverCertEnvKey),
 		"path to server certificate file")
 	getCmd.MarkFlagRequired("url")  //nolint:errcheck
 	getCmd.MarkFlagRequired("cert") //nolint:errcheck
 
-	getCmd.Flags().String("type", "",
+	getCmd.Flags().StringP("type", "t", "",
 		"type of things you would like to see")
-	getCmd.Flags().String("orderBy", "",
+	getCmd.Flags().StringP("orderBy", "o", "",
 		"field you would like to order by")
-	getCmd.Flags().String("orderDir", "",
+	getCmd.Flags().StringP("orderDir", "d", "",
 		"direction of order (asc/desc)")
-	getCmd.Flags().String("page", "1",
+	getCmd.Flags().StringP("page", "p", "1",
 		"page you would like to see")
-	getCmd.Flags().String("perPage", "50",
+	getCmd.Flags().StringP("perPage", "i", "50",
 		"number of things per page")
 }

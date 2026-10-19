@@ -190,23 +190,23 @@ func init() {
 	RootCmd.AddCommand(serverCmd)
 
 	// flags specific to this sub-command
-	serverCmd.Flags().String("logfile", "",
+	serverCmd.Flags().StringP("logfile", "f", "",
 		"log to this file instead of syslog")
-	serverCmd.Flags().Bool("logstderr", false,
+	serverCmd.Flags().BoolP("logstderr", "e", false,
 		"log to stderr instead of syslog")
-	serverCmd.Flags().String("url", os.Getenv(serverURLEnvKey),
+	serverCmd.Flags().StringP("url", "u", os.Getenv(serverURLEnvKey),
 		"tt server URL in the form host:port")
-	serverCmd.Flags().String("cert", os.Getenv(serverCertEnvKey),
+	serverCmd.Flags().StringP("cert", "c", os.Getenv(serverCertEnvKey),
 		"path to server certificate file")
-	serverCmd.Flags().String("key", os.Getenv(serverKeyEnvKey),
+	serverCmd.Flags().StringP("key", "k", os.Getenv(serverKeyEnvKey),
 		"path to server key file")
-	serverCmd.Flags().String("domain", os.Getenv(serverDomainEnvKey),
+	serverCmd.Flags().StringP("domain", "d", os.Getenv(serverDomainEnvKey),
 		"default domain of users")
-	serverCmd.Flags().String("ldap_server", "",
+	serverCmd.Flags().StringP("ldap_server", "s", "",
 		"fqdn of your ldap server")
-	serverCmd.Flags().String("ldap_dn", "",
+	serverCmd.Flags().StringP("ldap_dn", "l", "",
 		"ldap bind dn, with username replaced with %s")
-	serverCmd.Flags().String("cookie", os.Getenv(serverCookieEnvKey),
+	serverCmd.Flags().StringP("cookie", "a", os.Getenv(serverCookieEnvKey),
 		"the name of the cookie for username authorisation")
 
 	serverCmd.MarkFlagsMutuallyExclusive("logfile", "logstderr")

@@ -86,7 +86,7 @@ func (m *DB) GetUserByName(name string) (*database.User, error) {
 		return nil, err
 	}
 
-	return getUserHelper(rows)
+	return scanRowForUser(rows)
 }
 
 const getUserByID = `
@@ -102,10 +102,10 @@ func (m *DB) GetUserByID(id uint32) (*database.User, error) {
 		return nil, err
 	}
 
-	return getUserHelper(rows)
+	return scanRowForUser(rows)
 }
 
-func getUserHelper(rows *sql.Rows) (*database.User, error) {
+func scanRowForUser(rows *sql.Rows) (*database.User, error) {
 	defer rows.Close()
 
 	if gotRow := rows.Next(); !gotRow {

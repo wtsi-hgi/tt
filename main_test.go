@@ -526,7 +526,7 @@ func TestCreateGet(t *testing.T) {
 			So(ec, ShouldNotBeZeroValue)
 		})
 
-		Convey("You can't create a User or a Thing if you didn't start the server", func() { //nolint:lll
+		Convey("You can't create a User or a Thing if you didn't start the server", func() {
 			newCLIUser := "root"
 			origUser := os.Getenv("USER")
 
@@ -554,7 +554,7 @@ func TestCreateGet(t *testing.T) {
 
 			ec, out = runBinary(t, "user", "--url", s.url, "--cert", s.cert, "--user", "Not"+newCLIUser,
 				"--email", "Not"+newCLIUser+"@something")
-			So(out, ShouldContainSubstring, "Unauthorized")
+			So(out, ShouldContainSubstring, "Unauthorized") //nolint:misspell
 			So(ec, ShouldNotBeZeroValue)
 		})
 	})
@@ -713,17 +713,10 @@ func generateFakeJWT(t *testing.T, s *testServer, user string) error {
 
 	l.Close()
 
-	_, port, err := net.SplitHostPort(l.Addr().String())
-	if err != nil {
-		return err
-	}
+	addr, stopServerFunc, err := gas.StartTestServer(ts, s.cert, s.key)
+	defer stopServerFunc() //nolint:errcheck
 
-	go ts.Start("localhost:"+port, s.cert, s.key) //nolint: errcheck
-	defer ts.Stop()
-
-	time.Sleep(time.Second)
-
-	c, err := gas.NewClientCLI(".tt.jwt", ".tt.token", "localhost:"+port, s.cert, false)
+	c, err := gas.NewClientCLI(".tt.jwt", ".tt.token", addr, s.cert, false)
 	if err != nil {
 		return err
 	}

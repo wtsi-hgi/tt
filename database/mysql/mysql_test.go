@@ -517,9 +517,13 @@ func TestMySQL(t *testing.T) {
 				So(err, ShouldBeNil)
 				So(creator, ShouldResemble, expectedUser)
 
+				before := time.Now()
 				thing, err := db.CreateThing(et.ToCreateParams(expectedUser))
 				So(err, ShouldBeNil)
 
+				after := time.Now()
+
+				So(thing.Created, ShouldHappenOnOrBetween, before, after)
 				thing.Created = time.Time{}
 				So(thing, ShouldResemble, &et)
 

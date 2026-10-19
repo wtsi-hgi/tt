@@ -71,22 +71,9 @@ func TestClient(t *testing.T) {
 		s, err := New(conf)
 		So(err, ShouldBeNil)
 
-		errCh := make(chan error)
+		serverURL, stopServerFunc, err := gas.StartTestServer(s, serverCert, serverKey)
+		defer stopServerFunc() //nolint:errcheck
 
-		go func() {
-			errc := s.Start(serverURL, serverCert, serverKey)
-			errCh <- errc
-		}()
-
-		Reset(s.Stop)
-		Reset(func() {
-			err = <-errCh
-			So(err, ShouldBeNil)
-		})
-
-		time.Sleep(1 * time.Second)
-
-		//user, err := user.Current()
 		So(err, ShouldBeNil)
 		client, err := NewClient(serverURL, serverCert)
 		So(err, ShouldBeNil)
