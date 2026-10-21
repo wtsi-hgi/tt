@@ -70,7 +70,11 @@ func TestNewThingsTypes(t *testing.T) {
 
 func TestNewOrderBy(t *testing.T) {
 	Convey("You can convert strings to OrderBy*, unless it's invalid", t, func() {
-		ob, err := NewOrderBy("")
+		ob, err := NewOrderBy("version")
+		So(err, ShouldBeNil)
+		So(ob, ShouldEqual, OrderByVersion)
+
+		ob, err = NewOrderBy("")
 		So(err, ShouldBeNil)
 		So(ob, ShouldEqual, OrderByRemove)
 
