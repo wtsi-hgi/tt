@@ -93,6 +93,7 @@ func (s *Server) getThings(c *gin.Context) {
 	if err != nil {
 		c.AbortWithError(http.StatusBadRequest, err) //nolint: errcheck
 
+		return
 	}
 
 	result, err := s.db.GetThings(filter)
@@ -159,6 +160,10 @@ func (s *Server) postThing(c *gin.Context) {
 	}
 
 	user := validateOrCreateUser(c, s, postedThing)
+	if user == nil {
+		return
+	}
+
 	postedThing.CreatorID = user.ID
 
 	thing, err := s.db.CreateThing(postedThing)

@@ -49,7 +49,7 @@ const (
 	ErrBadName           = Error("Invalid things name")
 	ErrBadRequestSource  = Error("Invalid things request source")
 	ErrBadRemove         = Error("Invalid things remove")
-	ErrBadCreationDate   = Error("Invalid things creation date ")
+	ErrBadCreationDate   = Error("Invalid things creation date")
 )
 const (
 	defaultPage    = 1

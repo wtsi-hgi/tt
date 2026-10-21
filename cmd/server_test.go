@@ -55,7 +55,7 @@ func TestServer(t *testing.T) {
 		Reset(func() {
 			flags := serverCmd.Flags()
 
-			for _, name := range []string{"url", "cert", "key", "domain", "serverLDAPFQDN", "serverLDAPBindDN"} {
+			for _, name := range []string{"url", "cert", "key", "domain", "ldap_server", "ldap_dn"} {
 				flag := flags.Lookup(name)
 				if flag == nil {
 					continue

@@ -189,7 +189,7 @@ func (s *Server) addEndPoints() error {
 		return err
 	}
 
-	s.Router().SetHTMLTemplate(s.rootTemplate) //! AuthRouter doesn't have this
+	s.Router().SetHTMLTemplate(s.rootTemplate)
 
 	s.Router().GET(pageRootPath, s.pageRoot)
 	s.AuthRouter().GET(thingsPath, s.getThings)

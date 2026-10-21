@@ -581,8 +581,6 @@ func TestCreateGet(t *testing.T) {
 func TestServerWithCookie(t *testing.T) {
 	Convey("You can start a server with cookie authentication", t, func() {
 		s, err := NewTestServer(t, []string{"--cookie", "myCookieName"})
-		So(err, ShouldBeNil)
-
 		if err != nil {
 			SkipConvey("Skipping real server tests without .env.development.local", func() {})
 
