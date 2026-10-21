@@ -115,7 +115,7 @@ func (s *Server) getThings(c *gin.Context) {
 // getThingByID returns the row in the Things table in the database. The id of
 // the desired thing can be supplied as a query param by the User.
 func (s *Server) getThingByID(c *gin.Context) {
-	tID := c.Query("id")
+	tID := c.Param("id")
 	if tID == "" {
 		return
 	}

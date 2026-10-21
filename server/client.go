@@ -237,9 +237,9 @@ func (c *Client) GetThings(filter *database.GetThingsParams) ([]database.Thing, 
 func (c *Client) GetThingByID(id uint32) (*database.Thing, error) {
 	thing := &database.Thing{}
 
-	resp, err := c.request().SetHeader("Accept", "application/json").SetQueryParam("id", strconv.Itoa(int(id))).
+	resp, err := c.request().SetHeader("Accept", "application/json").
 		SetResult(&thing).
-		Get(EndPointAuthThingID)
+		Get(fmt.Sprintf("%s/%d", EndPointAuthThings, id))
 	if err != nil {
 		return nil, err
 	}
