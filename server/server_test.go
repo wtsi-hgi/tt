@@ -202,6 +202,10 @@ func sortAndFilterThings(origThings []database.Thing, params database.GetThingsP
 		slices.SortFunc(things, func(a, b database.Thing) int {
 			return strings.Compare(a.Reason, b.Reason)
 		})
+	case database.OrderByVersion:
+		slices.SortFunc(things, func(a, b database.Thing) int {
+			return strings.Compare(a.Version, b.Version)
+		})
 	case database.OrderByRemove:
 		slices.SortFunc(things, func(a, b database.Thing) int {
 			return a.Remove.Compare(b.Remove)
