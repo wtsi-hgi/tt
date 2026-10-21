@@ -53,7 +53,12 @@ const (
 var RootCmd = &cobra.Command{
 	Use:   "tt",
 	Short: "tt helps you keep track of and clean up temporary things",
-	Long:  `tt helps you keep track of and clean up temporary things.`,
+	Long: `tt helps you keep track of and clean up temporary things.
+	You can post things that are of a temporary nature in order to keep
+	track of them, how long they have existed for, who it was created for 
+	and why. Users have the ability to express interest in things, even if they
+	were not the original requester. 
+	This information helps make decisions around when to delete them.`,
 }
 
 // Execute adds all child commands to the root command and sets flags

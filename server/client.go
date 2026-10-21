@@ -121,19 +121,6 @@ func (c *Client) GetUserByName(username string) (*database.User, error) {
 	return user, responseToErr(resp)
 }
 
-// putObject sends obj encoded as JSON in the body via a PUT to the given url.
-// If optionalResponseObj is defined, gets that decoded from the JSON response.
-func (c *Client) putObject(url string, obj interface{}, optionalResponseObj ...interface{}) (*resty.Response, error) { //nolint:unused,lll
-	req := c.setBodyAndOptionalResult(obj, optionalResponseObj...)
-
-	resp, err := req.Put(url)
-	if err != nil {
-		return nil, err
-	}
-
-	return resp, responseToErr(resp)
-}
-
 func (c *Client) setBodyAndOptionalResult(thing interface{}, optionalResponseObj ...interface{}) *resty.Request { //nolint:unused,lll
 	req := c.request().ForceContentType("application/json").SetBody(thing)
 

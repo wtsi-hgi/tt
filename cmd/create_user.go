@@ -43,7 +43,7 @@ var createUser = &cobra.Command{
 The tt user command is used to add a new user to the users table.
 For example,
 tt user --url [] --cert [] --user "username" --email "username@something.com"
-Will create a user with the name "username". Not including the --email flag, or leaving it blank blank
+Will create a user with the name "username". Not including the --email flag, or leaving it blank
 will create the user with the servers default domain. 
 
 The --url of the started tt server, including its port, and for it to work

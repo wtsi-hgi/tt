@@ -1,7 +1,9 @@
 /*******************************************************************************
- * Copyright (c) 2025 Genome Research Ltd.
+ * Copyright (c) 2026 Genome Research Ltd.
  *
- * Author: Sendu Bala <sb10@sanger.ac.uk>
+ * Authors:
+ *	- Sendu Bala <sb10@sanger.ac.uk>
+ *  - Amber Faruque <af35@sanger.ac.uk>
  *
  * Permission is hereby granted, free of charge, to any person obtaining
  * a copy of this software and associated documentation files (the
@@ -113,7 +115,7 @@ func TestNewOrderDirection(t *testing.T) {
 }
 
 func TestNewGetThingsParams(t *testing.T) {
-	Convey("You can convert strings to a GetThingsParams, unless it's invalid", t, func() {
+	Convey("You can convert strings to a GetThingsParams, unless they are invalid", t, func() {
 		tType := "irods"
 		orderBy := "address"
 		orderDir := "ASC"
@@ -129,5 +131,19 @@ func TestNewGetThingsParams(t *testing.T) {
 			Page:           2,
 			ThingsPerPage:  3,
 		})
+
+		tType = "irod"
+		_, err = NewGetThingsParams(tType, orderBy, orderDir, page, perPage)
+		So(err, ShouldNotBeNil)
+
+		tType = "irods"
+		orderDir = "invalid"
+		_, err = NewGetThingsParams(tType, orderBy, orderDir, page, perPage)
+		So(err, ShouldNotBeNil)
+
+		orderDir = "ASC"
+		orderBy = "invalid"
+		_, err = NewGetThingsParams(tType, orderBy, orderDir, page, perPage)
+		So(err, ShouldNotBeNil)
 	})
 }

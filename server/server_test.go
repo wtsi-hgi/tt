@@ -347,7 +347,7 @@ func TestServer(t *testing.T) {
 			actual = testEndpoint(s, "GET", EndPointAuthThings, jwt)
 			So(actual, ShouldEqual, expected)
 			So(strings.Count(actual, "</tr"), ShouldEqual, 10)
-			So(strings.Count(actual, "<td>"), ShouldEqual, 90)
+			So(strings.Count(actual, "<td>"), ShouldEqual, 120)
 
 			things := sortAndFilterThings(mdb.things, database.GetThingsParams{
 				OrderDirection: database.OrderDesc,
@@ -437,6 +437,7 @@ func TestServer(t *testing.T) {
 				//  and start
 				addr, stopServerFunc, err := gas.StartTestServer(s, serverCert, serverKey)
 				So(err, ShouldBeNil)
+
 				defer stopServerFunc() //nolint: errcheck
 
 				ch, err := gas.SSERead("https://"+addr+EndPointAuthSseThingsEventName, serverCert)
@@ -616,7 +617,7 @@ func TestWebServerWithCookie(t *testing.T) {
 			actual = testEndpoint(s, "GET", EndPointAuthThings, cookie)
 			So(actual, ShouldEqual, expected)
 			So(strings.Count(actual, "</tr"), ShouldEqual, 10)
-			So(strings.Count(actual, "<td>"), ShouldEqual, 90)
+			So(strings.Count(actual, "<td>"), ShouldEqual, 120)
 
 			things := sortAndFilterThings(mdb.things, database.GetThingsParams{
 				OrderDirection: database.OrderDesc,

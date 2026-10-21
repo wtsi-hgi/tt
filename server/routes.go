@@ -39,10 +39,8 @@ import (
 )
 
 const (
-	defaultPage    = 1
-	defaultPerPage = 50
-	fiveYear       = time.Hour * 24 * 365 * 5
-	jsonType       = "application/json"
+	fiveYear = time.Hour * 24 * 365 * 5
+	jsonType = "application/json"
 )
 
 type Error string
@@ -207,11 +205,7 @@ func (s *Server) postThingValidate(c *gin.Context, postedThing *database.CreateT
 
 	// Set defaults.
 	if postedThing.Remove.IsZero() {
-		if postedThing.CreationDate.Valid {
-			postedThing.Remove = postedThing.CreationDate.Time.Add(fiveYear) //!! always gets overriden..
-		}
-		//else{}
-		postedThing.Remove = time.Now().Add(fiveYear)
+		setRemovalDate(postedThing)
 	}
 
 	// Validating values.
@@ -221,6 +215,14 @@ func (s *Server) postThingValidate(c *gin.Context, postedThing *database.CreateT
 	}
 
 	return nil
+}
+func setRemovalDate(postedThing *database.CreateThingParams) {
+	if postedThing.CreationDate.Valid {
+		postedThing.Remove = postedThing.CreationDate.Time.Add(fiveYear)
+		return
+	}
+	postedThing.Remove = time.Now().Add(fiveYear)
+
 }
 
 // deleteThing deletes the thing with the id in the url /things/id from the

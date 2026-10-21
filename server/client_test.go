@@ -28,12 +28,11 @@
 package server
 
 import (
-	"net"
 	"os"
-	"strconv"
 	"testing"
 	"time"
 
+	"github.com/guregu/null/v5"
 	. "github.com/smartystreets/goconvey/convey"
 	gas "github.com/wtsi-hgi/go-authserver"
 	"github.com/wtsi-hgi/tt/database"
@@ -48,9 +47,6 @@ func TestClient(t *testing.T) {
 		fakeDir := t.TempDir()
 
 		t.Setenv("XDG_STATE_HOME", fakeDir)
-
-		serverURL, err := getTestServerAddress()
-		So(err, ShouldBeNil)
 
 		serverCert, serverKey, err := gas.CreateTestCert(t)
 		So(err, ShouldBeNil)
@@ -119,6 +115,7 @@ func TestClient(t *testing.T) {
 			So(err, ShouldBeNil)
 			So(len(mdb.things), ShouldEqual, 1)
 
+			before := time.Now()
 			thingTwoPost := &database.CreateThingParams{
 				Name:          "something_else",
 				Version:       "2.3",
@@ -128,12 +125,17 @@ func TestClient(t *testing.T) {
 				Address:       "something/path",
 				Reason:        "just because",
 				Creator:       userName,
+				CreationDate:  null.TimeFrom(before),
 			}
 
+			time.Sleep(time.Second)
+
 			err = client.PostThing(thingTwoPost)
+
 			So(err, ShouldBeNil)
 			So(len(mdb.things), ShouldEqual, 2)
 
+			// Get irods post and verify deletion time automated without creation date.
 			filter := &database.GetThingsParams{
 				FilterOnType:   database.ThingsTypeIrods,
 				OrderBy:        database.OrderByType,
@@ -153,6 +155,29 @@ func TestClient(t *testing.T) {
 				Email: userName + s.DefaultEmailDomain,
 			}), ShouldResemble, *thingPost)
 
+			// Get s3 post and verify deletion time automated with creation date.
+			filter = &database.GetThingsParams{
+				FilterOnType:   database.ThingsTypeS3,
+				OrderBy:        database.OrderByType,
+				OrderDirection: database.OrderAsc,
+				Page:           1,
+				ThingsPerPage:  1,
+			}
+
+			things, err = client.GetThings(filter)
+			So(err, ShouldBeNil)
+			So(len(things), ShouldEqual, 1)
+			So(things[0].Remove, ShouldEqual, things[0].CreationDate.ValueOrZero().Add(fiveYear))
+
+			things[0].Remove = time.Time{}
+			things[0].CreationDate = null.Time{}
+			thingTwoPost.CreationDate = null.Time{}
+
+			So(things[0].ToCreateParams(&database.User{
+				Name:  userName,
+				Email: userName + s.DefaultEmailDomain,
+			}), ShouldResemble, *thingTwoPost)
+
 			// Getting both with no Type filter.
 			filter = &database.GetThingsParams{
 				FilterOnType:   database.ThingsTypeNil,
@@ -168,6 +193,9 @@ func TestClient(t *testing.T) {
 
 			things[0].Remove = time.Time{}
 			things[1].Remove = time.Time{}
+			things[1].CreationDate = null.Time{}
+			thingTwoPost.CreationDate = null.Time{}
+
 			So(things[0].ToCreateParams(&database.User{
 				Name:  userName,
 				Email: userName + s.DefaultEmailDomain,
@@ -217,15 +245,4 @@ func TestClient(t *testing.T) {
 			})
 		})
 	})
-}
-
-func getTestServerAddress() (string, error) {
-	l, err := net.Listen("tcp", "localhost:0")
-	if err != nil {
-		return "", err
-	}
-
-	defer l.Close()
-
-	return net.JoinHostPort("localhost", strconv.Itoa(l.Addr().(*net.TCPAddr).Port)), nil //nolint:forcetypeassert,errcheck
 }

@@ -64,8 +64,20 @@
                             uk-icon="arrow-down" hx-get="/rest/v1/auth/things?sort=version&dir=ASC"></span>
                     </th>
                     <th>
-                           RequestSource<span uk-icon="arrow-up" hx-get="/rest/v1/auth/things?sort=requestsource&dir=DESC"></span><span
+                           Request Source<span uk-icon="arrow-up" hx-get="/rest/v1/auth/things?sort=requestsource&dir=DESC"></span><span
                             uk-icon="arrow-down" hx-get="/rest/v1/auth/things?sort=requestsource&dir=ASC"></span>
+                    </th>
+                      <th>
+                            License<span uk-icon="arrow-up" hx-get="/rest/v1/auth/things?sort=license&dir=DESC"></span><span
+                            uk-icon="arrow-down" hx-get="/rest/v1/auth/things?sort=license&dir=ASC"></span>
+                    </th>
+                      <th>
+                            URL<span uk-icon="arrow-up" hx-get="/rest/v1/auth/things?sort=url&dir=DESC"></span><span
+                            uk-icon="arrow-down" hx-get="/rest/v1/auth/things?sort=url&dir=ASC"></span>
+                    </th>
+                      <th>
+                            Download Method<span uk-icon="arrow-up" hx-get="/rest/v1/auth/things?sort=downloadmethod&dir=DESC"></span><span
+                            uk-icon="arrow-down" hx-get="/rest/v1/auth/things?sort=downloadmethod&dir=ASC"></span>
                     </th>
                     <th>
                         Removal Date<span uk-icon="arrow-up" hx-get="/rest/v1/auth/things?sort=remove&dir=DESC"></span><span
@@ -97,7 +109,16 @@
                         <input class="uk-input" name="Version" type="text">
                     </td>
                     <td>
-                        <input class="uk-input" name="RequestSource" type="text">
+                        <input class="uk-input" name="Request" type="text">
+                    </td>
+                    <td>
+                        <input class="uk-input" name="License" type="text">
+                    </td>
+                    <td>
+                        <input class="uk-input" name="URL" type="text">
+                    </td>
+                    <td>
+                        <input class="uk-input" name="Download" type="text">
                     </td>
                     <td>
                         <input class="uk-input" name="Remove" type="date" required>

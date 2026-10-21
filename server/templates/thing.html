@@ -4,8 +4,11 @@
 	<td>{{ .Type }}</td>
 	<td>{{ .Reason }}</td>
 	<td>{{ .Description }}</td>
-	<td>{{ .Version}}</td>
-	<td>{{ .RequestSource}}</td>
+	<td>{{ .Version }}</td>
+	<td>{{ .RequestSource }}</td>
+	<td>{{ .License }}</td>
+	<td>{{ .URL }}</td>
+	<td>{{ .DownloadMethod }}</td>
 	<td>{{ .Remove.Format "2006-01-02" }}</td>
 	<td>
 		<button class="uk-button uk-button-danger" hx-delete="/rest/v1/auth/things/{{ .ID }}" hx-swap="swap:1s">

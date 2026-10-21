@@ -714,6 +714,9 @@ func generateFakeJWT(t *testing.T, s *testServer, user string) error {
 	l.Close()
 
 	addr, stopServerFunc, err := gas.StartTestServer(ts, s.cert, s.key)
+	if err != nil {
+		return err
+	}
 	defer stopServerFunc() //nolint:errcheck
 
 	c, err := gas.NewClientCLI(".tt.jwt", ".tt.token", addr, s.cert, false)
