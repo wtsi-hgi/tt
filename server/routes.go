@@ -92,6 +92,7 @@ func (s *Server) getThings(c *gin.Context) {
 	filter, err := database.NewGetThingsParams(c.Query("type"), c.Query("sort"), c.Query("dir"), c.Query("page"), c.Query("per_page")) //nolint:lll
 	if err != nil {
 		c.AbortWithError(http.StatusBadRequest, err) //nolint: errcheck
+
 	}
 
 	result, err := s.db.GetThings(filter)

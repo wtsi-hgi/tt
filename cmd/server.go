@@ -202,19 +202,17 @@ func init() {
 		"path to server key file")
 	serverCmd.Flags().StringP("domain", "d", os.Getenv(serverDomainEnvKey),
 		"default domain of users")
-	serverCmd.Flags().StringP("ldap_server", "s", "",
+	serverCmd.Flags().StringP("ldap_server", "s", os.Getenv(serverLDAPSeverEnvKey),
 		"fqdn of your ldap server")
-	serverCmd.Flags().StringP("ldap_dn", "l", "",
+	serverCmd.Flags().StringP("ldap_dn", "l", os.Getenv(serverLDAPBindDNEnvKey),
 		"ldap bind dn, with username replaced with %s")
 	serverCmd.Flags().StringP("cookie", "a", os.Getenv(serverCookieEnvKey),
 		"the name of the cookie for username authorisation")
 
 	serverCmd.MarkFlagsMutuallyExclusive("logfile", "logstderr")
-	serverCmd.MarkFlagRequired("url")    //nolint:errcheck
-	serverCmd.MarkFlagRequired("cert")   //nolint:errcheck
-	serverCmd.MarkFlagRequired("key")    //nolint:errcheck
-	serverCmd.MarkFlagRequired("domain") //nolint:errcheck
-	serverCmd.MarkFlagRequired("cert")   //nolint:errcheck
+	serverCmd.MarkFlagRequired("url")  //nolint:errcheck
+	serverCmd.MarkFlagRequired("cert") //nolint:errcheck
+	serverCmd.MarkFlagRequired("key")  //nolint:errcheck
 }
 
 // setServerLogger makes our appLogger log to stderr if our stdErrMode is true,

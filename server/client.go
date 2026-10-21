@@ -52,11 +52,14 @@ type Client struct {
 	jwt  string
 }
 
+// SubscriberWithUserDetails represents a subscriber in the form of database.User.
 type SubscriberWithUserDetails struct {
 	database.User
 	Creator bool
 }
 
+// ThingWithSubscriberDetails is an extension of the database.Thing type, it contains a
+// list of the subscribers in user form.
 type ThingWithSubscriberDetails struct {
 	database.Thing
 	Subscribers []SubscriberWithUserDetails

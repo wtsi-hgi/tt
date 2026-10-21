@@ -39,15 +39,13 @@ import (
 var getCmd = &cobra.Command{
 	Use:   "get",
 	Short: "Get Things",
-	Long: `Get Things 
-This command is usable by anyone. 
+	Long: `Get temporary things, optionally filtered and sorted.
 get connects to the started server in order to retrieve data in a table. 
-
 For example, 
 tt get --url [] --cert [] 
 Will retrieve all things in the things table. 
 
-The --url of the started tt server, including its port, and for it to work
+The --url is of the started tt server, including its port, and for it to work
 with your --cert, you probably need to specify it as fqdn:port. 
 --url defaults to the TT_SERVER_URL env var.
 --cert defaults to the TT_SERVER_CERT env var.
@@ -57,7 +55,9 @@ The --type flag will retrieve all Things of the specified type.
 The --orderBy flag will order the Things returned by the provided field.
 The --orderDir flag will sort the Things returned by asc/desc.
 The --page flag and --perPage flag can be used to reduce the list of things 
-returned. These default to 1 and 50 respectively.`,
+returned. These default to 1 and 50 respectively.
+
+This command is usable by anyone. `,
 
 	RunE: func(cmd *cobra.Command, args []string) error { //nolint: revive
 		var url, cert, typ, orderBy, orderDir, page, perPage string

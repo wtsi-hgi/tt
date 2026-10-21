@@ -209,7 +209,7 @@ type CreateThingParams struct {
 	CreatorID      uint32
 }
 
-// Validate that the necessary fields in the Thing are valid.
+// ValidateCreateThingsParams confirms that the necessary fields in the Thing are valid.
 func ValidateCreateThingsParams(thing CreateThingParams) error { //nolint:gocyclo,funlen
 	if thing.Address == "" {
 		return ErrBadAddress

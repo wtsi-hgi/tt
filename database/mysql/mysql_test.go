@@ -298,11 +298,6 @@ func TestMySQL(t *testing.T) {
 					So(len(subscribers), ShouldEqual, 1)
 					So(subscribers[0], ShouldResemble, database.Subscriber{UserID: creator.ID, ThingID: thing.ID, Creator: true})
 				}
-				// // Remove this test as we no longer get the invalid user error
-				// _, err = db.CreateThing(expectedThings[0].ToCreateParams(database.User{Name: "invalid"}))
-
-				// So(err, ShouldNotBeNil)
-				// So(err, ShouldEqual, ErrNoUser)
 
 				numThings := len(expectedThings)
 				count, err = countTableRows(db.pool, "things")

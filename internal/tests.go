@@ -107,6 +107,8 @@ func exampleUser(id uint32) *database.User {
 	}
 }
 
+// GetExampleUser takes a user id and returns an example user with details
+// determined by that id.
 func GetExampleUser(id uint32) *database.User {
 	expectedUser := &database.User{
 		ID:    id,
@@ -117,6 +119,8 @@ func GetExampleUser(id uint32) *database.User {
 	return expectedUser
 }
 
+// GetExampleResourceData returns an example of a thing, the user who created the thing and
+// a subscriber to the thing.
 func GetExampleResourceData() (*database.User, database.Thing, database.Subscriber) {
 	expectedThing := database.Thing{
 		ID:             1,

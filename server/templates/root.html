@@ -42,7 +42,7 @@
 
             <thead>
                 <tr hx-headers='{"Accept": "text/html"}' hx-trigger="click" hx-target="tbody#things-list">
-                      <th>
+                    <th>
                             Name<span uk-icon="arrow-up" hx-get="/rest/v1/auth/things?sort=name&dir=DESC"></span><span
                             uk-icon="arrow-down" hx-get="/rest/v1/auth/things?sort=name&dir=ASC"></span>
                     </th>
@@ -54,26 +54,16 @@
                         Type<span uk-icon="arrow-up" hx-get="/rest/v1/auth/things?sort=type&dir=DESC"></span><span
                             uk-icon="arrow-down" hx-get="/rest/v1/auth/things?sort=type&dir=ASC"></span>
                     </th>
-                    <th>
-                        Reason
-                    </th>
+                    <th>Reason</th>
                     <th>Description</th>
                     <th>
                             Version<span uk-icon="arrow-up" hx-get="/rest/v1/auth/things?sort=version&dir=DESC"></span><span
                             uk-icon="arrow-down" hx-get="/rest/v1/auth/things?sort=version&dir=ASC"></span>
                     </th>
-                    <th>
-                           Request Source
-                    </th>
-                      <th>
-                            License
-                    </th>
-                      <th>
-                            URL
-                    </th>
-                      <th>
-                            Download Method
-                    </th>
+                    <th>RequestSource</th>
+                    <th>License</th>
+                    <th>URL</th>
+                    <th>DownloadMethod</th>
                     <th>
                         Removal Date<span uk-icon="arrow-up" hx-get="/rest/v1/auth/things?sort=remove&dir=DESC"></span><span
                             uk-icon="arrow-down" hx-get="/rest/v1/auth/things?sort=remove&dir=ASC"></span>
@@ -101,10 +91,10 @@
                         <input class="uk-input" name="Description" type="text" required>
                     </td>
                     <td>
-                        <input class="uk-input" name="Version" type="text">
+                        <input class="uk-input" name="Version" type="text" required>
                     </td>
                     <td>
-                        <input class="uk-input" name="Request" type="text">
+                        <input class="uk-input" name="RequestSource" type="text" required>
                     </td>
                     <td>
                         <input class="uk-input" name="License" type="text">
@@ -113,10 +103,10 @@
                         <input class="uk-input" name="URL" type="text">
                     </td>
                     <td>
-                        <input class="uk-input" name="Download" type="text">
+                        <input class="uk-input" name="DownloadMethod" type="text">
                     </td>
                     <td>
-                        <input class="uk-input" name="Remove" type="date" >
+                        <input class="uk-input" name="Remove" type="date" required>
                     </td>
                     <td>
                         <button type="submit" class="uk-button uk-button-primary">Add Thing</button>

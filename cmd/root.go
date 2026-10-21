@@ -42,11 +42,13 @@ import (
 var appLogger = log15.New()
 
 const (
-	serverURLEnvKey    = "TT_SERVER_URL"
-	serverCertEnvKey   = "TT_SERVER_CERT"
-	serverKeyEnvKey    = "TT_SERVER_KEY"
-	serverDomainEnvKey = "TT_SERVER_DEFAULT_EMAIL_DOMAIN"
-	serverCookieEnvKey = "TT_SERVER_COOKIE"
+	serverURLEnvKey        = "TT_SERVER_URL"
+	serverCertEnvKey       = "TT_SERVER_CERT"
+	serverKeyEnvKey        = "TT_SERVER_KEY"
+	serverDomainEnvKey     = "TT_SERVER_DEFAULT_EMAIL_DOMAIN"
+	serverCookieEnvKey     = "TT_SERVER_COOKIE"
+	serverLDAPSeverEnvKey  = "TT_SERVER_LPDAP_SERVER"
+	serverLDAPBindDNEnvKey = "TT_SERVER_LDAP_BIND_DN"
 )
 
 // RootCmd represents the base command when called without any subcommands.
@@ -54,7 +56,7 @@ var RootCmd = &cobra.Command{
 	Use:   "tt",
 	Short: "tt helps you keep track of and clean up temporary things",
 	Long: `tt helps you keep track of and clean up temporary things.
-	You can post things that are of a temporary nature in order to keep
+	You can create things that are of a temporary nature in order to keep
 	track of them, how long they have existed for, who it was created for 
 	and why. Users have the ability to express interest in things, even if they
 	were not the original requester. 

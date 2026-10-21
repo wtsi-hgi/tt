@@ -68,7 +68,7 @@ func TestServer(t *testing.T) {
 
 		Convey("You can't start a server without all needed env vars", func() {
 			output, err := executeRootCommandForTest(t, []string{"server", "--cert", "a", "--url", //nolint:goconst
-				"w", "--key", "b", "--domain", "@default.domain"})
+				"w", "--key", "b"})
 			So(err, ShouldNotBeNil)
 			So(output, ShouldContainSubstring, "failed to get database config")
 			So(output, ShouldContainSubstring, "missing required environment variables")
@@ -89,7 +89,7 @@ func TestServer(t *testing.T) {
 			So(output, ShouldNotContainSubstring, "missing required environment variables")
 
 			Convey("You can't start a server without --url", func() {
-				So(output, ShouldContainSubstring, `"cert", "domain", "key", "url" not set`)
+				So(output, ShouldContainSubstring, `"cert", "key", "url" not set`)
 
 				Convey("Given URL", func() {
 					cliArgs = append(cliArgs, "--url", envVarVal)
@@ -98,7 +98,7 @@ func TestServer(t *testing.T) {
 					So(output, ShouldNotContainSubstring, `"url"`)
 
 					Convey("You can't start a server without --cert", func() {
-						So(output, ShouldContainSubstring, `"cert", "domain", "key" not set`)
+						So(output, ShouldContainSubstring, `"cert", "key" not set`)
 
 						Convey("Given cert", func() {
 							cliArgs = append(cliArgs, "--cert", envVarVal)
@@ -114,8 +114,7 @@ func TestServer(t *testing.T) {
 									output, err = executeRootCommandForTest(t, cliArgs)
 									So(err, ShouldNotBeNil)
 									So(output, ShouldNotContainSubstring, `"key"`)
-
-									Convey("Given a domain", func() {
+									Convey("Given default Domain", func() {
 										cliArgs = append(cliArgs, "--domain", envVarVal)
 										output, err = executeRootCommandForTest(t, cliArgs)
 										So(err, ShouldNotBeNil)

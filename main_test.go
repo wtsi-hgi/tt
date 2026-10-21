@@ -372,12 +372,13 @@ func TestServerHelp(t *testing.T) {
 		exit, std := runBinary(t, "server", "-h")
 		So(exit, ShouldBeZeroValue)
 		So(std, ShouldContainSubstring, "--url")
-		So(std, ShouldNotContainSubstring, "(default")
+		So(std, ShouldNotContainSubstring, "(default \"testURL\")")
+		So(std, ShouldNotContainSubstring, "(default \"testCert\")")
+		So(std, ShouldNotContainSubstring, "(default \"testKey\")")
 
 		os.Setenv("TT_SERVER_URL", "testURL")
 		os.Setenv("TT_SERVER_CERT", "testCert")
 		os.Setenv("TT_SERVER_KEY", "testKey")
-		os.Setenv("TT_SERVER_COOKIE", "testKey")
 
 		exit, std = runBinary(t, "server", "-h")
 		So(exit, ShouldBeZeroValue)

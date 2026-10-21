@@ -50,7 +50,7 @@ tt create
 			--url 			[]
 			--cert			[]
 			--name 			"item"
-			--version"      "1.2"
+			--version      "1.2"
 			--description   "Something"
 			--type          "s3"
 			--requestSource "jira"
@@ -61,22 +61,22 @@ This command will access the started server and, after verification,
 result in "item" being added to the table of Things with 
 various information from the various mandatory fields supplied by the flag. 
 
-The --url of the started tt server, including its port, and for it to work
-with your --cert, you probably need to specify it as
-fqdn:port. --url defaults to the TT_SERVER_URL env var. --cert 
-defaults to the TT_SERVER_CERT env var.
+The --url is of the started tt server, including its port, and for it to work
+with your --cert, you probably need to specify it asfqdn:port. 
+--url defaults to the TT_SERVER_URL env var.
+--cert defaults to the TT_SERVER_CERT env var.
 
-The values provided would indicated the temporary Thing "item", of version 
+The values provided would indicate the temporary Thing "item", of version 
 "1.2" is of the type "s3". It does "something" and was requested through "jira" 
 because "xyz" and can be found in the directory "s3://bucket/path".
 The type of thing you supply will be validated.
 
 If applicable, the following flags can also be supplied with strings:
 --downloadMethod, --downloadURL, --license 
-	These fields are specific the resource type.
---created, --delete, 
+	These fields are specific to the resource type.
+--created, --delete
 	These are fields that may not be known.
-	If a value is not supplied for the creation date, it will default to now,
+	If a value is not supplied for the creation date, it will default to now.
 	If a value is not supplied for the deletion date, it will default to five 
 	years from the creation date.
 	
