@@ -47,7 +47,7 @@ const (
 	serverKeyEnvKey        = "TT_SERVER_KEY"
 	serverDomainEnvKey     = "TT_SERVER_DEFAULT_EMAIL_DOMAIN"
 	serverCookieEnvKey     = "TT_SERVER_COOKIE"
-	serverLDAPSeverEnvKey  = "TT_SERVER_LPDAP_SERVER"
+	serverLDAPServerEnvKey = "TT_SERVER_LDAP_SERVER"
 	serverLDAPBindDNEnvKey = "TT_SERVER_LDAP_BIND_DN"
 )
 

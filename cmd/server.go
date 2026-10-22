@@ -84,7 +84,7 @@ The server authenticates users using LDAP. You must provide the FQDN for your
 LDAP server, eg. --ldap_server ldap.example.com, and the bind DN that you would
 supply to eg. 'ldapwhoami -D' to test user credentials, replacing the username
 part with '%s', eg. --ldap_dn 'uid=%s,ou=people,dc=example,dc=com'. The values 
-will default to the env vars TT_SERVER_LPDAP_SERVER and TT_SERVER_LDAP_BIND_DN 
+will default to the env vars TT_SERVER_LDAP_SERVER and TT_SERVER_LDAP_BIND_DN 
 respectively. If these environment variables are empty, you'll get a warning, 
 but the server will work and assume all passwords are valid.
 
@@ -203,7 +203,7 @@ func init() {
 		"path to server key file")
 	serverCmd.Flags().StringP("domain", "d", os.Getenv(serverDomainEnvKey),
 		"default domain of users")
-	serverCmd.Flags().StringP("ldap_server", "s", os.Getenv(serverLDAPSeverEnvKey),
+	serverCmd.Flags().StringP("ldap_server", "s", os.Getenv(serverLDAPServerEnvKey),
 		"fqdn of your ldap server")
 	serverCmd.Flags().StringP("ldap_dn", "l", os.Getenv(serverLDAPBindDNEnvKey),
 		"ldap bind dn, with username replaced with %s")
