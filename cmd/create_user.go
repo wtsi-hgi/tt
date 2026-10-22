@@ -47,9 +47,9 @@ Will create a user with the name "username". Not including the --email flag, or 
 will create the user with the servers default domain. 
 
 The --url of the started tt server, including its port, and for it to work
-with your --cert, you probably need to specify it as
-fqdn:port. --url defaults to the TT_SERVER_URL env var. --cert 
-defaults to the TT_SERVER_CERT env var.
+with your --cert, you probably need to specify it as fqdn:port. 
+--url defaults to the TT_SERVER_URL env var. 
+--cert defaults to the TT_SERVER_CERT env var.
 
 This command is only usable by the user who created the server. Access has been limited as 
 users are automatically created when they access our web server so user creation will only be used 

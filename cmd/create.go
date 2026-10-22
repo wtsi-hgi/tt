@@ -62,7 +62,7 @@ result in "item" being added to the table of Things with
 various information from the various mandatory fields supplied by the flag. 
 
 The --url is of the started tt server, including its port, and for it to work
-with your --cert, you probably need to specify it asfqdn:port. 
+with your --cert, you probably need to specify it as fqdn:port. 
 --url defaults to the TT_SERVER_URL env var.
 --cert defaults to the TT_SERVER_CERT env var.
 
