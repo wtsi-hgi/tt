@@ -50,7 +50,7 @@ tt create
 			--url 			[]
 			--cert			[]
 			--name 			"item"
-			--version      "1.2"
+			--version       "1.2"
 			--description   "Something"
 			--type          "s3"
 			--requestSource "jira"
