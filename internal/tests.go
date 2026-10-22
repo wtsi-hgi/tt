@@ -29,28 +29,16 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/guregu/null/v5"
 	"github.com/wtsi-hgi/tt/database"
 )
 
 // GetExampleData returns 2 users and a selection of Things that they created,
 // 2 things per ThingsType, and with property values that would all sort
 // differently to each other.
-func GetExampleData() ([]database.User, []database.Thing, []database.Subscriber) { //nolint:funlen
-	emailSuffix := "@example.com"
-	u1 := "user1"
-	u2 := "user2"
-
-	user1 := database.User{
-		ID:    1,
-		Name:  u1,
-		Email: u1 + emailSuffix,
-	}
-
-	user2 := database.User{
-		ID:    2, //nolint:mnd
-		Name:  u2,
-		Email: u2 + emailSuffix,
-	}
+func GetExampleData() ([]*database.User, []database.Thing, []database.Subscriber) { //nolint:funlen
+	user1 := exampleUser(1)
+	user2 := exampleUser(2) //nolint:mnd
 
 	i := uint32(0)
 	year := uint32(1970) //nolint:mnd
@@ -79,7 +67,7 @@ func GetExampleData() ([]database.User, []database.Thing, []database.Subscriber)
 				creator = user2
 			}
 
-			remove, _ := time.Parse(time.DateOnly, fmt.Sprintf("%d-01-02", year+i)) //nolint:errcheck
+			remove := dateFromYear(year + i)
 
 			expectedThing := database.Thing{
 				ID:          i + 1,
@@ -89,6 +77,7 @@ func GetExampleData() ([]database.User, []database.Thing, []database.Subscriber)
 				Reason:      reasons[i],
 				Remove:      remove,
 			}
+
 			expectedThings[i] = expectedThing
 
 			expectedSubs[i] = database.Subscriber{
@@ -101,5 +90,55 @@ func GetExampleData() ([]database.User, []database.Thing, []database.Subscriber)
 		}
 	}
 
-	return []database.User{user1, user2}, expectedThings, expectedSubs
+	return []*database.User{user1, user2}, expectedThings, expectedSubs
+}
+
+func dateFromYear(year uint32) time.Time {
+	remove, _ := time.Parse(time.DateOnly, fmt.Sprintf("%d-01-02", year)) //nolint:errcheck
+
+	return remove
+}
+
+func exampleUser(id uint32) *database.User {
+	return &database.User{
+		ID:    id,
+		Name:  fmt.Sprintf("user%d", id),
+		Email: fmt.Sprintf("user%d@example.com", id),
+	}
+}
+
+// GetExampleUser takes a user id and returns an example user with details
+// determined by that id.
+func GetExampleUser(id uint32) *database.User {
+	return exampleUser(id)
+}
+
+// GetExampleResourceData returns an example of a thing, the user who created the thing and
+// a subscriber to the thing.
+func GetExampleResourceData() (*database.User, database.Thing, database.Subscriber) {
+	expectedThing := database.Thing{
+		ID:             1,
+		Address:        "address",
+		Type:           database.ThingsTypeResource,
+		Description:    "desc",
+		Reason:         "reason",
+		Remove:         dateFromYear(uint32(1971)), //nolint:mnd
+		Version:        "2",
+		License:        "MIT",
+		Name:           "ResourceName",
+		URL:            "example.com",
+		DownloadMethod: "command line",
+		RequestSource:  "Jira",
+		CreationDate:   null.TimeFrom(dateFromYear(uint32(1970))), //nolint:mnd
+	}
+
+	creator := exampleUser(1)
+
+	expectedSub := database.Subscriber{
+		UserID:  creator.ID,
+		ThingID: expectedThing.ID,
+		Creator: true,
+	}
+
+	return creator, expectedThing, expectedSub
 }

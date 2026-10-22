@@ -1,7 +1,9 @@
 /*******************************************************************************
- * Copyright (c) 2025 Genome Research Ltd.
+ * Copyright (c) 2026 Genome Research Ltd.
  *
- * Author: Sendu Bala <sb10@sanger.ac.uk>
+ * Authors:
+ *	- Sendu Bala <sb10@sanger.ac.uk>
+ *  - Amber Faruque <af35@sanger.ac.uk>
  *
  * Permission is hereby granted, free of charge, to any person obtaining
  * a copy of this software and associated documentation files (the
@@ -26,6 +28,7 @@
 package database
 
 import (
+	"strconv"
 	"time"
 
 	null "github.com/guregu/null/v5"
@@ -39,6 +42,18 @@ const (
 	ErrBadType           = Error("Invalid things type")
 	ErrBadOrderBy        = Error("Invalid order")
 	ErrBadOrderDirection = Error("Invalid direction")
+	ErrBadAddress        = Error("Invalid things address")
+	ErrBadDescription    = Error("Invalid things description")
+	ErrBadReason         = Error("Invalid things reason")
+	ErrBadVersion        = Error("Invalid things version")
+	ErrBadName           = Error("Invalid things name")
+	ErrBadRequestSource  = Error("Invalid things request source")
+	ErrBadRemove         = Error("Invalid things remove")
+	ErrBadCreationDate   = Error("Invalid things creation date")
+)
+const (
+	defaultPage    = 1
+	defaultPerPage = 50
 )
 
 type ThingsType string
@@ -50,6 +65,7 @@ const (
 	ThingsTypeIrods     ThingsType = "irods"
 	ThingsTypeOpenstack ThingsType = "openstack"
 	ThingsTypeS3        ThingsType = "s3"
+	ThingsTypeResource  ThingsType = "resource"
 )
 
 func ThingsTypes() []ThingsType {
@@ -59,12 +75,13 @@ func ThingsTypes() []ThingsType {
 		ThingsTypeIrods,
 		ThingsTypeOpenstack,
 		ThingsTypeS3,
+		ThingsTypeResource,
 	}
 }
 
 // NewThingsType converts the given str to a ThingsType, but only if it matches
 // one of the allowed ThingsType* constants. Returns an error if not.
-func NewThingsType(str string) (ThingsType, error) {
+func NewThingsType(str string) (ThingsType, error) { //nolint:gocyclo
 	var thingsType ThingsType
 
 	switch ThingsType(str) {
@@ -80,6 +97,8 @@ func NewThingsType(str string) (ThingsType, error) {
 		thingsType = ThingsTypeOpenstack
 	case ThingsTypeS3:
 		thingsType = ThingsTypeS3
+	case ThingsTypeResource:
+		thingsType = ThingsTypeResource
 	default:
 		return "", ErrBadType
 	}
@@ -94,6 +113,7 @@ const (
 	OrderByType    OrderBy = "type"
 	OrderByReason  OrderBy = "reason"
 	OrderByRemove  OrderBy = "remove"
+	OrderByVersion OrderBy = "version"
 )
 
 // NewOrderBy converts the given str to an OrderBy, but only if it matches
@@ -109,6 +129,8 @@ func NewOrderBy(str string) (OrderBy, error) {
 		orderBy = OrderByType
 	case OrderByReason:
 		orderBy = OrderByReason
+	case OrderByVersion:
+		orderBy = OrderByVersion
 	case "", OrderByRemove:
 		orderBy = OrderByRemove
 	default:
@@ -171,29 +193,172 @@ type User struct {
 }
 
 type CreateThingParams struct {
-	Address     string
-	Type        ThingsType
-	Description string
-	Reason      string
-	Remove      time.Time `time_format:"2006-01-02"`
-	Creator     string    // Creator must correspond to the Name of a User.
+	Address        string
+	Type           ThingsType
+	Description    string
+	Reason         string
+	Remove         time.Time `time_format:"2006-01-02"`
+	License        string
+	Version        string
+	Name           string
+	URL            string
+	DownloadMethod string
+	RequestSource  string
+	CreationDate   null.Time `time_format:"2006-01-02"`
+	Creator        string
+	CreatorID      uint32
+}
+
+// ValidateCreateThingsParams confirms that the necessary fields in the Thing are valid.
+func ValidateCreateThingsParams(thing CreateThingParams) error { //nolint:gocyclo,funlen
+	if thing.Address == "" {
+		return ErrBadAddress
+	}
+
+	_, err := NewThingsType(string(thing.Type))
+	if err != nil {
+		return err
+	}
+
+	if thing.Description == "" {
+		return ErrBadDescription
+	}
+
+	if thing.Reason == "" {
+		return ErrBadReason
+	}
+
+	if thing.Remove.IsZero() {
+		return ErrBadRemove
+	}
+
+	if thing.Version == "" {
+		return ErrBadVersion
+	}
+
+	if thing.Name == "" {
+		return ErrBadName
+	}
+
+	if thing.RequestSource == "" {
+		return ErrBadRequestSource
+	}
+
+	if time.Now().Before(thing.CreationDate.Time) {
+		return ErrBadCreationDate
+	}
+
+	return nil
 }
 
 type Thing struct {
-	ID          uint32
-	Address     string
-	Type        ThingsType
-	Created     time.Time
+	// ID is the unique (auto-increment) id of the temporary thing.
+	ID uint32
+	// Address is the location of the resource, such as absolute file path on
+	// disk or URL.
+	Address string
+	// Type is the type of thing.
+	Type ThingsType
+	// Created is the time that the thing was added to the database.
+	Created time.Time
+	// Description is a description of the thing.
 	Description string
-	Reason      string
-	Remove      time.Time
-	Warned1     null.Time
-	Warned2     null.Time
-	Removed     bool
+	// Reason is the reason why this is a temporary thing.
+	Reason string
+	// Remove is the date that the removal will take place. Even "immortal"
+	// resources get a date to ensure we are reviewing usage; it might just be
+	// set many years from creation.
+	Remove time.Time
+	// Warned1 is the date that subscribers were successfully sent their first
+	// warning.
+	Warned1 null.Time
+	// Warned2 is the date that subscribers were successfully sent their second
+	// warning.
+	Warned2 null.Time
+	// Removed is whether or not removal has taken place.
+	Removed bool
+	// License is the licensing of the thing, such as MIT, or details of more
+	// restrictive ones.
+	License string
+	// Version is the version of the thing.
+	Version string
+	// Name is a friendly short name for the thing.
+	Name string
+	// URL is specific to resources retrieved from a URL, such as downloaded
+	// resources.
+	URL string
+	// DownloadMethod is the way in which the thing was downloaded for users to
+	// use.
+	DownloadMethod string
+	// RequestSource is where the request for the thing was made, such as a JIRA
+	// ticket.
+	RequestSource string
+	// CreationDate is the date the real thing was created (as opposed to
+	// Created, which is when the thing was added to the database).
+	CreationDate null.Time
+}
+
+// ToCreateParams converts Thing to a CreateThingParams with given user
+// name.
+func (t Thing) ToCreateParams(u *User) CreateThingParams {
+	return CreateThingParams{
+		Address:        t.Address,
+		Type:           t.Type,
+		Description:    t.Description,
+		Reason:         t.Reason,
+		Remove:         t.Remove,
+		Version:        t.Version,
+		License:        t.License,
+		Name:           t.Name,
+		URL:            t.URL,
+		DownloadMethod: t.DownloadMethod,
+		RequestSource:  t.RequestSource,
+		CreationDate:   t.CreationDate,
+		Creator:        u.Name,
+		CreatorID:      u.ID,
+	}
 }
 
 type Subscriber struct {
 	UserID  uint32
 	ThingID uint32
 	Creator bool
+}
+
+// NewGetThingsParams returns a new filter of type GetThingsParams with provided filters, after
+// validating the filter types.
+func NewGetThingsParams(typ, orderBy, dir, page, perPage string) (GetThingsParams, error) {
+	var filter GetThingsParams
+
+	OrderByTemp, err := NewOrderBy(orderBy)
+	if err != nil {
+		return filter, err
+	}
+
+	filter.OrderBy = OrderByTemp
+
+	filter.OrderDirection, err = NewOrderDirection(dir)
+	if err != nil {
+		return filter, err
+	}
+
+	filter.FilterOnType, err = NewThingsType(typ)
+	if err != nil {
+		return filter, err
+	}
+
+	filter.Page = atoiWithDefault(page, defaultPage)
+	filter.ThingsPerPage = atoiWithDefault(perPage, defaultPerPage)
+
+	return filter, nil
+}
+
+func atoiWithDefault(text string, defaultVal int) int {
+	num, err := strconv.Atoi(text)
+
+	if err != nil || num < 1 {
+		return defaultVal
+	}
+
+	return num
 }

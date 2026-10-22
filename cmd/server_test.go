@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2025 Genome Research Ltd.
+ * Copyright (c) 2026 Genome Research Ltd.
  *
  * Author: Sendu Bala <sb10@sanger.ac.uk>
  *         Amber Faruque<af35@sanger.ac.uk>
@@ -55,7 +55,7 @@ func TestServer(t *testing.T) {
 		Reset(func() {
 			flags := serverCmd.Flags()
 
-			for _, name := range []string{"url", "cert", "key"} {
+			for _, name := range []string{"url", "cert", "key", "domain", "ldap_server", "ldap_dn"} {
 				flag := flags.Lookup(name)
 				if flag == nil {
 					continue
@@ -67,7 +67,8 @@ func TestServer(t *testing.T) {
 		})
 
 		Convey("You can't start a server without all needed env vars", func() {
-			output, err := executeRootCommandForTest(t, []string{"server", "--cert", "a", "--url", "w", "--key", "b"}) //nolint:goconst,lll
+			output, err := executeRootCommandForTest(t, []string{"server", "--cert", "a", "--url", //nolint:goconst
+				"w", "--key", "b"})
 			So(err, ShouldNotBeNil)
 			So(output, ShouldContainSubstring, "failed to get database config")
 			So(output, ShouldContainSubstring, "missing required environment variables")
@@ -113,53 +114,60 @@ func TestServer(t *testing.T) {
 									output, err = executeRootCommandForTest(t, cliArgs)
 									So(err, ShouldNotBeNil)
 									So(output, ShouldNotContainSubstring, `"key"`)
+									Convey("Given default Domain", func() {
+										cliArgs = append(cliArgs, "--domain", envVarVal)
+										output, err = executeRootCommandForTest(t, cliArgs)
+										So(err, ShouldNotBeNil)
+										So(output, ShouldNotContainSubstring, `"domain"`)
 
-									Convey("You can't start a server without valid db info", func() {
-										So(output, ShouldContainSubstring, "error opening database")
+										Convey("You can't start a server without valid db info", func() {
+											So(output, ShouldContainSubstring, "error opening database")
 
-										dir, err := os.Getwd()
+											dir, err := os.Getwd()
 
-										So(err, ShouldBeNil)
+											So(err, ShouldBeNil)
 
-										parentDir := filepath.Dir(dir)
-										envFile := filepath.Join(parentDir, ".env.development.local")
+											parentDir := filepath.Dir(dir)
+											envFile := filepath.Join(parentDir, ".env.development.local")
 
-										_, err = os.Stat(envFile)
-										if err != nil {
-											SkipConvey("Skipping real server tests without "+envFile, func() {})
+											_, err = os.Stat(envFile)
+											if err != nil {
+												SkipConvey("Skipping real server tests without "+envFile, func() {})
 
-											return
-										}
+												return
+											}
 
-										os.Unsetenv(ttmysql.EnvVarHost)
-										os.Unsetenv(ttmysql.EnvVarPort)
-										os.Unsetenv(ttmysql.EnvVarUser)
-										os.Unsetenv(ttmysql.EnvVarPass)
-										os.Unsetenv(ttmysql.EnvVarDBName)
+											os.Unsetenv(ttmysql.EnvVarHost)
+											os.Unsetenv(ttmysql.EnvVarPort)
+											os.Unsetenv(ttmysql.EnvVarUser)
+											os.Unsetenv(ttmysql.EnvVarPass)
+											os.Unsetenv(ttmysql.EnvVarDBName)
 
-										err = godotenv.Load(envFile)
-										if err != nil {
-											SkipConvey(fmt.Sprintf("Skipping real server tests due to error reading file: %s", err), func() {})
+											err = godotenv.Load(envFile)
+											if err != nil {
+												SkipConvey(fmt.Sprintf("Skipping real server tests due to error reading file: %s", err), func() {})
 
-											return
-										}
+												return
+											}
 
-										Convey("Given real database details", func() {
-											Convey("You can't start a server with invalid cert files", func() {
-												output, err := executeRootCommandForTest(t, cliArgs)
-												So(err, ShouldNotBeNil)
-												So(output, ShouldContainSubstring, "non-graceful stop: open val: no such file or directory")
-											})
-
-											Convey("Given real cert files", func() {
-												cert, key, err := gas.CreateTestCert(t)
-												So(err, ShouldBeNil)
-
-												Convey("You can't start a server with an invalid url", func() {
-													cliArgs = []string{"server", "--url", "invalid", "--cert", cert, "--key", key}
+											Convey("Given real database details", func() {
+												Convey("You can't start a server with invalid cert files", func() {
 													output, err := executeRootCommandForTest(t, cliArgs)
 													So(err, ShouldNotBeNil)
-													So(output, ShouldContainSubstring, "non-graceful stop: listen tcp: address invalid: missing port in address") //nolint:lll
+													So(output, ShouldContainSubstring, "private key file unreadable")
+												})
+
+												Convey("Given real cert files", func() {
+													cert, key, err := gas.CreateTestCert(t)
+													So(err, ShouldBeNil)
+
+													Convey("You can't start a server with an invalid url", func() {
+														cliArgs = []string{"server", "--url", "invalid", "--cert", cert, "--key", key,
+															"--domain", "@default.domain"}
+														output, err := executeRootCommandForTest(t, cliArgs)
+														So(err, ShouldNotBeNil)
+														So(output, ShouldContainSubstring, "non-graceful stop: listen tcp: address invalid: missing port in address") //nolint:lll
+													})
 												})
 											})
 										})

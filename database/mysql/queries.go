@@ -86,6 +86,26 @@ func (m *DB) GetUserByName(name string) (*database.User, error) {
 		return nil, err
 	}
 
+	return scanRowForUser(rows)
+}
+
+const getUserByID = `
+SELECT id, name, email
+FROM users
+WHERE id = ?
+`
+
+// GetUserByID returns the user with the given user ID.
+func (m *DB) GetUserByID(id uint32) (*database.User, error) {
+	rows, err := m.pool.Query(getUserByID, id)
+	if err != nil {
+		return nil, err
+	}
+
+	return scanRowForUser(rows)
+}
+
+func scanRowForUser(rows *sql.Rows) (*database.User, error) {
 	defer rows.Close()
 
 	if gotRow := rows.Next(); !gotRow {
@@ -113,11 +133,50 @@ func (m *DB) GetUserByName(name string) (*database.User, error) {
 	return &user, nil
 }
 
+const getSubscriberByThing = `
+SELECT user_id, thing_id, creator
+FROM subscribers
+WHERE thing_id = ?
+`
+
+// Get subscribers returns a list of subscribers to a given thing, given that things ID.
+func (m *DB) GetSubscribers(thingID uint32) ([]database.Subscriber, error) {
+	rows, err := m.pool.Query(getSubscriberByThing, thingID)
+	if err != nil {
+		return nil, err
+	}
+
+	defer rows.Close()
+
+	var subscribers []database.Subscriber
+
+	for rows.Next() {
+		var subscriber database.Subscriber
+
+		if err = rows.Scan(
+			&subscriber.UserID,
+			&subscriber.ThingID,
+			&subscriber.Creator,
+		); err != nil {
+			return nil, err
+		}
+
+		subscribers = append(subscribers, subscriber)
+	}
+
+	if err = rows.Close(); err != nil {
+		return nil, err
+	}
+
+	return subscribers, rows.Err()
+}
+
 const createThing = `
 INSERT INTO things (
-  address, type, created, description, reason, remove
+  address, type, created, description, reason, remove, license, ` +
+	`version, name, url, download_method, request_source, creation_date
 ) VALUES (
-  ?, ?, ?, ?, ?, ?
+  ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?
 )
 `
 
@@ -136,11 +195,6 @@ INSERT INTO subscribers (
 func (m *DB) CreateThing(args database.CreateThingParams) (*database.Thing, error) { //nolint:funlen
 	created := time.Now()
 
-	user, err := m.GetUserByName(args.Creator)
-	if err != nil {
-		return nil, err
-	}
-
 	tx, err := m.pool.Begin()
 	if err != nil {
 		return nil, err
@@ -153,6 +207,13 @@ func (m *DB) CreateThing(args database.CreateThingParams) (*database.Thing, erro
 		args.Description,
 		args.Reason,
 		args.Remove,
+		args.License,
+		args.Version,
+		args.Name,
+		args.URL,
+		args.DownloadMethod,
+		args.RequestSource,
+		args.CreationDate,
 	)
 	if err != nil {
 		errRollback := tx.Rollback()
@@ -160,7 +221,7 @@ func (m *DB) CreateThing(args database.CreateThingParams) (*database.Thing, erro
 		return nil, errors.Join(err, errRollback)
 	}
 
-	_, err = tx.Exec(createSubscription, user.ID, id, 1)
+	_, err = tx.Exec(createSubscription, args.CreatorID, id, 1)
 	if err != nil {
 		errRollback := tx.Rollback()
 
@@ -173,18 +234,26 @@ func (m *DB) CreateThing(args database.CreateThingParams) (*database.Thing, erro
 	}
 
 	return &database.Thing{
-		ID:          id,
-		Address:     args.Address,
-		Type:        args.Type,
-		Created:     created,
-		Description: args.Description,
-		Reason:      args.Reason,
-		Remove:      args.Remove,
+		ID:             id,
+		Address:        args.Address,
+		Type:           args.Type,
+		Created:        created,
+		Description:    args.Description,
+		Reason:         args.Reason,
+		Remove:         args.Remove,
+		License:        args.License,
+		Version:        args.Version,
+		Name:           args.Name,
+		URL:            args.URL,
+		DownloadMethod: args.DownloadMethod,
+		RequestSource:  args.RequestSource,
+		CreationDate:   args.CreationDate,
 	}, nil
 }
 
 const getThings = `
-SELECT things.id, address, type, created, description, reason, remove, warned1, warned2, removed
+SELECT things.id, address, type, created, description, reason, remove, warned1, warned2, ` +
+	`removed, license, version, name, url, download_method, request_source, creation_date
 FROM things
 `
 
@@ -200,24 +269,12 @@ func (m *DB) GetThings(params database.GetThingsParams) (*database.GetThingsResu
 	var things []database.Thing
 
 	for rows.Next() {
-		var thing database.Thing
-
-		if errs := rows.Scan(
-			&thing.ID,
-			&thing.Address,
-			&thing.Type,
-			&thing.Created,
-			&thing.Description,
-			&thing.Reason,
-			&thing.Remove,
-			&thing.Warned1,
-			&thing.Warned2,
-			&thing.Removed,
-		); errs != nil {
-			return nil, errs
+		thing, errc := getThingRowScan(rows)
+		if errc != nil {
+			return nil, errc
 		}
 
-		things = append(things, thing)
+		things = append(things, *thing)
 	}
 
 	if err = rows.Close(); err != nil {
@@ -238,6 +295,71 @@ func (m *DB) GetThings(params database.GetThingsParams) (*database.GetThingsResu
 		LastPage: lastPage,
 	}, nil
 }
+
+const getThingByID = `
+SELECT things.id, address, type, created, description, reason, remove, warned1, warned2, ` +
+	`removed, license, version, name, url, download_method, request_source, creation_date
+FROM things
+WHERE things.id = ?
+`
+
+// GetThingByID returns a Thing with the given Thing ID.
+func (m *DB) GetThingByID(id uint32) (*database.Thing, error) {
+	rows, err := m.pool.Query(getThingByID, id)
+	if err != nil {
+		return nil, err
+	}
+
+	defer rows.Close()
+
+	if gotRow := rows.Next(); !gotRow {
+		return nil, ErrNoUser
+	}
+
+	thing, err := getThingRowScan(rows)
+	if err != nil {
+		return nil, err
+	}
+
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+
+	return thing, nil
+}
+
+func getThingRowScan(rows *sql.Rows) (*database.Thing, error) {
+	var thing database.Thing
+
+	if err := rows.Scan(
+		&thing.ID,
+		&thing.Address,
+		&thing.Type,
+		&thing.Created,
+		&thing.Description,
+		&thing.Reason,
+		&thing.Remove,
+		&thing.Warned1,
+		&thing.Warned2,
+		&thing.Removed,
+		&thing.License,
+		&thing.Version,
+		&thing.Name,
+		&thing.URL,
+		&thing.DownloadMethod,
+		&thing.RequestSource,
+		&thing.CreationDate,
+	); err != nil {
+		return nil, err
+	}
+
+	return &thing, nil
+}
+
 func (m *DB) runGetThingsQuery(params database.GetThingsParams) (*sql.Rows, error) {
 	var sql strings.Builder
 
@@ -251,6 +373,7 @@ func (m *DB) runGetThingsQuery(params database.GetThingsParams) (*sql.Rows, erro
 
 	return rows, nil
 }
+
 func getThingsParamsToSQL(params database.GetThingsParams, sql *strings.Builder) {
 	whereSQL(params, sql)
 	orderSQL(params, sql)

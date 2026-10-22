@@ -257,11 +257,11 @@ func TestMySQL(t *testing.T) {
 
 				user1, err := db.CreateUser(expectedUsers[0].Name, expectedUsers[0].Email)
 				So(err, ShouldBeNil)
-				So(user1, ShouldResemble, &expectedUsers[0])
+				So(user1, ShouldResemble, expectedUsers[0])
 
 				user2, err := db.CreateUser(expectedUsers[1].Name, expectedUsers[1].Email)
 				So(err, ShouldBeNil)
-				So(user2, ShouldResemble, &expectedUsers[1])
+				So(user2, ShouldResemble, expectedUsers[1])
 
 				_, err = db.CreateUser(expectedUsers[0].Name, "foo@bar.com")
 				So(err, ShouldNotBeNil)
@@ -276,23 +276,15 @@ func TestMySQL(t *testing.T) {
 				for i, et := range expectedThings {
 					before := time.Now()
 
-					var creator database.User
-
+					var creator *database.User
 					if expectedSubs[i].UserID == expectedUsers[0].ID {
 						creator = expectedUsers[0]
 					} else {
 						creator = expectedUsers[1]
 					}
 
-					thing, errc := db.CreateThing(database.CreateThingParams{
-						Address:     et.Address,
-						Type:        et.Type,
-						Description: et.Description,
-						Reason:      et.Reason,
-						Remove:      et.Remove,
-						Creator:     creator.Name,
-					})
-					So(errc, ShouldBeNil)
+					thing, errb := db.CreateThing(et.ToCreateParams(creator))
+					So(errb, ShouldBeNil)
 
 					after := time.Now()
 					created := thing.Created
@@ -300,18 +292,12 @@ func TestMySQL(t *testing.T) {
 
 					thing.Created = time.Time{}
 					So(thing, ShouldResemble, &et)
-				}
 
-				_, err = db.CreateThing(database.CreateThingParams{
-					Address:     "addr",
-					Type:        database.ThingsTypeIrods,
-					Description: "desc",
-					Reason:      "reason",
-					Remove:      expectedThings[0].Remove,
-					Creator:     "invalid",
-				})
-				So(err, ShouldNotBeNil)
-				So(err, ShouldEqual, ErrNoUser)
+					subscribers, errc := db.GetSubscribers(thing.ID)
+					So(errc, ShouldBeNil)
+					So(len(subscribers), ShouldEqual, 1)
+					So(subscribers[0], ShouldResemble, database.Subscriber{UserID: creator.ID, ThingID: thing.ID, Creator: true})
+				}
 
 				numThings := len(expectedThings)
 				count, err = countTableRows(db.pool, "things")
@@ -517,6 +503,30 @@ func TestMySQL(t *testing.T) {
 					So(err, ShouldBeNil)
 					So(count, ShouldEqual, (numThings/2)-1)
 				})
+			})
+
+			Convey("You can then add a user and a resource", func() {
+				expectedUser, et, _ := internal.GetExampleResourceData()
+
+				creator, err := db.CreateUser(expectedUser.Name, expectedUser.Email)
+				So(err, ShouldBeNil)
+				So(creator, ShouldResemble, expectedUser)
+
+				before := time.Now()
+				thing, err := db.CreateThing(et.ToCreateParams(expectedUser))
+				So(err, ShouldBeNil)
+
+				after := time.Now()
+
+				So(thing.Created, ShouldHappenOnOrBetween, before, after)
+				thing.Created = time.Time{}
+				So(thing, ShouldResemble, &et)
+
+				result, err := db.GetThings(database.GetThingsParams{})
+				So(err, ShouldBeNil)
+
+				result.Things[0].Created = time.Time{}
+				So(result.Things[0], ShouldResemble, et)
 			})
 		})
 	})

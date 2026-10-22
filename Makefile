@@ -21,8 +21,7 @@ install:
 
 dev: export TT_ENV = development
 dev:
-	air server --url :4563 --cert cert.pem --key key.pem --logstderr
-
+	air server --cert cert.pem --key key.pem --url :4563 
 test:
 	@go test -tags netgo --count 1 -p 1 ./...
 

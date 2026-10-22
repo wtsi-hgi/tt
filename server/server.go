@@ -1,7 +1,9 @@
 /*******************************************************************************
- * Copyright (c) 2025 Genome Research Ltd.
+ * Copyright (c) 2026 Genome Research Ltd.
  *
- * Author: Sendu Bala <sb10@sanger.ac.uk>
+ * Authors:
+ *	- Sendu Bala <sb10@sanger.ac.uk>
+ *  - Amber Faruque <af35@sanger.ac.uk>
  *
  * Permission is hereby granted, free of charge, to any person obtaining
  * a copy of this software and associated documentation files (the
@@ -27,11 +29,15 @@ package server
 
 import (
 	"embed"
+	"encoding/base64"
 	"html/template"
 	"io"
 	"io/fs"
 	"regexp"
+	"slices"
+	"strings"
 
+	"github.com/gin-gonic/gin"
 	gas "github.com/wtsi-hgi/go-authserver"
 	"github.com/wtsi-hgi/tt/database"
 )
@@ -40,8 +46,13 @@ import (
 var templatesFS embed.FS
 
 const (
-	ErrNoLogger   = gas.Error("a http logger must be configured")
-	ErrNoDatabase = gas.Error("a database must be supplied")
+	ErrNoLogger        = gas.Error("a http logger must be configured")
+	ErrNoDatabase      = gas.Error("a database must be supplied")
+	ErrNoDefaultDomain = gas.Error("a default email domain must be supplied")
+	ErrNoKey           = gas.Error("a key must be supplied")
+	ErrNoCert          = gas.Error("a cert must be supplied")
+	ErrNoTokenFile     = gas.Error("a token file must be supplied")
+	ErrNoAuthCallBack  = gas.Error("an authcallback must be supplied")
 )
 
 // Config configures the server.
@@ -52,17 +63,46 @@ type Config struct {
 	// Database is used to query MySQL for users, things and subscribers. This
 	// is required.
 	Database database.Queries
+
+	// Default email domain is the default domain when a user is being made.
+	DefaultEmailDomain string
+
+	Cert          string
+	Key           string
+	TokenFileName string
+	AuthCallback  gas.AuthCallback
+	CookieName    string
 }
 
 // CheckValid returns nil if all required options have been supplied, or an
 // error if not.
-func (c Config) CheckValid() error {
+func (c Config) CheckValid() error { //nolint:gocyclo
 	if c.HTTPLogger == nil {
 		return ErrNoLogger
 	}
 
 	if c.Database == nil {
 		return ErrNoDatabase
+	}
+
+	if c.DefaultEmailDomain == "" {
+		return ErrNoDefaultDomain
+	}
+
+	if c.Key == "" {
+		return ErrNoKey
+	}
+
+	if c.Cert == "" {
+		return ErrNoCert
+	}
+
+	if c.TokenFileName == "" {
+		return ErrNoTokenFile
+	}
+
+	if c.AuthCallback == nil {
+		return ErrNoAuthCallBack
 	}
 
 	return nil
@@ -72,8 +112,9 @@ func (c Config) CheckValid() error {
 // package's database, and a website that displays the information nicely.
 type Server struct {
 	gas.Server
-	db           database.Queries
-	rootTemplate *template.Template
+	db                 database.Queries
+	rootTemplate       *template.Template
+	DefaultEmailDomain string
 }
 
 // New creates a Server which serves the tt website.
@@ -86,18 +127,49 @@ func New(conf Config) (*Server, error) {
 	}
 
 	s := &Server{
-		Server: *gas.New(conf.HTTPLogger),
-		db:     conf.Database,
+		Server:             *gas.New(conf.HTTPLogger),
+		db:                 conf.Database,
+		DefaultEmailDomain: conf.DefaultEmailDomain,
 	}
 
-	s.Router().Use(gas.IncludeAbortErrorsInBody)
+	err := s.EnableAuthWithServerToken(conf.Cert, conf.Key, conf.TokenFileName, conf.AuthCallback)
+	if err != nil {
+		return nil, err
+	}
 
-	err := s.addEndPoints()
+	if conf.CookieName != "" {
+		cookieAuth(s, conf)
+	}
+
+	s.AuthRouter().Use(gas.IncludeAbortErrorsInBody)
+
+	err = s.addEndPoints()
 	if err != nil {
 		return nil, err
 	}
 
 	return s, nil
+}
+
+func cookieAuth(s *Server, conf Config) {
+	ar := s.AuthRouter()
+
+	ar.Handlers = slices.Insert(ar.Handlers, 0, func(ctx *gin.Context) {
+		cookie, errc := ctx.Cookie(conf.CookieName)
+		if errc != nil {
+			return
+		}
+
+		data, errc := base64.StdEncoding.DecodeString(cookie)
+		if errc != nil {
+			return
+		}
+
+		user, _, _ := strings.Cut(string(data), ":")
+		ctx.Set("user", &gas.User{
+			Username: user,
+		})
+	})
 }
 
 func (s *Server) addEndPoints() error {
@@ -119,11 +191,15 @@ func (s *Server) addEndPoints() error {
 
 	s.Router().SetHTMLTemplate(s.rootTemplate)
 
-	s.Router().GET("/", s.pageRoot)
-	s.Router().GET("/things", s.getThings)
-	s.Router().GET("/things/listen", s.SSESender(sseThingsEventName))
-	s.Router().POST("/things", s.postThing)
-	s.Router().DELETE("/things/:id", s.deleteThing)
+	s.Router().GET(pageRootPath, s.pageRoot)
+	s.AuthRouter().GET(thingsPath, s.getThings)
+	s.AuthRouter().GET(thingIDPath, s.getThingByID)
+	s.Router().GET(thingsListenPath, s.SSESender(sseThingsEventName))
+	s.AuthRouter().POST(thingsPath, s.postThing)
+	s.AuthRouter().POST(userPath, s.postUser)
+	s.AuthRouter().GET(userPath, s.getUser)
+	s.AuthRouter().GET(subscribersPath, s.getSubscribers)
+	s.AuthRouter().DELETE(thingIDPath, s.deleteThing)
 
 	return nil
 }

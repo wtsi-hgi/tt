@@ -29,7 +29,7 @@
         </form>
     </div>
 
-    <div class="uk-container uk-padding-small">
+    <div class="uk-container-expand uk-padding-small">
         <table class="uk-table uk-table-divider uk-table-striped">
             <colgroup>
                 <col>
@@ -43,29 +43,41 @@
             <thead>
                 <tr hx-headers='{"Accept": "text/html"}' hx-trigger="click" hx-target="tbody#things-list">
                     <th>
-                        Address<span uk-icon="arrow-up" hx-get="/things?sort=address&dir=DESC"></span><span
-                            uk-icon="arrow-down" hx-get="/things?sort=address&dir=ASC"></span>
+                            Name<span uk-icon="arrow-up" hx-get="/rest/v1/auth/things?sort=name&dir=DESC"></span><span
+                            uk-icon="arrow-down" hx-get="/rest/v1/auth/things?sort=name&dir=ASC"></span>
                     </th>
                     <th>
-                        Type<span uk-icon="arrow-up" hx-get="/things?sort=type&dir=DESC"></span><span
-                            uk-icon="arrow-down" hx-get="/things?sort=type&dir=ASC"></span>
+                        Address<span uk-icon="arrow-up" hx-get="/rest/v1/auth/things?sort=address&dir=DESC"></span><span
+                            uk-icon="arrow-down" hx-get="/rest/v1/auth/things?sort=address&dir=ASC"></span>
                     </th>
                     <th>
-                        Reason<span uk-icon="arrow-up" hx-get="/things?sort=reason&dir=DESC"></span><span
-                            uk-icon="arrow-down" hx-get="/things?sort=reason&dir=ASC"></span>
+                        Type<span uk-icon="arrow-up" hx-get="/rest/v1/auth/things?sort=type&dir=DESC"></span><span
+                            uk-icon="arrow-down" hx-get="/rest/v1/auth/things?sort=type&dir=ASC"></span>
                     </th>
+                    <th>Reason</th>
                     <th>Description</th>
                     <th>
-                        Removal Date<span uk-icon="arrow-up" hx-get="/things?sort=remove&dir=DESC"></span><span
-                            uk-icon="arrow-down" hx-get="/things?sort=remove&dir=ASC"></span>
+                            Version<span uk-icon="arrow-up" hx-get="/rest/v1/auth/things?sort=version&dir=DESC"></span><span
+                            uk-icon="arrow-down" hx-get="/rest/v1/auth/things?sort=version&dir=ASC"></span>
+                    </th>
+                    <th>RequestSource</th>
+                    <th>License</th>
+                    <th>URL</th>
+                    <th>DownloadMethod</th>
+                    <th>
+                        Removal Date<span uk-icon="arrow-up" hx-get="/rest/v1/auth/things?sort=remove&dir=DESC"></span><span
+                            uk-icon="arrow-down" hx-get="/rest/v1/auth/things?sort=remove&dir=ASC"></span>
                     </th>
                     <th></th>
                 </tr>
             </thead>
 
             <tbody>
-                <form hx-post="/things" hx-include="[name='Creator']" hx-swap="none"
+                <form hx-post="/rest/v1/auth/things" hx-include="[name='Creator']" hx-swap="none"
                     hx-on::after-request="this.reset()">
+                    <td>
+                        <input class="uk-input" name="Name" type="text" required>
+                    </td>
                     <td>
                         <input class="uk-input" name="Address" type="text" required>
                     </td>
@@ -76,7 +88,22 @@
                         <input class="uk-input" name="Reason" type="text" required>
                     </td>
                     <td>
-                        <input class="uk-input" name="Description" type="text">
+                        <input class="uk-input" name="Description" type="text" required>
+                    </td>
+                    <td>
+                        <input class="uk-input" name="Version" type="text" required>
+                    </td>
+                    <td>
+                        <input class="uk-input" name="RequestSource" type="text" required>
+                    </td>
+                    <td>
+                        <input class="uk-input" name="License" type="text">
+                    </td>
+                    <td>
+                        <input class="uk-input" name="URL" type="text">
+                    </td>
+                    <td>
+                        <input class="uk-input" name="DownloadMethod" type="text">
                     </td>
                     <td>
                         <input class="uk-input" name="Remove" type="date" required>
@@ -87,7 +114,7 @@
                 </form>
             </tbody>
 
-            <tbody hx-get="/things" hx-headers='{"Accept": "text/html"}' hx-trigger="load" id="things-list" hx-ext="sse"
+            <tbody hx-get="/rest/v1/auth/things" hx-headers='{"Accept": "text/html"}' hx-trigger="load" id="things-list" hx-ext="sse"
                 sse-connect="/things/listen" sse-swap="thingsSSE" hx-swap="afterbegin">
             </tbody>
         </table>
