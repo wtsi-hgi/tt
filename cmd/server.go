@@ -58,7 +58,7 @@ port, and for it to work with your --cert, you probably need to specify it as
 fqdn:port. --url defaults to the TT_SERVER_URL env var. --cert and --key (both
 required) defaults to the TT_SERVER_CERT and TT_SERVER_KEY env vars
 respectively. --domain is the default email domain of users, this defaults to 
-TT_SERVER_DEFAULT_EMAIL_DOMAIN env var.
+TT_SERVER_DEFAULT_EMAIL_DOMAIN env var. The server can not start if this is left blank.
 
 You will also need your database connection details in env vars:
 export TT_SQL_HOST=localhost
@@ -84,9 +84,9 @@ The server authenticates users using LDAP. You must provide the FQDN for your
 LDAP server, eg. --ldap_server ldap.example.com, and the bind DN that you would
 supply to eg. 'ldapwhoami -D' to test user credentials, replacing the username
 part with '%s', eg. --ldap_dn 'uid=%s,ou=people,dc=example,dc=com'. The values 
-will default to TT_SERVER_LPDAP_SERVER and TT_SERVER_LDAP_BIND_DN respectively.
-If these environment variables are empty, you'll get a warning, but the server
-will work and assume all passwords are valid.
+will default to the env vars TT_SERVER_LPDAP_SERVER and TT_SERVER_LDAP_BIND_DN 
+respectively. If these environment variables are empty, you'll get a warning, 
+but the server will work and assume all passwords are valid.
 
 The server website authenticates users using a cookie containing the users username.
 Provide the cookie name with the --cookie flag. If the name is not provided, it will 
