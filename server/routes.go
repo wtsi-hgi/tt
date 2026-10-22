@@ -56,19 +56,21 @@ const (
 )
 
 const (
-	pageRootPath     = "/"
-	thingsPath       = "/things"
-	thingIDPath      = "/things/:id"
-	userPath         = "/user"
-	thingsListenPath = "/things/listen"
-	subscribersPath  = "/subscribers"
+	pageRootPath             = "/"
+	thingsPath               = "/things"
+	thingIDPath              = "/things/:id"
+	userPath                 = "/user"
+	thingsListenPath         = "/things/listen"
+	subscriberPath           = "/subscriber"
+	subscribersByThingIDPath = "/subscribers/:thingid"
 
 	EndPointAuthRoot               = gas.EndPointAuth + pageRootPath
 	EndPointAuthUser               = gas.EndPointAuth + userPath
 	EndPointAuthThings             = gas.EndPointAuth + thingsPath
 	EndPointAuthThingID            = gas.EndPointAuth + thingIDPath
 	EndPointAuthSseThingsEventName = thingsListenPath
-	EndPointAuthSubscribers        = gas.EndPointAuth + subscribersPath
+	EndPointAuthSubscriber         = gas.EndPointAuth + subscriberPath
+	EndPointAuthSubscribersThingID = gas.EndPointAuth + subscribersByThingIDPath
 )
 
 // pageRoot takes no user input; it's for the overall main html page at /.
@@ -192,6 +194,7 @@ func validateOrCreateUser(c *gin.Context, s *Server, postedThing database.Create
 
 	user, err := s.db.GetUserByName(postedThing.Creator)
 	if errors.Is(err, ErrNoUser) {
+		//TODO: we can use postUser here without email?
 		user, err = s.db.CreateUser(postedThing.Creator, postedThing.Creator+s.DefaultEmailDomain)
 	}
 
@@ -347,10 +350,11 @@ func (s *Server) getUserByID(c *gin.Context, uID string) {
 	c.HTML(http.StatusOK, "templates/things.html", result)
 }
 
+// Gets all of the subscribers to a thing.
 func (s *Server) getSubscribers(c *gin.Context) {
-	tID := c.Query("id")
+	thingID := c.Query("id")
 
-	id, err := strconv.Atoi(tID)
+	id, err := strconv.Atoi(thingID)
 	if err != nil {
 		c.AbortWithError(http.StatusBadRequest, ErrInvalidThingID) //nolint: errcheck
 
@@ -371,4 +375,43 @@ func (s *Server) getSubscribers(c *gin.Context) {
 	}
 
 	c.HTML(http.StatusOK, "templates/things.html", result)
+}
+
+// TODO: get all of the things a user is subscribed to
+func (s *Server) getSubscriptions(c *gin.Context) {
+	userID := c.Query("id")
+
+	id, err := strconv.Atoi(userID)
+	if err != nil {
+		c.AbortWithError(http.StatusBadRequest, ErrInvalidThingID) //nolint: errcheck
+
+		return
+	}
+
+	result, errc := s.db.GetSubscriptions(uint32(id)) //nolint:gosec
+	if errc != nil {
+		c.AbortWithError(http.StatusBadRequest, errc) //nolint: errcheck
+
+		return
+	}
+
+	if c.Request.Header.Get("Accept") == jsonType {
+		c.JSON(http.StatusOK, result)
+
+		return
+	}
+
+	//TODO: subscriber template
+	c.HTML(http.StatusOK, "templates/things.html", result)
+}
+
+// TODO:
+// can we unsubscribe if we are creator?
+func (s *Server) deleteSubscription(c *gin.Context) {
+
+}
+
+// TODO:
+func (s *Server) postSubsciption(c *gin.Context) {
+
 }

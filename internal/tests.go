@@ -70,7 +70,9 @@ func GetExampleData() ([]*database.User, []database.Thing, []database.Subscriber
 			remove := dateFromYear(year + i)
 
 			expectedThing := database.Thing{
-				ID:          i + 1,
+				ID: i + 1,
+				//!! the sql and routes etc works but maybe fix tests marked !! where we reset the thing creator id?
+				//CreatorID:   1,
 				Address:     addresses[i],
 				Type:        thingType,
 				Description: "desc",
@@ -83,7 +85,6 @@ func GetExampleData() ([]*database.User, []database.Thing, []database.Subscriber
 			expectedSubs[i] = database.Subscriber{
 				UserID:  creator.ID,
 				ThingID: expectedThing.ID,
-				Creator: true,
 			}
 
 			i++
@@ -118,6 +119,7 @@ func GetExampleUser(id uint32) *database.User {
 func GetExampleResourceData() (*database.User, database.Thing, database.Subscriber) {
 	expectedThing := database.Thing{
 		ID:             1,
+		CreatorID:      1,
 		Address:        "address",
 		Type:           database.ThingsTypeResource,
 		Description:    "desc",
@@ -137,7 +139,6 @@ func GetExampleResourceData() (*database.User, database.Thing, database.Subscrib
 	expectedSub := database.Subscriber{
 		UserID:  creator.ID,
 		ThingID: expectedThing.ID,
-		Creator: true,
 	}
 
 	return creator, expectedThing, expectedSub

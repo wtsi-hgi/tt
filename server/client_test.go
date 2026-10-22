@@ -232,16 +232,13 @@ func TestClient(t *testing.T) {
 				So(len(subs), ShouldEqual, 1)
 				So(subs[0].UserID, ShouldResemble, u.ID)
 
-				// Test get subscriber and user details.
-				subAndUser, err := client.GetSubscriberAndUserDetails(&subs[0])
-				So(err, ShouldBeNil)
-				So(&subAndUser.User, ShouldResemble, u)
-
 				// Test get a thing and its subscriber details.
 				thingAndSubs, err := client.GetThingAndSubscriberDetails(things[0].ID)
 				So(err, ShouldBeNil)
 				So(thingAndSubs.Thing, ShouldResemble, things[0])
 				So(thingAndSubs.Subscribers[0].ID, ShouldResemble, subs[0].UserID)
+
+				//TODO: for this to be useful we'd want a test where the thing had at least 2 subscribers, and we're able to get their usernames from the result
 			})
 		})
 	})

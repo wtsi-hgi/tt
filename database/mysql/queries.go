@@ -134,7 +134,7 @@ func scanRowForUser(rows *sql.Rows) (*database.User, error) {
 }
 
 const getSubscriberByThing = `
-SELECT user_id, thing_id, creator
+SELECT user_id, thing_id
 FROM subscribers
 WHERE thing_id = ?
 `
@@ -156,7 +156,6 @@ func (m *DB) GetSubscribers(thingID uint32) ([]database.Subscriber, error) {
 		if err = rows.Scan(
 			&subscriber.UserID,
 			&subscriber.ThingID,
-			&subscriber.Creator,
 		); err != nil {
 			return nil, err
 		}
@@ -173,18 +172,18 @@ func (m *DB) GetSubscribers(thingID uint32) ([]database.Subscriber, error) {
 
 const createThing = `
 INSERT INTO things (
-  address, type, created, description, reason, remove, license, ` +
+  creator_id, address, type, created, description, reason, remove, license, ` +
 	`version, name, url, download_method, request_source, creation_date
 ) VALUES (
-  ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?
+  ?,?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?
 )
 `
 
 const createSubscription = `
 INSERT INTO subscribers (
-  user_id, thing_id, creator
+  user_id, thing_id
 ) VALUES (
-  ?, ?, ?
+  ?, ?
 )
 `
 
@@ -201,6 +200,7 @@ func (m *DB) CreateThing(args database.CreateThingParams) (*database.Thing, erro
 	}
 
 	id, err := createRow(tx, createThing,
+		args.CreatorID,
 		args.Address,
 		args.Type,
 		created,
@@ -221,7 +221,7 @@ func (m *DB) CreateThing(args database.CreateThingParams) (*database.Thing, erro
 		return nil, errors.Join(err, errRollback)
 	}
 
-	_, err = tx.Exec(createSubscription, args.CreatorID, id, 1)
+	_, err = tx.Exec(createSubscription, args.CreatorID, id)
 	if err != nil {
 		errRollback := tx.Rollback()
 
@@ -235,6 +235,7 @@ func (m *DB) CreateThing(args database.CreateThingParams) (*database.Thing, erro
 
 	return &database.Thing{
 		ID:             id,
+		CreatorID:      args.CreatorID,
 		Address:        args.Address,
 		Type:           args.Type,
 		Created:        created,
@@ -252,10 +253,13 @@ func (m *DB) CreateThing(args database.CreateThingParams) (*database.Thing, erro
 }
 
 const getThings = `
-SELECT things.id, address, type, created, description, reason, remove, warned1, warned2, ` +
+SELECT things.id,creator_id, address, type, created, description, reason, remove, warned1, warned2, ` +
 	`removed, license, version, name, url, download_method, request_source, creation_date
 FROM things
 `
+
+//!! CASE WHEN users.id IS NOT NULL THEN TRUE ELSE FALSE END AS subscribed
+//!! LEFT JOIN `subscriptions` ON (things.id = subscriptions.thing_id) LEFT JOIN `users` ON (subscriptions.user_id = users.id AND users.name = ?)
 
 // GetThings returns things that match the given parameters. Also in the result
 // is the last page that would return things if Page and ThingsPerPage are > 0.
@@ -297,7 +301,7 @@ func (m *DB) GetThings(params database.GetThingsParams) (*database.GetThingsResu
 }
 
 const getThingByID = `
-SELECT things.id, address, type, created, description, reason, remove, warned1, warned2, ` +
+SELECT things.id,creator_id, address, type, created, description, reason, remove, warned1, warned2, ` +
 	`removed, license, version, name, url, download_method, request_source, creation_date
 FROM things
 WHERE things.id = ?
@@ -332,11 +336,102 @@ func (m *DB) GetThingByID(id uint32) (*database.Thing, error) {
 	return thing, nil
 }
 
+// const getThingIDByUserSubscribed = `
+// SELECT thing_id
+// FROM subscribers
+// WHERE user_id = ?
+// `
+// // GetSubscriptions returns a list of Things that a given user is subscribed to.
+// func (m *DB) GetSubscriptions(userID uint32) ([]database.Thing, error) {
+// 	rows, err := m.pool.Query(getThingIDByUserSubscribed, userID)
+// 	if err != nil {
+// 		return nil, err
+// 	}
+
+// 	defer rows.Close()
+
+// 	var things []database.Thing
+
+// 	for rows.Next() {
+// 		var thingID uint32
+
+// 		if err = rows.Scan(
+// 			&thingID,
+// 		); err != nil {
+// 			return nil, err
+// 		}
+
+// 		thing, errc := m.GetThingByID(thingID)
+// 		if errc != nil {
+// 			return nil, errc
+// 		}
+
+// 		things = append(things, *thing)
+// 	}
+
+// 	if err = rows.Close(); err != nil {
+// 		return nil, err
+// 	}
+
+// 	if err := rows.Err(); err != nil {
+// 		return nil, err
+// 	}
+
+// 	return things, nil
+// }
+
+const getThingIDByUserSubscribed = `
+SELECT thing.id, thing.name, creator_id, address, type, created, description, reason, remove, warned1, warned2, ` +
+	`removed, license, version, url, download_method, request_source, creation_date
+FROM subscribers LEFT JOIN things ON(thing_id = things.id)
+WHERE user_id = ?
+`
+
+// GetSubscriptions returns a list of Things that a given user is subscribed to.
+func (m *DB) GetSubscriptions(userID uint32) ([]database.Thing, error) {
+	rows, err := m.pool.Query(getThingIDByUserSubscribed, userID)
+	if err != nil {
+		return nil, err
+	}
+
+	defer rows.Close()
+
+	var things []database.Thing
+
+	for rows.Next() {
+		var thingID uint32
+
+		if err = rows.Scan(
+			&thingID,
+		); err != nil {
+			return nil, err
+		}
+
+		thing, errc := m.GetThingByID(thingID)
+		if errc != nil {
+			return nil, errc
+		}
+
+		things = append(things, *thing)
+	}
+
+	if err = rows.Close(); err != nil {
+		return nil, err
+	}
+
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+
+	return things, nil
+}
+
 func getThingRowScan(rows *sql.Rows) (*database.Thing, error) {
 	var thing database.Thing
 
 	if err := rows.Scan(
 		&thing.ID,
+		&thing.CreatorID,
 		&thing.Address,
 		&thing.Type,
 		&thing.Created,

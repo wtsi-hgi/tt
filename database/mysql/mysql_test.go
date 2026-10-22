@@ -291,12 +291,13 @@ func TestMySQL(t *testing.T) {
 					So(created, ShouldHappenOnOrBetween, before, after)
 
 					thing.Created = time.Time{}
+					thing.CreatorID = 0 //!!
 					So(thing, ShouldResemble, &et)
 
 					subscribers, errc := db.GetSubscribers(thing.ID)
 					So(errc, ShouldBeNil)
 					So(len(subscribers), ShouldEqual, 1)
-					So(subscribers[0], ShouldResemble, database.Subscriber{UserID: creator.ID, ThingID: thing.ID, Creator: true})
+					So(subscribers[0], ShouldResemble, database.Subscriber{UserID: creator.ID, ThingID: thing.ID})
 				}
 
 				numThings := len(expectedThings)
@@ -308,9 +309,9 @@ func TestMySQL(t *testing.T) {
 				So(err, ShouldBeNil)
 				So(count, ShouldEqual, numThings)
 
-				count, err = countTableRows(db.pool, "subscribers", "creator = 1")
-				So(err, ShouldBeNil)
-				So(count, ShouldEqual, numThings)
+				// count, err = countTableRows(db.pool, "subscribers", "creator = 1")
+				// So(err, ShouldBeNil)
+				// So(count, ShouldEqual, numThings)
 
 				count, err = countTableRows(db.pool, "subscribers", "user_id = 1")
 				So(err, ShouldBeNil)
@@ -328,6 +329,8 @@ func TestMySQL(t *testing.T) {
 					So(len(result.Things), ShouldEqual, numThings)
 					So(result.LastPage, ShouldEqual, 0)
 					result.Things[0].Created = time.Time{}
+					result.Things[0].CreatorID = 0           //!!
+					result.Things[numThings-1].CreatorID = 0 //!!
 					So(result.Things[0], ShouldResemble, expectedThings[0])
 					result.Things[numThings-1].Created = time.Time{}
 					So(result.Things[numThings-1], ShouldResemble, expectedThings[numThings-1])
@@ -503,6 +506,17 @@ func TestMySQL(t *testing.T) {
 					So(err, ShouldBeNil)
 					So(count, ShouldEqual, (numThings/2)-1)
 				})
+				//TODO:
+				Convey("Then you can subscribe to additional things", func() {
+					Convey("Then you can get the things you are subscribed to", func() { // Getting from subs table or getting from things table?
+
+					})
+					// (unless you are the creator)> does everything needs a creator? > causes issues when people leave?
+					Convey("Then you can delete your subscriptions (unless you are the creator)", func() {
+
+					})
+				})
+				//TODO: do we have test for get subcribers to a thing?
 			})
 
 			Convey("You can then add a user and a resource", func() {

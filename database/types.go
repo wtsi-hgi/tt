@@ -247,13 +247,15 @@ func ValidateCreateThingsParams(thing CreateThingParams) error { //nolint:gocycl
 	if time.Now().Before(thing.CreationDate.Time) {
 		return ErrBadCreationDate
 	}
-
+	//TODO: add creator validation again here?
 	return nil
 }
 
 type Thing struct {
 	// ID is the unique (auto-increment) id of the temporary thing.
 	ID uint32
+	// CreatorID is the id of the user who create dthe temporary thing
+	CreatorID uint32
 	// Address is the location of the resource, such as absolute file path on
 	// disk or URL.
 	Address string
@@ -322,7 +324,6 @@ func (t Thing) ToCreateParams(u *User) CreateThingParams {
 type Subscriber struct {
 	UserID  uint32
 	ThingID uint32
-	Creator bool
 }
 
 // NewGetThingsParams returns a new filter of type GetThingsParams with provided filters, after

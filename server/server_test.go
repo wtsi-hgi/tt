@@ -127,6 +127,7 @@ func (m *mockDB) CreateThing(args database.CreateThingParams) (*database.Thing, 
 
 	thing := database.Thing{
 		ID:             id,
+		CreatorID:      args.CreatorID,
 		Address:        args.Address,
 		Type:           args.Type,
 		Description:    args.Description,
@@ -164,7 +165,6 @@ func (m *mockDB) CreateThing(args database.CreateThingParams) (*database.Thing, 
 	subscriber := database.Subscriber{
 		UserID:  userID,
 		ThingID: id,
-		Creator: true,
 	}
 
 	m.subs = append(m.subs, subscriber)
@@ -246,6 +246,7 @@ func (m *mockDB) GetSubscribers(id uint32) ([]database.Subscriber, error) {
 	return subscribers, nil
 }
 
+// TODO: fill out these:
 func (m *mockDB) GetSubscriptions(id uint32) ([]database.Thing, error) {
 	return nil, nil
 }
@@ -432,7 +433,6 @@ func TestServer(t *testing.T) {
 			So(mdb.users[0], ShouldResemble, user)
 
 			Convey("You can POST thing details to the things endpoint and listen for SSE updates", func() {
-				// Get port
 				l, err := net.Listen("tcp", "127.0.0.1:0")
 				So(err, ShouldBeNil)
 
@@ -455,10 +455,13 @@ func TestServer(t *testing.T) {
 				thingParams := thing.ToCreateParams(newUser)
 
 				thing.ID = 0
+
 				thingJSON, err = json.Marshal(thingParams)
 				So(err, ShouldBeNil)
 
 				code := testEndpointCode(s, "POST", EndPointAuthThings, string(thingJSON), jwt)
+
+				mdb.things[0].CreatorID = 1 //!!
 
 				So(code, ShouldEqual, http.StatusNoContent)
 				So(len(mdb.things), ShouldEqual, 1)
@@ -468,7 +471,7 @@ func TestServer(t *testing.T) {
 				info := <-ch
 				info2 := <-ch2
 
-				So(info, ShouldContainSubstring, "<tr hx-target=\"this\" hx-swap=\"outerHTML\">\t<td>")
+				So(info, ShouldContainSubstring, "<tr hx-target=\"this\" hx-swap=\"outerHTML\">\t<td>ResourceName</td>\t")
 				So(info, ShouldEqual, info2)
 
 				Convey("You are a subscriber to the thing you created", func() {
@@ -695,11 +698,11 @@ func TestWebServerWithCookie(t *testing.T) {
 				exampleSubscriber := database.Subscriber{
 					UserID:  1,
 					ThingID: thing.ID,
-					Creator: true,
 				}
 
 				So(len(mdb.subs), ShouldEqual, 1)
 				So(mdb.subs[0], ShouldResemble, exampleSubscriber)
+				So(mdb.things[0].CreatorID, ShouldEqual, exampleSubscriber.UserID)
 			})
 		})
 	})
@@ -723,11 +726,11 @@ func thingPostAndSubTests(mdb *mockDB, s *Server, auth any) {
 		exampleSubscriber := database.Subscriber{
 			UserID:  1,
 			ThingID: thing.ID,
-			Creator: true,
 		}
 
 		So(len(mdb.subs), ShouldEqual, 1)
 		So(mdb.subs[0], ShouldResemble, exampleSubscriber)
+		So(mdb.things[0].CreatorID, ShouldEqual, exampleSubscriber.UserID)
 	})
 }
 

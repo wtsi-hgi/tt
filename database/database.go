@@ -46,6 +46,16 @@ type Queries interface {
 	// the things ID.
 	GetSubscribers(id uint32) ([]Subscriber, error)
 
+	// GetSubscriptions returns a list of Things that a user is subscribed to.
+	GetSubscriptions(uid uint32) ([]Thing, error)
+
+	// // PostSubscription subscribes a user to a thing given the user ID an thing ID.
+	// PostSubscription(uid, tid uint32) error
+
+	// // DeleteSubscription unsubscribes a user to a thing given the user ID and
+	// // thing ID.
+	// DeleteSubscription(uid, tid uint32) error
+
 	// CreateThing creates a new Thing with the given details. The returned
 	// Thing will have its ID set to an auto-increment value, and Created time
 	// set to now. The supplied Creator must match the Name of an existing User,
