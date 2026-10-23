@@ -51,7 +51,11 @@ go install github.com/air-verse/air@latest
 Then you can bring up a development server that logs to STDERR like this:
 
 ```
-openssl req -x509 -newkey rsa:4096 -keyout key.pem -out cert.pem -sha256 -days 365 -subj '/CN=yourhost' -addext "subjectAltName = DNS:yourhost" -nodes
+openssl req -x509 -newkey rsa:4096 -nodes -sha256 -days 397 -keyout key.pem -out cert.pem -subj '/CN=yourhost' -addext 'subjectAltName=DNS:yourhost' -addext 'basicConstraints=critical,CA:FALSE' -addext 'keyUsage=critical,digitalSignature,keyEncipherment' -addext 'extendedKeyUsage=serverAuth'
 
 make dev
 ```
+
+The extensions and the 397 day validity are needed for browsers (especially on
+macOS) to accept the cert, and the key must be RSA because the server also uses
+it to sign login tokens.
