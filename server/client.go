@@ -172,9 +172,8 @@ func (c *Client) GetSubscribers(thingID uint32) ([]database.Subscriber, error) {
 	subscribers := []database.Subscriber{}
 
 	resp, err := c.request().SetHeader("Accept", "application/json").
-		SetQueryParam("id", strconv.Itoa(int(thingID))).
 		SetResult(&subscribers).
-		Get(EndPointAuthSubscribersThingID) //!!
+		Get(fmt.Sprintf("%s/%d", EndPointAuthSubscriber, thingID))
 	if err != nil {
 		return nil, err
 	}
@@ -197,10 +196,18 @@ func (c *Client) Unsubscribe(id uint32) error { //pass in subscriber type?
 	return nil
 }
 
-// TODO: get a users subscriptions.
+// GetSubscriptions returns a list of the Things that are subscribed to by a user given the user ID
 func (c *Client) GetSubscriptions(userID uint32) ([]database.Thing, error) {
-	// does this get things or get subs.. things more useful for display..
-	return nil, nil
+	things := []database.Thing{}
+
+	resp, err := c.request().SetHeader("Accept", "application/json").SetQueryParam("id", strconv.Itoa(int(userID))).
+		SetResult(&things).
+		Get(EndPointAuthSubscriber)
+	if err != nil {
+		return nil, err
+	}
+
+	return things, responseToErr(resp)
 }
 
 // GetUserByID gets a user given the user ID.
@@ -256,22 +263,6 @@ func (c *Client) GetThingByID(id uint32) (*database.Thing, error) {
 	return thing, responseToErr(resp)
 }
 
-// // SubscriberAndserDetails gets the subscribers to a thing given the Thing ID.
-// func (c *Client) GetSubscriberAndUserDetails(sub *database.Subscriber) (*SubscriberWithUserDetails, error) {
-// 	detailedSub := &SubscriberWithUserDetails{
-// 		Creator: sub.Creator,
-// 	}
-
-// 	user, err := c.GetUserByID(sub.UserID)
-// 	if err != nil {
-// 		return nil, err
-// 	}
-
-// 	detailedSub.User = *user
-
-// 	return detailedSub, err
-// }
-
 // GetThingAndSubscriberDetails returns a struct with a Thing and
 // information about its subscribers given.
 func (c *Client) GetThingAndSubscriberDetails(tID uint32) (*ThingWithSubscriberDetails, error) {
@@ -300,5 +291,6 @@ func (c *Client) GetThingAndSubscriberDetails(tID uint32) (*ThingWithSubscriberD
 	if errc != nil {
 		return nil, errc
 	}
+
 	return &ThingWithSubscriberDetails{Thing: *thing, Subscribers: userSubs, Creator: *creator}, err
 }

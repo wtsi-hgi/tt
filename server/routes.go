@@ -62,7 +62,7 @@ const (
 	userPath                 = "/user"
 	thingsListenPath         = "/things/listen"
 	subscriberPath           = "/subscriber"
-	subscribersByThingIDPath = "/subscribers/:thingid"
+	subscribersByThingIDPath = "/subscriber/:thingid"
 
 	EndPointAuthRoot               = gas.EndPointAuth + pageRootPath
 	EndPointAuthUser               = gas.EndPointAuth + userPath
@@ -352,7 +352,7 @@ func (s *Server) getUserByID(c *gin.Context, uID string) {
 
 // Gets all of the subscribers to a thing.
 func (s *Server) getSubscribers(c *gin.Context) {
-	thingID := c.Query("id")
+	thingID := c.Param("thingid")
 
 	id, err := strconv.Atoi(thingID)
 	if err != nil {

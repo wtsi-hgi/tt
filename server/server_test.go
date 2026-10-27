@@ -246,11 +246,19 @@ func (m *mockDB) GetSubscribers(id uint32) ([]database.Subscriber, error) {
 	return subscribers, nil
 }
 
-// TODO: fill out these:
 func (m *mockDB) GetSubscriptions(id uint32) ([]database.Thing, error) {
-	return nil, nil
+	var things []database.Thing
+	for _, sub := range m.subs {
+		if sub.UserID == id {
+			thing, _ := m.GetThingByID(sub.ThingID) //nolint:errcheck
+			things = append(things, *thing)
+		}
+	}
+
+	return things, nil
 }
 
+// TODO: fill out these:
 // func (m *mockDB) PostSubscription(id uint32) error {
 // 	return nil
 
@@ -486,6 +494,9 @@ func TestServer(t *testing.T) {
 
 					So(len(mdb.subs), ShouldEqual, 1)
 					So(mdb.subs[0], ShouldResemble, exampleSubscriber)
+				})
+				Convey("You can subscibe to a thing and get your subscriptions", func() {
+					//TODO
 				})
 			})
 		})
