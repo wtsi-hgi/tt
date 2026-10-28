@@ -222,23 +222,48 @@ func TestClient(t *testing.T) {
 			So(err, ShouldBeNil)
 			So(thing, ShouldResemble, &things[0])
 
-			Convey("You can get information about subscribers to the thing created", func() {
-				// Test get a subscriber with thingID.
-				u, err := client.GetUserByName(userName)
+			Convey("You can Subscribe to things and get all of your subscriptions", func() {
+				userPost := &database.User{
+					Name:  "exampleSub",
+					Email: "exampleSub" + s.DefaultEmailDomain,
+				}
+				err := client.CreateUser(userPost)
+				So(err, ShouldBeNil)
+				So(len(mdb.users), ShouldEqual, 2)
+
+				err = client.Subscribe(&database.NewSubscriptionParams{Username: userPost.Name, ThingID: things[0].ID})
+				So(err, ShouldBeNil)
+				err = client.Subscribe(&database.NewSubscriptionParams{Username: userPost.Name, ThingID: things[1].ID})
 				So(err, ShouldBeNil)
 
-				subs, err := client.GetSubscribers(things[0].ID)
+				subscribedThings, err := client.GetSubscriptions(userPost.Name)
 				So(err, ShouldBeNil)
-				So(len(subs), ShouldEqual, 1)
-				So(subs[0].UserID, ShouldResemble, u.ID)
+				So(subscribedThings[0].ID, ShouldEqual, things[0].ID)
+				So(len(subscribedThings), ShouldEqual, 2)
 
-				// Test get a thing and its subscriber details.
-				thingAndSubs, err := client.GetThingAndSubscriberDetails(things[0].ID)
-				So(err, ShouldBeNil)
-				So(thingAndSubs.Thing, ShouldResemble, things[0])
-				So(thingAndSubs.Subscribers[0].ID, ShouldResemble, subs[0].UserID)
+				Convey("You can get information about subscribers to the thing created", func() {
+					// Test get a subscriber with thingID.
+					u, err := client.GetUserByName(userName)
+					So(err, ShouldBeNil)
 
-				//TODO: for this to be useful we'd want a test where the thing had at least 2 subscribers, and we're able to get their usernames from the result
+					subs, err := client.GetSubscribers(things[0].ID)
+					So(err, ShouldBeNil)
+					So(len(subs), ShouldEqual, 2)
+					So(subs[0].UserID, ShouldResemble, u.ID)
+
+					// Test get a thing and its subscriber details.
+					thingAndSubs, err := client.GetThingAndSubscriberDetails(things[0].ID)
+					So(err, ShouldBeNil)
+					So(len(thingAndSubs.Subscribers), ShouldEqual, 2)
+
+					So(thingAndSubs.Thing, ShouldResemble, things[0])
+					So(thingAndSubs.Subscribers[0].ID, ShouldResemble, subs[0].UserID)
+					So(thingAndSubs.Subscribers[1].Name, ShouldEqual, userPost.Name)
+				})
+
+				Convey("You can unsubscribe to a thing", func() {
+					// TODO:
+				})
 			})
 		})
 	})
