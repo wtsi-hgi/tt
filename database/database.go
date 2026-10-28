@@ -54,7 +54,7 @@ type Queries interface { //nolint:interfacebloat
 
 	// DeleteSubscription unsubscribes a user to a thing given the user ID and
 	// thing ID.
-	// DeleteSubscription(username string, thingID uint32) error
+	DeleteSubscription(username string, thingID uint32) error
 
 	// CreateThing creates a new Thing with the given details. The returned
 	// Thing will have its ID set to an auto-increment value, and Created time

@@ -426,21 +426,20 @@ func (s *Server) postSubsciption(c *gin.Context) {
 
 // TODO:
 func (s *Server) deleteSubscription(c *gin.Context) {
-	// var subPost postSubscriptionRequest
+	var subPost database.NewSubscriptionParams
 
-	// if err := c.ShouldBind(subPost); err != nil {
-	// 	c.AbortWithError(http.StatusBadRequest, err) //nolint: errcheck
+	if err := c.ShouldBind(&subPost); err != nil {
+		c.AbortWithError(http.StatusBadRequest, err) //nolint: errcheck
 
-	// 	return
-	// }
+		return
+	}
 
-	// err := s.db.DeleteSubscription(subPost.Username, subPost.ThingID)
-	// if err != nil {
-	// 	c.AbortWithError(http.StatusBadRequest, err) //nolint:errcheck
+	err := s.db.DeleteSubscription(subPost.Username, subPost.ThingID)
+	if err != nil {
+		c.AbortWithError(http.StatusBadRequest, err) //nolint:errcheck
 
-	// 	return
-	// }
+		return
+	}
 
-	// c.Status(http.StatusNoContent)
-
+	c.Status(http.StatusNoContent)
 }

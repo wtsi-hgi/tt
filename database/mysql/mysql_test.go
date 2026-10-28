@@ -500,21 +500,27 @@ func TestMySQL(t *testing.T) {
 						So(errc, ShouldBeNil)
 
 						Convey("Then you can get the things you are subscribed to", func() {
-							subscribedThings, err := db.GetSubscriptions(sub2.Name)
-							So(err, ShouldBeNil)
-							So(len(subscribedThings), ShouldEqual, 1)
-							So(subscribedThings[0], ShouldResemble, result.Things[0])
-
-							subscribedThings, err = db.GetSubscriptions(sub1.Name)
-							So(err, ShouldBeNil)
-
+							subscribedThings, errd := db.GetSubscriptions(sub1.Name)
+							So(errd, ShouldBeNil)
 							So(len(subscribedThings), ShouldEqual, 2)
 							So(subscribedThings[0], ShouldResemble, result.Things[0])
 							So(subscribedThings[1].ID, ShouldEqual, thing.ID)
+
+							subscribedThings, errd = db.GetSubscriptions(sub2.Name)
+							So(errd, ShouldBeNil)
+							So(len(subscribedThings), ShouldEqual, 1)
+							So(subscribedThings[0], ShouldResemble, result.Things[0])
 						})
-						// (unless you are the creator)> does everything needs a creator? > causes issues when people leave?
-						Convey("Then you can delete your subscriptions (unless you are the creator)", func() {
-							// TODO:
+						//!! (unless you are the creator)> does everything needs a creator? > causes issues when people leave?
+						Convey("Then you can unsubscribe", func() {
+							errd := db.DeleteSubscription(sub1.Name, thing.ID)
+							So(errd, ShouldBeNil)
+
+							subscribedThings, errd := db.GetSubscriptions(sub1.Name)
+							So(errd, ShouldBeNil)
+							So(len(subscribedThings), ShouldEqual, 1)
+							So(subscribedThings[0], ShouldResemble, result.Things[0])
+							So(subscribedThings, ShouldNotContain, thing.ID)
 						})
 					})
 				})

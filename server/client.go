@@ -200,7 +200,16 @@ func (c *Client) Subscribe(subscription *database.NewSubscriptionParams) error {
 }
 
 // TODO: delete a subscriber.
-func (c *Client) Unsubscribe(username string, thingID uint32) error { //pass in subscriber type?
+func (c *Client) Unsubscribe(subscription *database.NewSubscriptionParams) error { //pass in subscriber type?
+	resp, err := c.request().ForceContentType("application/json").SetBody(subscription).Delete(EndPointAuthSubscriber)
+	if err != nil {
+		return err
+	}
+
+	if resp.StatusCode() != http.StatusNoContent {
+		return errors.New(resp.String()) //nolint:err113
+	}
+
 	return nil
 }
 

@@ -281,21 +281,22 @@ func (m *mockDB) PostSubscription(username string, thingID uint32) error {
 	return nil
 }
 
-// func (m *mockDB) DeleteSubscriptions(username string, thingID uint32) error {
-// 	user, err := m.GetUserByName(username)
-// 	if err != nil {
-// 		return err
-// 	}
+func (m *mockDB) DeleteSubscription(username string, thingID uint32) error {
+	user, err := m.GetUserByName(username)
+	if err != nil {
+		return err
+	}
 
-// 	if slices.Contains(m.subs,
-// 		database.Subscriber{UserID: user.ID, ThingID: thingID}) {
+	for i, sub := range m.subs {
+		if sub.UserID == user.ID && sub.ThingID == thingID {
+			m.subs = slices.Delete(m.subs, i, i+1)
 
-// 		m.subs = append(m.subs, database.Subscriber{UserID: user.ID, ThingID: thingID})
-// 		return nil
-// 	}
+			return nil
+		}
+	}
 
-// 	return ErrNotSubscribed
-// }
+	return ErrNotSubscribed
+}
 
 func (m *mockDB) DeleteThing(id uint32) error {
 	for i, thing := range m.things {

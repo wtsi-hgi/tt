@@ -433,7 +433,7 @@ func (m *DB) GetSubscriptions(username string) ([]database.Thing, error) {
 	return things, nil
 }
 
-const subscribe = `INSERT INTO subscribers (user_id, thing_id) VALUES (?, ?);` //nolint:unused
+const subscribe = `INSERT INTO subscribers (user_id, thing_id) VALUES (?, ?);`
 
 // PostSubscription records that a user is subscribed to a thing.
 func (m *DB) PostSubscription(username string, thingID uint32) error {
@@ -451,20 +451,21 @@ func (m *DB) PostSubscription(username string, thingID uint32) error {
 	return nil
 }
 
-const unsubscribe = `DELETE FROM subscribers WHERE user_id = ? AND thing_id = ?;` //nolint:unused
-// func (m *DB) DeleteSubscription(username string, thingID uint32) error {
-// 	user, err := m.GetUserByName(username)
-// 	if err != nil {
-// 		return err
-// 	}
+const unsubscribe = `DELETE FROM subscribers WHERE user_id = ? AND thing_id = ?;`
 
-// 	_, err = m.pool.Exec(unsubscribe, user.ID, thingID)
-// 	if err != nil {
-// 		return err
-// 	}
+func (m *DB) DeleteSubscription(username string, thingID uint32) error {
+	user, err := m.GetUserByName(username)
+	if err != nil {
+		return err
+	}
 
-// 	return nil
-// }
+	_, err = m.pool.Exec(unsubscribe, user.ID, thingID)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
 
 func getThingRowScan(rows *sql.Rows) (*database.Thing, error) {
 	var thing database.Thing
