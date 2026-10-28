@@ -48,11 +48,13 @@ type Error string
 func (e Error) Error() string { return string(e) }
 
 const (
-	ErrInvalidEmail    = Error("Invalid email")
-	ErrInvalidUserName = Error("Invalid username")
-	ErrInvalidThingID  = Error("Invalid thing ID")
-	ErrUnauthorized    = Error("Unauthorized") //nolint:misspell
-	ErrNoUser          = database.Error("No User found with that name")
+	ErrInvalidEmail      = Error("Invalid email")
+	ErrInvalidUserName   = Error("Invalid username")
+	ErrInvalidThingID    = Error("Invalid thing ID")
+	ErrUnauthorized      = Error("Unauthorized") //nolint:misspell
+	ErrNoUser            = database.Error("No User found with that name")
+	ErrAlreadySubscribed = database.Error("User already subscribed to this thing")
+	ErrNotSubscribed     = database.Error("User is not subscribed to this thing")
 )
 
 const (
@@ -257,7 +259,6 @@ func (s *Server) deleteThing(c *gin.Context) {
 
 func (s *Server) postUser(c *gin.Context) {
 	var userPost database.User
-
 	if err := c.ShouldBind(&userPost); err != nil {
 		c.AbortWithError(http.StatusBadRequest, err) //nolint: errcheck
 
@@ -350,7 +351,6 @@ func (s *Server) getUserByID(c *gin.Context, uID string) {
 	c.HTML(http.StatusOK, "templates/things.html", result)
 }
 
-// Gets all of the subscribers to a thing.
 func (s *Server) getSubscribers(c *gin.Context) {
 	thingID := c.Param("thingid")
 
@@ -374,21 +374,20 @@ func (s *Server) getSubscribers(c *gin.Context) {
 		return
 	}
 
+	//TODO: subscriber template
 	c.HTML(http.StatusOK, "templates/things.html", result)
 }
 
-// TODO: get all of the things a user is subscribed to
+// TODO: get all of the things a user is subscribed to.
 func (s *Server) getSubscriptions(c *gin.Context) {
-	userID := c.Query("id")
-
-	id, err := strconv.Atoi(userID)
-	if err != nil {
-		c.AbortWithError(http.StatusBadRequest, ErrInvalidThingID) //nolint: errcheck
+	username := c.Query("username")
+	if username == "" {
+		c.AbortWithStatus(http.StatusBadRequest)
 
 		return
 	}
 
-	result, errc := s.db.GetSubscriptions(uint32(id)) //nolint:gosec
+	result, errc := s.db.GetSubscriptions(username)
 	if errc != nil {
 		c.AbortWithError(http.StatusBadRequest, errc) //nolint: errcheck
 
@@ -405,13 +404,43 @@ func (s *Server) getSubscriptions(c *gin.Context) {
 	c.HTML(http.StatusOK, "templates/things.html", result)
 }
 
-// TODO:
-// can we unsubscribe if we are creator?
-func (s *Server) deleteSubscription(c *gin.Context) {
+func (s *Server) postSubsciption(c *gin.Context) {
+	var subPost database.NewSubscriptionParams
 
+	if err := c.ShouldBind(&subPost); err != nil {
+		c.AbortWithError(http.StatusBadRequest, err) //nolint: errcheck
+
+		return
+	}
+
+	//TODO: Should auth/ create user here
+	err := s.db.PostSubscription(subPost.Username, subPost.ThingID)
+	if err != nil {
+		c.AbortWithError(http.StatusBadRequest, err) //nolint:errcheck
+
+		return
+	}
+
+	c.Status(http.StatusNoContent)
 }
 
 // TODO:
-func (s *Server) postSubsciption(c *gin.Context) {
+func (s *Server) deleteSubscription(c *gin.Context) {
+	// var subPost postSubscriptionRequest
+
+	// if err := c.ShouldBind(subPost); err != nil {
+	// 	c.AbortWithError(http.StatusBadRequest, err) //nolint: errcheck
+
+	// 	return
+	// }
+
+	// err := s.db.DeleteSubscription(subPost.Username, subPost.ThingID)
+	// if err != nil {
+	// 	c.AbortWithError(http.StatusBadRequest, err) //nolint:errcheck
+
+	// 	return
+	// }
+
+	// c.Status(http.StatusNoContent)
 
 }

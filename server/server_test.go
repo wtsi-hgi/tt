@@ -246,10 +246,16 @@ func (m *mockDB) GetSubscribers(id uint32) ([]database.Subscriber, error) {
 	return subscribers, nil
 }
 
-func (m *mockDB) GetSubscriptions(id uint32) ([]database.Thing, error) {
+func (m *mockDB) GetSubscriptions(username string) ([]database.Thing, error) {
 	var things []database.Thing
+
+	user, err := m.GetUserByName(username)
+	if err != nil {
+		return nil, err
+	}
+
 	for _, sub := range m.subs {
-		if sub.UserID == id {
+		if sub.UserID == user.ID {
 			thing, _ := m.GetThingByID(sub.ThingID) //nolint:errcheck
 			things = append(things, *thing)
 		}
@@ -259,13 +265,36 @@ func (m *mockDB) GetSubscriptions(id uint32) ([]database.Thing, error) {
 }
 
 // TODO: fill out these:
-// func (m *mockDB) PostSubscription(id uint32) error {
-// 	return nil
+func (m *mockDB) PostSubscription(username string, thingID uint32) error {
+	user, err := m.GetUserByName(username)
+	if err != nil {
+		return err
+	}
 
-// }
-// func (m *mockDB) DeleteSubscriptions(id uint32) error {
-// 	return nil
+	if slices.Contains(m.subs,
+		database.Subscriber{UserID: user.ID, ThingID: thingID}) {
+		return ErrAlreadySubscribed
+	}
 
+	m.subs = append(m.subs, database.Subscriber{UserID: user.ID, ThingID: thingID})
+
+	return nil
+}
+
+// func (m *mockDB) DeleteSubscriptions(username string, thingID uint32) error {
+// 	user, err := m.GetUserByName(username)
+// 	if err != nil {
+// 		return err
+// 	}
+
+// 	if slices.Contains(m.subs,
+// 		database.Subscriber{UserID: user.ID, ThingID: thingID}) {
+
+// 		m.subs = append(m.subs, database.Subscriber{UserID: user.ID, ThingID: thingID})
+// 		return nil
+// 	}
+
+// 	return ErrNotSubscribed
 // }
 
 func (m *mockDB) DeleteThing(id uint32) error {
@@ -446,7 +475,6 @@ func TestServer(t *testing.T) {
 
 				l.Close()
 
-				//  and start
 				addr, stopServerFunc, err := gas.StartTestServer(s, serverCert, serverKey)
 				So(err, ShouldBeNil)
 
@@ -495,8 +523,30 @@ func TestServer(t *testing.T) {
 					So(len(mdb.subs), ShouldEqual, 1)
 					So(mdb.subs[0], ShouldResemble, exampleSubscriber)
 				})
-				Convey("You can subscibe to a thing and get your subscriptions", func() {
-					//TODO
+
+				Convey("You can POST a subscription and get your subscriptions", func() {
+					//TODO: testEndpoint when we have a subscriber template
+					user := database.User{Name: "username", Email: "username@something"}
+					thingJSON, err := json.Marshal(user)
+					So(err, ShouldBeNil)
+
+					code := testEndpointCode(s, "POST", EndPointAuthUser, string(thingJSON), jwt)
+					So(code, ShouldEqual, http.StatusNoContent)
+
+					subParams := database.NewSubscriptionParams{Username: user.Name, ThingID: mdb.things[0].ID}
+					thingJSON, err = json.Marshal(subParams)
+					So(err, ShouldBeNil)
+
+					code = testEndpointCode(s, "POST", EndPointAuthSubscriber, string(thingJSON), jwt)
+					So(code, ShouldEqual, http.StatusNoContent)
+
+					dbUser, err := mdb.GetUserByName(user.Name)
+					So(err, ShouldBeNil)
+
+					target := EndPointAuthSubscriber + "?username=" + dbUser.Name
+					code = testEndpointCode(s, "GET", target, "", jwt)
+					So(code, ShouldEqual, http.StatusOK)
+					So(len(mdb.subs), ShouldEqual, 2)
 				})
 			})
 		})

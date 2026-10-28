@@ -29,7 +29,7 @@ package database
 
 // Queries are used to interact with a database of Things, Users and
 // Subscribers.
-type Queries interface {
+type Queries interface { //nolint:interfacebloat
 	// CreateUser creates a new user with the given name and email. The returned
 	// user will have its ID set.
 	CreateUser(name, email string) (*User, error)
@@ -47,14 +47,14 @@ type Queries interface {
 	GetSubscribers(id uint32) ([]Subscriber, error)
 
 	// GetSubscriptions returns a list of Things that a user is subscribed to.
-	GetSubscriptions(uid uint32) ([]Thing, error)
+	GetSubscriptions(username string) ([]Thing, error)
 
-	// // PostSubscription subscribes a user to a thing given the user ID an thing ID.
-	// PostSubscription(uid, tid uint32) error
+	// PostSubscription subscribes a user to a thing given the user ID an thing ID.
+	PostSubscription(username string, thingID uint32) error
 
-	// // DeleteSubscription unsubscribes a user to a thing given the user ID and
-	// // thing ID.
-	// DeleteSubscription(uid, tid uint32) error
+	// DeleteSubscription unsubscribes a user to a thing given the user ID and
+	// thing ID.
+	// DeleteSubscription(username string, thingID uint32) error
 
 	// CreateThing creates a new Thing with the given details. The returned
 	// Thing will have its ID set to an auto-increment value, and Created time

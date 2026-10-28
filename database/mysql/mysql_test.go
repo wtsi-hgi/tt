@@ -252,7 +252,7 @@ func TestMySQL(t *testing.T) {
 			So(err, ShouldBeNil)
 			So(count, ShouldEqual, 0)
 
-			Convey("You can then add users and things", func() {
+			Convey("You can then add users and things", func() { //!!
 				expectedUsers, expectedThings, expectedSubs := internal.GetExampleData()
 
 				user1, err := db.CreateUser(expectedUsers[0].Name, expectedUsers[0].Email)
@@ -308,10 +308,6 @@ func TestMySQL(t *testing.T) {
 				count, err = countTableRows(db.pool, "subscribers")
 				So(err, ShouldBeNil)
 				So(count, ShouldEqual, numThings)
-
-				// count, err = countTableRows(db.pool, "subscribers", "creator = 1")
-				// So(err, ShouldBeNil)
-				// So(count, ShouldEqual, numThings)
 
 				count, err = countTableRows(db.pool, "subscribers", "user_id = 1")
 				So(err, ShouldBeNil)
@@ -473,6 +469,54 @@ func TestMySQL(t *testing.T) {
 					So(result.LastPage, ShouldEqual, 2)
 					So(len(result.Things), ShouldEqual, 1)
 					So(result.Things[0].ID, ShouldEqual, 5)
+
+					Convey("Users can subscribe to additional things", func() {
+						thing, errb := db.CreateThing(database.CreateThingParams{Address: "somewhere",
+							Type:           database.ThingsTypeDir,
+							Description:    "description",
+							Reason:         "reason",
+							Remove:         expectedThings[0].Remove,
+							License:        "none",
+							Version:        "1",
+							Name:           "someDir",
+							URL:            "someDir@somehwere",
+							DownloadMethod: "jira",
+							RequestSource:  "test",
+							Creator:        expectedUsers[0].Name,
+							CreatorID:      expectedUsers[0].ID})
+
+						So(errb, ShouldBeNil)
+
+						sub1, errc := db.CreateUser("subscribe1", "subscriber1@comething.com")
+						So(errc, ShouldBeNil)
+						sub2, errc := db.CreateUser("subscribe2", "subscriber2@comething.com")
+						So(errc, ShouldBeNil)
+
+						errc = db.PostSubscription(sub1.Name, result.Things[0].ID)
+						So(errc, ShouldBeNil)
+						errc = db.PostSubscription(sub1.Name, thing.ID)
+						So(errc, ShouldBeNil)
+						errc = db.PostSubscription(sub2.Name, result.Things[0].ID)
+						So(errc, ShouldBeNil)
+
+						Convey("Then you can get the things you are subscribed to", func() {
+							subscribedThings, err := db.GetSubscriptions(sub2.Name)
+							So(err, ShouldBeNil)
+							So(len(subscribedThings), ShouldEqual, 1)
+							So(subscribedThings[0], ShouldResemble, result.Things[0])
+
+							subscribedThings, err = db.GetSubscriptions(sub1.Name)
+							So(err, ShouldBeNil)
+
+							So(len(subscribedThings), ShouldEqual, 2)
+							So(subscribedThings[0], ShouldResemble, result.Things[0])
+							So(subscribedThings[1].ID, ShouldEqual, thing.ID)
+						})
+						// (unless you are the creator)> does everything needs a creator? > causes issues when people leave?
+						Convey("Then you can delete your subscriptions (unless you are the creator)", func() {
+							// TODO:
+						})
+					})
 				})
 
 				Convey("Then you can delete users and things", func() {
@@ -506,16 +550,7 @@ func TestMySQL(t *testing.T) {
 					So(err, ShouldBeNil)
 					So(count, ShouldEqual, (numThings/2)-1)
 				})
-				//TODO:
-				Convey("Then you can subscribe to additional things", func() {
-					Convey("Then you can get the things you are subscribed to", func() { // Getting from subs table or getting from things table?
 
-					})
-					// (unless you are the creator)> does everything needs a creator? > causes issues when people leave?
-					Convey("Then you can delete your subscriptions (unless you are the creator)", func() {
-
-					})
-				})
 				//TODO: do we have test for get subcribers to a thing?
 			})
 

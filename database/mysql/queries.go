@@ -258,8 +258,10 @@ SELECT things.id,creator_id, address, type, created, description, reason, remove
 FROM things
 `
 
-//!! CASE WHEN users.id IS NOT NULL THEN TRUE ELSE FALSE END AS subscribed
-//!! LEFT JOIN `subscriptions` ON (things.id = subscriptions.thing_id) LEFT JOIN `users` ON (subscriptions.user_id = users.id AND users.name = ?)
+//!! CASE WHEN users.id IS NOT NULL THEN TRUE
+// 		ELSE FALSE END AS subscribed
+//!! LEFT JOIN `subscriptions` ON (things.id = subscriptions.thing_id)
+// LEFT JOIN `users` ON (subscriptions.user_id = users.id AND users.name = ?)
 
 // GetThings returns things that match the given parameters. Also in the result
 // is the last page that would return things if Page and ThingsPerPage are > 0.
@@ -380,16 +382,29 @@ func (m *DB) GetThingByID(id uint32) (*database.Thing, error) {
 // 	return things, nil
 // }
 
-const getThingIDByUserSubscribed = `
-SELECT thing.id, thing.name, creator_id, address, type, created, description, reason, remove, warned1, warned2, ` +
-	`removed, license, version, url, download_method, request_source, creation_date
-FROM subscribers LEFT JOIN things ON(thing_id = things.id)
-WHERE user_id = ?
+// // When using ID:
+// const getThingIDByUserSubscribed = `
+// SELECT thing.id, thing.name, creator_id, address, type, created, description, reason, remove, warned1, warned2, ` +
+// 	`removed, license, version, url, download_method, request_source, creation_date
+// FROM subscribers LEFT JOIN things ON(thing_id = things.id)
+// WHERE user_id = ?
+// `
+
+// select the uid from user > select the thing id from sub > select the thing from thing:
+const getThingsByUsernameSubscribed = `
+SELECT things.id, things.creator_id, things.address, things.type, things.created,
+       things.description, things.reason, things.remove, things.warned1, things.warned2,
+       things.removed, things.license, things.version, things.name, things.url,
+       things.download_method, things.request_source, things.creation_date
+FROM users
+JOIN subscribers ON subscribers.user_id = users.id
+JOIN things ON things.id = subscribers.thing_id
+WHERE users.name = ?
 `
 
 // GetSubscriptions returns a list of Things that a given user is subscribed to.
-func (m *DB) GetSubscriptions(userID uint32) ([]database.Thing, error) {
-	rows, err := m.pool.Query(getThingIDByUserSubscribed, userID)
+func (m *DB) GetSubscriptions(username string) ([]database.Thing, error) {
+	rows, err := m.pool.Query(getThingsByUsernameSubscribed, username)
 	if err != nil {
 		return nil, err
 	}
@@ -399,15 +414,7 @@ func (m *DB) GetSubscriptions(userID uint32) ([]database.Thing, error) {
 	var things []database.Thing
 
 	for rows.Next() {
-		var thingID uint32
-
-		if err = rows.Scan(
-			&thingID,
-		); err != nil {
-			return nil, err
-		}
-
-		thing, errc := m.GetThingByID(thingID)
+		thing, errc := getThingRowScan(rows)
 		if errc != nil {
 			return nil, errc
 		}
@@ -425,6 +432,39 @@ func (m *DB) GetSubscriptions(userID uint32) ([]database.Thing, error) {
 
 	return things, nil
 }
+
+const subscribe = `INSERT INTO subscribers (user_id, thing_id) VALUES (?, ?);` //nolint:unused
+
+// PostSubscription records that a user is subscribed to a thing.
+func (m *DB) PostSubscription(username string, thingID uint32) error {
+	// TODO simplify to one query?
+	user, err := m.GetUserByName(username)
+	if err != nil {
+		return err
+	}
+
+	_, err = createRow(m.pool, subscribe, user.ID, thingID)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+const unsubscribe = `DELETE FROM subscribers WHERE user_id = ? AND thing_id = ?;` //nolint:unused
+// func (m *DB) DeleteSubscription(username string, thingID uint32) error {
+// 	user, err := m.GetUserByName(username)
+// 	if err != nil {
+// 		return err
+// 	}
+
+// 	_, err = m.pool.Exec(unsubscribe, user.ID, thingID)
+// 	if err != nil {
+// 		return err
+// 	}
+
+// 	return nil
+// }
 
 func getThingRowScan(rows *sql.Rows) (*database.Thing, error) {
 	var thing database.Thing
@@ -567,10 +607,6 @@ const updateDescription = `UPDATE things SET description = ? WHERE id = ?;` //no
 const firstWarningSent = `UPDATE things SET warned1 = ? WHERE id = ?;` //nolint:unused
 
 const secondWarningSent = `UPDATE things SET warned2 = ? WHERE id = ?;` //nolint:unused
-
-const subscribe = `INSERT INTO subscribers (user_id, thing_id) VALUES (?, ?);` //nolint:unused
-
-const unsubscribe = `DELETE FROM subscribers WHERE user_id = ? AND thing_id = ?;` //nolint:unused
 
 const listSubscribers = `SELECT user_id, thing_id FROM subscribers WHERE thing_id = ?;` //nolint:unused
 

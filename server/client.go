@@ -186,21 +186,29 @@ func (c *Client) GetSubscribers(thingID uint32) ([]database.Subscriber, error) {
 }
 
 // TODO: post a subscriber.
-func (c *Client) Subscribe(id uint32) error { //pass in subscriber type > ammending this table...
-	//subscriber:= database.Subscriber{}
+func (c *Client) Subscribe(subscription *database.NewSubscriptionParams) error {
+	resp, err := c.request().ForceContentType("application/json").SetBody(subscription).Post(EndPointAuthSubscriber)
+	if err != nil {
+		return err
+	}
+
+	if resp.StatusCode() != http.StatusNoContent {
+		return errors.New(resp.String()) //nolint:err113
+	}
+
 	return nil
 }
 
 // TODO: delete a subscriber.
-func (c *Client) Unsubscribe(id uint32) error { //pass in subscriber type?
+func (c *Client) Unsubscribe(username string, thingID uint32) error { //pass in subscriber type?
 	return nil
 }
 
-// GetSubscriptions returns a list of the Things that are subscribed to by a user given the user ID
-func (c *Client) GetSubscriptions(userID uint32) ([]database.Thing, error) {
+// GetSubscriptions returns a list of the Things that are subscribed to by a user given the username.
+func (c *Client) GetSubscriptions(username string) ([]database.Thing, error) {
 	things := []database.Thing{}
 
-	resp, err := c.request().SetHeader("Accept", "application/json").SetQueryParam("id", strconv.Itoa(int(userID))).
+	resp, err := c.request().SetHeader("Accept", "application/json").SetQueryParam("username", username).
 		SetResult(&things).
 		Get(EndPointAuthSubscriber)
 	if err != nil {

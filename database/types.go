@@ -326,6 +326,11 @@ type Subscriber struct {
 	ThingID uint32
 }
 
+type NewSubscriptionParams struct {
+	Username string
+	ThingID  uint32
+}
+
 // NewGetThingsParams returns a new filter of type GetThingsParams with provided filters, after
 // validating the filter types.
 func NewGetThingsParams(typ, orderBy, dir, page, perPage string) (GetThingsParams, error) {
