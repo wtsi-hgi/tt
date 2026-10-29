@@ -62,11 +62,6 @@ var (
 	app            = "tt" //nolint:gochecknoglobals
 )
 
-const (
-	LDAPFQDN   = "ldap-ro.internal.sanger.ac.uk"
-	LDAPBindDN = "uid=%s,ou=people,dc=sanger,dc=ac,dc=uk"
-)
-
 func TestMain(m *testing.M) {
 	var (
 		exitCode     int
@@ -492,6 +487,16 @@ func TestCreateGet(t *testing.T) {
 			So(out, ShouldContainSubstring, "something\t1.2\ts3")
 			So(out, ShouldNotContainSubstring, "something_else\t2.3\tirods")
 			So(ec, ShouldBeZeroValue)
+
+			Convey("You can Subscribe and Unsubscribe to a thing", func() {
+				//TODO: subcribe and unsubscribe..
+				thingDetails := strings.Split(out, "\n")
+				ec, out = runBinary(t, "subscribe", "--url", s.url, "--cert", s.cert, "-n", "any", "-i", thingDetails[0])
+				So(ec, ShouldBeZeroValue)
+
+				ec, out = runBinary(t, "unsubscribe", "--url", s.url, "--cert", s.cert, "-n", "any", "-i", thingDetails[0])
+				So(ec, ShouldBeZeroValue)
+			})
 		})
 
 		Convey("You can't interact with protected endpoints if the server credentials are deleted", func() {

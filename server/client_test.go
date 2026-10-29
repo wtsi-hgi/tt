@@ -236,9 +236,6 @@ func TestClient(t *testing.T) {
 				err = client.Subscribe(&database.NewSubscriptionParams{Username: userPost.Name, ThingID: things[1].ID})
 				So(err, ShouldBeNil)
 
-				err = client.Subscribe(&database.NewSubscriptionParams{Username: "NonExistent", ThingID: things[0].ID})
-				So(err, ShouldNotBeNil)
-
 				subscribedThings, err := client.GetSubscriptions(userPost.Name)
 				So(err, ShouldBeNil)
 				So(subscribedThings[0].ID, ShouldEqual, things[0].ID)

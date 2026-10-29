@@ -265,7 +265,6 @@ func (m *mockDB) GetSubscriptions(username string) ([]database.Thing, error) {
 	return things, nil
 }
 
-// TODO: fill out these:
 func (m *mockDB) PostSubscription(username string, thingID uint32) error {
 	user, err := m.GetUserByName(username)
 	if err != nil {

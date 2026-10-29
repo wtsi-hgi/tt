@@ -390,7 +390,6 @@ func (m *DB) GetThingByID(id uint32) (*database.Thing, error) {
 // WHERE user_id = ?
 // `
 
-// select the uid from user > select the thing id from sub > select the thing from thing:
 const getThingsByUsernameSubscribed = `
 SELECT things.id, things.creator_id, things.address, things.type, things.created,
        things.description, things.reason, things.remove, things.warned1, things.warned2,

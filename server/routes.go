@@ -163,7 +163,7 @@ func (s *Server) postThing(c *gin.Context) {
 		return
 	}
 
-	user := validateOrCreateUser(c, s, postedThing)
+	user := validateOrCreateUser(c, s, postedThing.Creator)
 	if user == nil {
 		return
 	}
@@ -187,17 +187,17 @@ func (s *Server) postThing(c *gin.Context) {
 	c.Status(http.StatusNoContent)
 }
 
-func validateOrCreateUser(c *gin.Context, s *Server, postedThing database.CreateThingParams) *database.User {
-	if !s.AllowedAccess(c, postedThing.Creator) {
+func validateOrCreateUser(c *gin.Context, s *Server, username string) *database.User {
+	if !s.AllowedAccess(c, username) {
 		c.AbortWithError(http.StatusUnauthorized, ErrUnauthorized) //nolint: errcheck
 
 		return nil
 	}
 
-	user, err := s.db.GetUserByName(postedThing.Creator)
+	user, err := s.db.GetUserByName(username)
 	if errors.Is(err, ErrNoUser) {
 		//TODO: we can use postUser here without email?
-		user, err = s.db.CreateUser(postedThing.Creator, postedThing.Creator+s.DefaultEmailDomain)
+		user, err = s.db.CreateUser(username, username+s.DefaultEmailDomain)
 	}
 
 	if err != nil && !errors.Is(err, ErrNoUser) {
@@ -378,7 +378,6 @@ func (s *Server) getSubscribers(c *gin.Context) {
 	c.HTML(http.StatusOK, "templates/things.html", result)
 }
 
-// TODO: get all of the things a user is subscribed to.
 func (s *Server) getSubscriptions(c *gin.Context) {
 	username := c.Query("username")
 	if username == "" {
@@ -413,7 +412,12 @@ func (s *Server) postSubsciption(c *gin.Context) {
 		return
 	}
 
-	//TODO: Should auth/ create user here
+	// Authorisation of user.
+	user := validateOrCreateUser(c, s, subPost.Username)
+	if user == nil {
+		return
+	}
+
 	err := s.db.PostSubscription(subPost.Username, subPost.ThingID)
 	if err != nil {
 		c.AbortWithError(http.StatusBadRequest, err) //nolint:errcheck
@@ -424,12 +428,17 @@ func (s *Server) postSubsciption(c *gin.Context) {
 	c.Status(http.StatusNoContent)
 }
 
-// TODO:
 func (s *Server) deleteSubscription(c *gin.Context) {
 	var subPost database.NewSubscriptionParams
 
 	if err := c.ShouldBind(&subPost); err != nil {
 		c.AbortWithError(http.StatusBadRequest, err) //nolint: errcheck
+
+		return
+	}
+
+	if !s.AllowedAccess(c, subPost.Username) {
+		c.AbortWithError(http.StatusUnauthorized, ErrUnauthorized) //nolint: errcheck
 
 		return
 	}

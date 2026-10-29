@@ -106,7 +106,7 @@ This command is usable by anyone. `,
 				return err
 			}
 
-			cliPrint("%s\t%s\t%s\t%s\n", thing.Name, thing.Version, thing.Type, thingWithSubs.Creator.Name)
+			cliPrint("%d\n%s\t%s\t%s\t%s\n", thing.ID, thing.Name, thing.Version, thing.Type, thingWithSubs.Creator.Name)
 		}
 
 		return nil
