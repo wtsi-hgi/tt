@@ -38,6 +38,7 @@ import (
 	"net/http/httptest"
 	"os/user"
 	"slices"
+	"strconv"
 	"strings"
 	"sync"
 	"testing"
@@ -525,13 +526,13 @@ func TestServer(t *testing.T) {
 					So(mdb.subs[0], ShouldResemble, exampleSubscriber)
 				})
 
-				Convey("You can POST a subscription and get your subscriptions", func() {
-					//TODO: testEndpoint when we have a subscriber template
+				Convey("You can POST, GET and DELTE your subscriptions", func() {
+					//TODO: SSE Test for sub?
 					user := database.User{Name: "username", Email: "username@something"}
 					thingJSON, err := json.Marshal(user)
 					So(err, ShouldBeNil)
 
-					code := testEndpointCode(s, "POST", EndPointAuthUser, string(thingJSON), jwt)
+					code := testEndpointCode(s, "POST", EndPointAuthUser, string(thingJSON), jwt) //nolint: govet
 					So(code, ShouldEqual, http.StatusNoContent)
 
 					subParams := database.NewSubscriptionParams{Username: user.Name, ThingID: mdb.things[0].ID}
@@ -541,13 +542,25 @@ func TestServer(t *testing.T) {
 					code = testEndpointCode(s, "POST", EndPointAuthSubscriber, string(thingJSON), jwt)
 					So(code, ShouldEqual, http.StatusNoContent)
 
-					dbUser, err := mdb.GetUserByName(user.Name)
-					So(err, ShouldBeNil)
-
-					target := EndPointAuthSubscriber + "?username=" + dbUser.Name
+					target := EndPointAuthSubscriber + "?username=" + user.Name
 					code = testEndpointCode(s, "GET", target, "", jwt)
 					So(code, ShouldEqual, http.StatusOK)
 					So(len(mdb.subs), ShouldEqual, 2)
+
+					code = testEndpointCode(s, "DELETE", EndPointAuthSubscriber, string(thingJSON), jwt)
+					So(code, ShouldEqual, http.StatusNoContent)
+
+					target = EndPointAuthSubscriber + "?username=" + user.Name
+					code = testEndpointCode(s, "GET", target, "", jwt)
+					So(code, ShouldEqual, http.StatusOK)
+					So(len(mdb.subs), ShouldEqual, 1)
+				})
+				Convey("You can DELETE Things", func() {
+					target := EndPointAuthThings + "/" + strconv.Itoa(int(mdb.things[0].ID))
+					code = testEndpointCode(s, "DELETE", target, "", jwt)
+
+					So(code, ShouldEqual, http.StatusOK)
+					So(len(mdb.things), ShouldEqual, 0)
 				})
 			})
 		})
