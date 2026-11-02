@@ -37,13 +37,18 @@
                 <col>
                 <col>
                 <col>
+                <col>
+                <col>
+                <col>
+                <col>
+                <col>
                 <col style="width: 300px;">
             </colgroup>
 
             <thead>
                 <tr hx-headers='{"Accept": "text/html"}' hx-trigger="click" hx-target="tbody#things-list">
                     <th>
-                            Name<span uk-icon="arrow-up" hx-get="/rest/v1/auth/things?sort=name&dir=DESC"></span><span
+                        Name<span uk-icon="arrow-up" hx-get="/rest/v1/auth/things?sort=name&dir=DESC"></span><span
                             uk-icon="arrow-down" hx-get="/rest/v1/auth/things?sort=name&dir=ASC"></span>
                     </th>
                     <th>
@@ -57,7 +62,7 @@
                     <th>Reason</th>
                     <th>Description</th>
                     <th>
-                            Version<span uk-icon="arrow-up" hx-get="/rest/v1/auth/things?sort=version&dir=DESC"></span><span
+                        Version<span uk-icon="arrow-up" hx-get="/rest/v1/auth/things?sort=version&dir=DESC"></span><span
                             uk-icon="arrow-down" hx-get="/rest/v1/auth/things?sort=version&dir=ASC"></span>
                     </th>
                     <th>RequestSource</th>

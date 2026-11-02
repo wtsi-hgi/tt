@@ -93,7 +93,7 @@ func (s *Server) pageRoot(c *gin.Context) {
 // page=<int>&per_page=<int> : get a particular page of results, where each page
 // has per_page Things. Page defaults to 1, and per_page defaults to 50.
 func (s *Server) getThings(c *gin.Context) {
-	filter, err := database.NewGetThingsParams(c.Query("type"), c.Query("sort"), c.Query("dir"), c.Query("page"), c.Query("per_page")) //nolint:lll
+	filter, err := database.NewGetThingsParams(c.Query("type"), c.Query("sort"), c.Query("dir"), c.Query("page"), c.Query("per_page"), "") //nolint:lll
 	if err != nil {
 		c.AbortWithError(http.StatusBadRequest, err) //nolint: errcheck
 
@@ -386,21 +386,35 @@ func (s *Server) getSubscriptions(c *gin.Context) {
 		return
 	}
 
-	result, errc := s.db.GetSubscriptions(username)
-	if errc != nil {
-		c.AbortWithError(http.StatusBadRequest, errc) //nolint: errcheck
+	// validate username is correct or current user is admin
+	if !s.AllowedAccess(c, username) {
+		c.AbortWithError(http.StatusUnauthorized, ErrUnauthorized) //nolint: errcheck
+
+		return
+	}
+
+	filter, err := database.NewGetThingsParams(c.Query("type"), c.Query("sort"), c.Query("dir"), c.Query("page"), c.Query("per_page"), username) //nolint:lll
+	if err != nil {
+		c.AbortWithError(http.StatusBadRequest, err) //nolint: errcheck
+
+		return
+	}
+
+	result, err := s.db.GetThings(filter)
+	if err != nil {
+		c.AbortWithError(http.StatusInternalServerError, err) //nolint: errcheck
 
 		return
 	}
 
 	if c.Request.Header.Get("Accept") == jsonType {
-		c.JSON(http.StatusOK, result)
+		c.JSON(http.StatusOK, result.Things)
 
 		return
 	}
 
 	//TODO: subscriber template
-	c.HTML(http.StatusOK, "templates/things.html", result)
+	c.HTML(http.StatusOK, "templates/things.html", result.Things)
 }
 
 func (s *Server) postSubsciption(c *gin.Context) {

@@ -126,7 +126,7 @@ func TestNewGetThingsParams(t *testing.T) {
 		page := "2"
 		perPage := "3"
 
-		gtp, err := NewGetThingsParams(tType, orderBy, orderDir, page, perPage)
+		gtp, err := NewGetThingsParams(tType, orderBy, orderDir, page, perPage, "")
 		So(err, ShouldBeNil)
 		So(gtp, ShouldResemble, GetThingsParams{
 			FilterOnType:   ThingsTypeIrods,
@@ -137,17 +137,17 @@ func TestNewGetThingsParams(t *testing.T) {
 		})
 
 		tType = "irod"
-		_, err = NewGetThingsParams(tType, orderBy, orderDir, page, perPage)
+		_, err = NewGetThingsParams(tType, orderBy, orderDir, page, perPage, "")
 		So(err, ShouldNotBeNil)
 
 		tType = "irods"
 		orderDir = "invalid"
-		_, err = NewGetThingsParams(tType, orderBy, orderDir, page, perPage)
+		_, err = NewGetThingsParams(tType, orderBy, orderDir, page, perPage, "")
 		So(err, ShouldNotBeNil)
 
 		orderDir = "ASC"
 		orderBy = "invalid"
-		_, err = NewGetThingsParams(tType, orderBy, orderDir, page, perPage)
+		_, err = NewGetThingsParams(tType, orderBy, orderDir, page, perPage, "")
 		So(err, ShouldNotBeNil)
 	})
 }

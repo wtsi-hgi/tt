@@ -174,6 +174,7 @@ type GetThingsParams struct {
 	OrderDirection OrderDirection // defaults to OrderAsc
 	Page           int            // treated as 0 if ThingsPerPage is < 1
 	ThingsPerPage  int            // treated as infinite if Page is < 1
+	SubscriberName string
 }
 
 // GetThingsResult is the type returned by GetThings(). The Things property will
@@ -184,6 +185,7 @@ type GetThingsParams struct {
 type GetThingsResult struct {
 	Things   []Thing
 	LastPage int
+	// Add subscribed here or as a new propery in Thing.
 }
 
 type User struct {
@@ -333,7 +335,7 @@ type NewSubscriptionParams struct {
 
 // NewGetThingsParams returns a new filter of type GetThingsParams with provided filters, after
 // validating the filter types.
-func NewGetThingsParams(typ, orderBy, dir, page, perPage string) (GetThingsParams, error) {
+func NewGetThingsParams(typ, orderBy, dir, page, perPage, username string) (GetThingsParams, error) {
 	var filter GetThingsParams
 
 	OrderByTemp, err := NewOrderBy(orderBy)
@@ -355,6 +357,7 @@ func NewGetThingsParams(typ, orderBy, dir, page, perPage string) (GetThingsParam
 
 	filter.Page = atoiWithDefault(page, defaultPage)
 	filter.ThingsPerPage = atoiWithDefault(perPage, defaultPerPage)
+	filter.SubscriberName = username
 
 	return filter, nil
 }

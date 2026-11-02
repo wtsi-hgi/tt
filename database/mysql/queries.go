@@ -395,42 +395,42 @@ SELECT things.id, things.creator_id, things.address, things.type, things.created
        things.description, things.reason, things.remove, things.warned1, things.warned2,
        things.removed, things.license, things.version, things.name, things.url,
        things.download_method, things.request_source, things.creation_date
-FROM users
-JOIN subscribers ON subscribers.user_id = users.id
-JOIN things ON things.id = subscribers.thing_id
-WHERE users.name = ?
+FROM things
+INNER JOIN subscribers ON subscribers.thing_id = things.id
+INNER JOIN users ON users.id = subscribers.user_id AND users.name = ?
 `
 
+// !!
 // GetSubscriptions returns a list of Things that a given user is subscribed to.
-func (m *DB) GetSubscriptions(username string) ([]database.Thing, error) {
-	rows, err := m.pool.Query(getThingsByUsernameSubscribed, username)
-	if err != nil {
-		return nil, err
-	}
+// func (m *DB) GetSubscriptions(username string) ([]database.Thing, error) {
+// 	rows, err := m.pool.Query(getThingsByUsernameSubscribed, username)
+// 	if err != nil {
+// 		return nil, err
+// 	}
 
-	defer rows.Close()
+// 	defer rows.Close()
 
-	var things []database.Thing
+// 	var things []database.Thing
 
-	for rows.Next() {
-		thing, errc := getThingRowScan(rows)
-		if errc != nil {
-			return nil, errc
-		}
+// 	for rows.Next() {
+// 		thing, errc := getThingRowScan(rows)
+// 		if errc != nil {
+// 			return nil, errc
+// 		}
 
-		things = append(things, *thing)
-	}
+// 		things = append(things, *thing)
+// 	}
 
-	if err = rows.Close(); err != nil {
-		return nil, err
-	}
+// 	if err = rows.Close(); err != nil {
+// 		return nil, err
+// 	}
 
-	if err := rows.Err(); err != nil {
-		return nil, err
-	}
+// 	if err := rows.Err(); err != nil {
+// 		return nil, err
+// 	}
 
-	return things, nil
-}
+// 	return things, nil
+// }
 
 const subscribe = `INSERT INTO subscribers (user_id, thing_id) VALUES (?, ?);`
 
@@ -498,10 +498,18 @@ func getThingRowScan(rows *sql.Rows) (*database.Thing, error) {
 func (m *DB) runGetThingsQuery(params database.GetThingsParams) (*sql.Rows, error) {
 	var sql strings.Builder
 
-	sql.WriteString(getThings)
-	getThingsParamsToSQL(params, &sql)
+	var vars []any //!! if subscribe being fetched -> base will be different
+	if params.SubscriberName != "" {
+		vars = append(vars, params.SubscriberName)
 
-	rows, err := m.pool.Query(sql.String())
+		sql.WriteString(getThingsByUsernameSubscribed)
+	} else {
+		sql.WriteString(getThings)
+	}
+
+	getThingsParamsToSQL(params, &sql, &vars)
+
+	rows, err := m.pool.Query(sql.String(), vars...)
 	if err != nil {
 		return nil, err
 	}
@@ -509,20 +517,20 @@ func (m *DB) runGetThingsQuery(params database.GetThingsParams) (*sql.Rows, erro
 	return rows, nil
 }
 
-func getThingsParamsToSQL(params database.GetThingsParams, sql *strings.Builder) {
-	whereSQL(params, sql)
+func getThingsParamsToSQL(params database.GetThingsParams, sql *strings.Builder, vars *[]any) {
+	whereSQL(params, sql, vars)
 	orderSQL(params, sql)
 	limitSQL(params, sql)
 }
 
-func whereSQL(params database.GetThingsParams, sql *strings.Builder) {
+func whereSQL(params database.GetThingsParams, sql *strings.Builder, vars *[]any) {
 	if params.FilterOnType == database.ThingsTypeNil {
 		return
 	}
 
-	sql.WriteString("\nWHERE type = '")
-	sql.WriteString(string(params.FilterOnType))
-	sql.WriteString("'")
+	sql.WriteString("\nWHERE type = ?")
+
+	*vars = append(*vars, params.FilterOnType)
 }
 
 func orderSQL(params database.GetThingsParams, sql *strings.Builder) {
@@ -557,7 +565,12 @@ func limitSQL(params database.GetThingsParams, sql *strings.Builder) {
 	sql.WriteString(offset)
 }
 
-const countThings = `SELECT COUNT(*) FROM things`
+const countThings = `SELECT COUNT(1) FROM things`
+const countThingsByUsernameSubscribed = `
+SELECT COUNT(1)
+FROM things
+INNER JOIN subscribers ON subscribers.thing_id = things.id
+INNER JOIN users ON users.id = subscribers.user_id AND users.name = ?`
 
 func (m *DB) calculateLastPage(params database.GetThingsParams) (int, error) {
 	if params.Page < 1 || params.ThingsPerPage < 1 {
@@ -567,12 +580,20 @@ func (m *DB) calculateLastPage(params database.GetThingsParams) (int, error) {
 	var (
 		sql   strings.Builder
 		count int64
+		vars  []any
 	)
 
-	sql.WriteString(countThings)
-	whereSQL(params, &sql)
+	if params.SubscriberName != "" {
+		sql.WriteString(countThingsByUsernameSubscribed)
 
-	row := m.pool.QueryRow(sql.String())
+		vars = append(vars, params.SubscriberName)
+	} else {
+		sql.WriteString(countThings)
+	}
+
+	whereSQL(params, &sql, &vars)
+
+	row := m.pool.QueryRow(sql.String(), vars...)
 
 	if err := row.Scan(&count); err != nil {
 		return 0, err

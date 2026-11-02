@@ -84,7 +84,7 @@ This command is usable by anyone. `,
 			return err
 		}
 
-		filter, err := database.NewGetThingsParams(typ, orderBy, orderDir, page, perPage)
+		filter, err := database.NewGetThingsParams(typ, orderBy, orderDir, page, perPage, "")
 		if err != nil {
 			return err
 		}

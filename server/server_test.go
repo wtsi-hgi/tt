@@ -175,8 +175,27 @@ func (m *mockDB) CreateThing(args database.CreateThingParams) (*database.Thing, 
 }
 
 func (m *mockDB) GetThings(params database.GetThingsParams) (*database.GetThingsResult, error) {
+	things := m.things
+	if params.SubscriberName != "" {
+		user, err := m.GetUserByName(params.SubscriberName)
+		if err != nil {
+			return &database.GetThingsResult{LastPage: m.lastPage}, err
+		}
+
+		things = nil
+
+		for _, sub := range m.subs {
+			if sub.UserID == user.ID {
+				thing, err := m.GetThingByID(sub.ThingID)
+				if err == nil {
+					things = append(things, *thing)
+				}
+			}
+		}
+	}
+
 	return &database.GetThingsResult{
-		Things:   sortAndFilterThings(m.things, params),
+		Things:   sortAndFilterThings(things, params),
 		LastPage: m.lastPage,
 	}, nil
 }
@@ -248,21 +267,18 @@ func (m *mockDB) GetSubscribers(id uint32) ([]database.Subscriber, error) {
 }
 
 func (m *mockDB) GetSubscriptions(username string) ([]database.Thing, error) {
-	var things []database.Thing
-
 	user, err := m.GetUserByName(username)
 	if err != nil {
 		return nil, err
 	}
-
-	for _, sub := range m.subs {
-		if sub.UserID == user.ID {
-			thing, _ := m.GetThingByID(sub.ThingID) //nolint:errcheck
-			things = append(things, *thing)
-		}
+	thingsResult, err := m.GetThings(database.GetThingsParams{SubscriberName: user.Name})
+	if err != nil {
+		return nil, err
 	}
 
-	return things, nil
+	return thingsResult.Things, nil
+
+	// return things, nil
 }
 
 func (m *mockDB) PostSubscription(username string, thingID uint32) error {

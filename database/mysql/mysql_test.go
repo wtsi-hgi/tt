@@ -500,27 +500,40 @@ func TestMySQL(t *testing.T) {
 						So(errc, ShouldBeNil)
 
 						Convey("Then you can get the things you are subscribed to", func() {
-							subscribedThings, errd := db.GetSubscriptions(sub1.Name)
+							subscribedThingsWithInfo, errd := db.GetThings(database.GetThingsParams{
+								SubscriberName: sub1.Name})
+							subscribedThings := subscribedThingsWithInfo.Things
+
 							So(errd, ShouldBeNil)
 							So(len(subscribedThings), ShouldEqual, 2)
-							So(subscribedThings[0], ShouldResemble, result.Things[0])
-							So(subscribedThings[1].ID, ShouldEqual, thing.ID)
+							So(subscribedThings[1], ShouldResemble, result.Things[0])
+							subscribedThings[0].Created = time.Time{}
+							thing.Created = time.Time{}
+							So(subscribedThings[0], ShouldResemble, *thing)
 
-							subscribedThings, errd = db.GetSubscriptions(sub2.Name)
+							paginated, errd := db.GetThings(database.GetThingsParams{
+								SubscriberName: sub1.Name,
+								Page:           1,
+								ThingsPerPage:  1,
+							})
 							So(errd, ShouldBeNil)
-							So(len(subscribedThings), ShouldEqual, 1)
-							So(subscribedThings[0], ShouldResemble, result.Things[0])
+							So(len(paginated.Things), ShouldEqual, 1)
+							So(paginated.LastPage, ShouldEqual, 2)
 						})
+
 						//!! (unless you are the creator)> does everything needs a creator? > causes issues when people leave?
 						Convey("Then you can unsubscribe", func() {
 							errd := db.DeleteSubscription(sub1.Name, thing.ID)
 							So(errd, ShouldBeNil)
 
-							subscribedThings, errd := db.GetSubscriptions(sub1.Name)
+							subscribedThingsWithInfo, errd := db.GetThings(database.GetThingsParams{
+								SubscriberName: sub2.Name})
 							So(errd, ShouldBeNil)
+
+							subscribedThings := subscribedThingsWithInfo.Things
 							So(len(subscribedThings), ShouldEqual, 1)
 							So(subscribedThings[0], ShouldResemble, result.Things[0])
-							So(subscribedThings, ShouldNotContain, thing.ID)
+							So(subscribedThings, ShouldNotContain, *thing)
 						})
 					})
 				})
