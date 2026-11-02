@@ -52,6 +52,7 @@ const (
 	ErrInvalidUserName   = Error("Invalid username")
 	ErrInvalidThingID    = Error("Invalid thing ID")
 	ErrUnauthorized      = Error("Unauthorized") //nolint:misspell
+	ErrCanNotUnsubscribe = Error("Can not unsubscribe as you are the owner of the thing")
 	ErrNoUser            = database.Error("No User found with that name")
 	ErrAlreadySubscribed = database.Error("User already subscribed to this thing")
 	ErrNotSubscribed     = database.Error("User is not subscribed to this thing")
@@ -386,7 +387,6 @@ func (s *Server) getSubscriptions(c *gin.Context) {
 		return
 	}
 
-	// validate username is correct or current user is admin
 	if !s.AllowedAccess(c, username) {
 		c.AbortWithError(http.StatusUnauthorized, ErrUnauthorized) //nolint: errcheck
 
@@ -426,7 +426,6 @@ func (s *Server) postSubsciption(c *gin.Context) {
 		return
 	}
 
-	// Authorisation of user.
 	user := validateOrCreateUser(c, s, subPost.Username)
 	if user == nil {
 		return
@@ -457,7 +456,12 @@ func (s *Server) deleteSubscription(c *gin.Context) {
 		return
 	}
 
-	err := s.db.DeleteSubscription(subPost.Username, subPost.ThingID)
+	err := checkOwnership(s, c, subPost)
+	if err != nil {
+		return
+	}
+
+	err = s.db.DeleteSubscription(subPost.Username, subPost.ThingID)
 	if err != nil {
 		c.AbortWithError(http.StatusBadRequest, err) //nolint:errcheck
 
@@ -465,4 +469,32 @@ func (s *Server) deleteSubscription(c *gin.Context) {
 	}
 
 	c.Status(http.StatusNoContent)
+}
+
+func checkOwnership(s *Server, c *gin.Context, subPost database.NewSubscriptionParams) error {
+	//TODO: should this be here or in queries
+	//TODO: add tests for unsubscribe if you own the thing
+
+	// Unable to unsubscribe if you own the thing
+	thing, err := s.db.GetThingByID(subPost.ThingID)
+	if err != nil {
+		c.AbortWithError(http.StatusInternalServerError, err) //nolint: errcheck
+
+		return err
+	}
+
+	user, err := s.db.GetUserByName(subPost.Username)
+	if err != nil {
+		c.AbortWithError(http.StatusInternalServerError, err) //nolint: errcheck
+
+		return err
+	}
+
+	if thing.CreatorID == user.ID {
+		c.AbortWithError(http.StatusBadRequest, ErrCanNotUnsubscribe) //nolint: errcheck
+
+		return ErrCanNotUnsubscribe
+	}
+
+	return nil
 }

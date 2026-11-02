@@ -185,7 +185,8 @@ func (c *Client) GetSubscribers(thingID uint32) ([]database.Subscriber, error) {
 	return subscribers, responseToErr(resp)
 }
 
-// TODO: post a subscriber.
+// Subscribe registers a users subscription given their username and the ID of the thing that they would like
+// to subscribe to.
 func (c *Client) Subscribe(subscription *database.NewSubscriptionParams) error {
 	resp, err := c.request().ForceContentType("application/json").SetBody(subscription).Post(EndPointAuthSubscriber)
 	if err != nil {
@@ -199,8 +200,10 @@ func (c *Client) Subscribe(subscription *database.NewSubscriptionParams) error {
 	return nil
 }
 
-// TODO: delete a subscriber.
-func (c *Client) Unsubscribe(subscription *database.NewSubscriptionParams) error { //pass in subscriber type?
+// Unsubscribe removes a users subscription given their username and the ID of the thing that they would like
+// to subsubscribe to.
+func (c *Client) Unsubscribe(subscription *database.NewSubscriptionParams) error {
+	//
 	resp, err := c.request().ForceContentType("application/json").SetBody(subscription).Delete(EndPointAuthSubscriber)
 	if err != nil {
 		return err
@@ -214,7 +217,7 @@ func (c *Client) Unsubscribe(subscription *database.NewSubscriptionParams) error
 }
 
 // GetSubscriptions returns a list of the Things that are subscribed to by a user given the username.
-func (c *Client) GetSubscriptions(username string) ([]database.Thing, error) {
+func (c *Client) GetSubscriptions(username string) ([]database.Thing, error) { //TODO: should this be passing getThingsParams type?
 	things := []database.Thing{}
 
 	resp, err := c.request().SetHeader("Accept", "application/json").SetQueryParam("username", username).

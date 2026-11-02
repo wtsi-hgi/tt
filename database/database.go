@@ -46,9 +46,6 @@ type Queries interface { //nolint:interfacebloat
 	// the things ID.
 	GetSubscribers(id uint32) ([]Subscriber, error)
 
-	// GetSubscriptions returns a list of Things that a user is subscribed to.
-	//GetSubscriptions(username string) ([]Thing, error)
-
 	// PostSubscription subscribes a user to a thing given the user ID an thing ID.
 	PostSubscription(username string, thingID uint32) error
 

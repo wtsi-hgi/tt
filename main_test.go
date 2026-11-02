@@ -489,13 +489,13 @@ func TestCreateGet(t *testing.T) {
 			So(ec, ShouldBeZeroValue)
 
 			Convey("You can Subscribe and Unsubscribe to a thing", func() {
-				//TODO: subcribe and unsubscribe..
 				thingDetails := strings.Split(out, "\n")
 				ec, out = runBinary(t, "subscribe", "--url", s.url, "--cert", s.cert, "-n", "any", "-i", thingDetails[0])
 				So(ec, ShouldBeZeroValue)
 
 				ec, out = runBinary(t, "unsubscribe", "--url", s.url, "--cert", s.cert, "-n", "any", "-i", thingDetails[0])
 				So(ec, ShouldBeZeroValue)
+				//TODO: do we need any confirmation of these working?
 			})
 		})
 

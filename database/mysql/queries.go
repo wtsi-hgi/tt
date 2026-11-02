@@ -338,58 +338,6 @@ func (m *DB) GetThingByID(id uint32) (*database.Thing, error) {
 	return thing, nil
 }
 
-// const getThingIDByUserSubscribed = `
-// SELECT thing_id
-// FROM subscribers
-// WHERE user_id = ?
-// `
-// // GetSubscriptions returns a list of Things that a given user is subscribed to.
-// func (m *DB) GetSubscriptions(userID uint32) ([]database.Thing, error) {
-// 	rows, err := m.pool.Query(getThingIDByUserSubscribed, userID)
-// 	if err != nil {
-// 		return nil, err
-// 	}
-
-// 	defer rows.Close()
-
-// 	var things []database.Thing
-
-// 	for rows.Next() {
-// 		var thingID uint32
-
-// 		if err = rows.Scan(
-// 			&thingID,
-// 		); err != nil {
-// 			return nil, err
-// 		}
-
-// 		thing, errc := m.GetThingByID(thingID)
-// 		if errc != nil {
-// 			return nil, errc
-// 		}
-
-// 		things = append(things, *thing)
-// 	}
-
-// 	if err = rows.Close(); err != nil {
-// 		return nil, err
-// 	}
-
-// 	if err := rows.Err(); err != nil {
-// 		return nil, err
-// 	}
-
-// 	return things, nil
-// }
-
-// // When using ID:
-// const getThingIDByUserSubscribed = `
-// SELECT thing.id, thing.name, creator_id, address, type, created, description, reason, remove, warned1, warned2, ` +
-// 	`removed, license, version, url, download_method, request_source, creation_date
-// FROM subscribers LEFT JOIN things ON(thing_id = things.id)
-// WHERE user_id = ?
-// `
-
 const getThingsByUsernameSubscribed = `
 SELECT things.id, things.creator_id, things.address, things.type, things.created,
        things.description, things.reason, things.remove, things.warned1, things.warned2,
@@ -434,7 +382,9 @@ INNER JOIN users ON users.id = subscribers.user_id AND users.name = ?
 
 const subscribe = `INSERT INTO subscribers (user_id, thing_id) VALUES (?, ?);`
 
-// PostSubscription records that a user is subscribed to a thing.
+// PostSubscription records that a user is subscribed to a thing by adding a
+// new row to the subscribers table given the users username and the ID of the
+// thing they would like to subscribe to.
 func (m *DB) PostSubscription(username string, thingID uint32) error {
 	// TODO simplify to one query?
 	user, err := m.GetUserByName(username)
@@ -452,11 +402,17 @@ func (m *DB) PostSubscription(username string, thingID uint32) error {
 
 const unsubscribe = `DELETE FROM subscribers WHERE user_id = ? AND thing_id = ?;`
 
+// DeleteSubscription removes a users subscription to a thing. The row is removed
+// in the subscribers table given the users username and the ID of the thing they
+// would like to unsubscribe to.
 func (m *DB) DeleteSubscription(username string, thingID uint32) error {
+	// TODO simplify to one query?
 	user, err := m.GetUserByName(username)
 	if err != nil {
 		return err
 	}
+
+	// TODO: First check if user is owner
 
 	_, err = m.pool.Exec(unsubscribe, user.ID, thingID)
 	if err != nil {

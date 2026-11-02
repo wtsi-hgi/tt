@@ -172,7 +172,7 @@ func cookieAuth(s *Server, conf Config) {
 	})
 }
 
-func (s *Server) addEndPoints() error {
+func (s *Server) addEndPoints() error { //nolint:funlen
 	s.rootTemplate = template.New("")
 
 	s.rootTemplate.Funcs(
@@ -190,7 +190,6 @@ func (s *Server) addEndPoints() error {
 	}
 
 	s.Router().SetHTMLTemplate(s.rootTemplate)
-
 	s.Router().GET(pageRootPath, s.pageRoot)
 	s.AuthRouter().GET(thingsPath, s.getThings)
 	s.AuthRouter().GET(thingIDPath, s.getThingByID)
@@ -199,11 +198,9 @@ func (s *Server) addEndPoints() error {
 	s.AuthRouter().POST(userPath, s.postUser)
 	s.AuthRouter().GET(userPath, s.getUser)
 	s.AuthRouter().GET(subscribersByThingIDPath, s.getSubscribers)
-
 	s.AuthRouter().GET(subscriberPath, s.getSubscriptions)
 	s.AuthRouter().POST(subscriberPath, s.postSubsciption)
 	s.AuthRouter().DELETE(subscriberPath, s.deleteSubscription)
-
 	s.AuthRouter().DELETE(thingIDPath, s.deleteThing)
 
 	return nil
