@@ -307,6 +307,8 @@ type Thing struct {
 	// Owner is a boolean indication of whether the user interacting with the thing
 	// is the owner of the thing.
 	Owner bool
+	// CreatorName is the username of the creator.
+	CreatorName string
 }
 
 // ToCreateParams converts Thing to a CreateThingParams with given user

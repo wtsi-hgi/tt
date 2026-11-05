@@ -117,6 +117,8 @@ func GetExampleUser(id uint32) *database.User {
 // GetExampleResourceData returns an example of a thing, the user who created the thing and
 // a subscriber to the thing.
 func GetExampleResourceData() (*database.User, database.Thing, database.Subscriber) {
+	creator := exampleUser(1)
+
 	expectedThing := database.Thing{
 		ID:             1,
 		CreatorID:      1,
@@ -132,9 +134,8 @@ func GetExampleResourceData() (*database.User, database.Thing, database.Subscrib
 		DownloadMethod: "command line",
 		RequestSource:  "Jira",
 		CreationDate:   null.TimeFrom(dateFromYear(uint32(1970))), //nolint:mnd
+		CreatorName:    creator.Name,
 	}
-
-	creator := exampleUser(1)
 
 	expectedSub := database.Subscriber{
 		UserID:  creator.ID,

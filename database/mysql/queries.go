@@ -256,8 +256,10 @@ const getThings = `
 SELECT things.id,creator_id, address, type, created, description, reason, remove, warned1, warned2, ` +
 	`removed, license, version, things.name, url, download_method, request_source, creation_date,
 CASE WHEN subscribers.thing_id IS NOT NULL THEN TRUE ELSE FALSE END AS subscribed,
-CASE WHEN (things.creator_id = users.id) THEN TRUE ELSE FALSE END AS owner
+CASE WHEN (things.creator_id = users.id) THEN TRUE ELSE FALSE END AS owner,
+owner.name AS owner_name
 FROM things
+LEFT JOIN users AS owner ON (owner.id = creator_id)
 LEFT JOIN users ON (users.name = ?)
 LEFT JOIN subscribers ON (things.id = subscribers.thing_id AND subscribers.user_id = users.id)
 `
@@ -304,7 +306,7 @@ func (m *DB) GetThings(params database.GetThingsParams) (*database.GetThingsResu
 const getThingByID = `
 SELECT things.id,creator_id, address, type, created, description, reason, remove, warned1, warned2, 
 	removed, license, version, things.name, url, download_method, request_source, creation_date,
-	FALSE as subscribed, FALSE as owner
+	FALSE as subscribed,  FALSE as owner, ""  as  owner_name
 FROM things
 WHERE things.id = ?
 `
@@ -337,16 +339,6 @@ func (m *DB) GetThingByID(id uint32) (*database.Thing, error) {
 
 	return thing, nil
 }
-
-const getThingsByUsernameSubscribed = `
-SELECT things.id, things.creator_id, things.address, things.type, things.created,
-       things.description, things.reason, things.remove, things.warned1, things.warned2,
-       things.removed, things.license, things.version, things.name, things.url,
-       things.download_method, things.request_source, things.creation_date
-FROM things
-INNER JOIN subscribers ON subscribers.thing_id = things.id
-INNER JOIN users ON users.id = subscribers.user_id AND users.name = ?
-`
 
 const subscribe = `INSERT INTO subscribers (user_id, thing_id) VALUES (?, ?);` //nolint:unused
 
@@ -413,6 +405,7 @@ func getThingRowScan(rows *sql.Rows) (*database.Thing, error) {
 		&thing.CreationDate,
 		&thing.Subscribed,
 		&thing.Owner,
+		&thing.CreatorName,
 	); err != nil {
 		return nil, err
 	}

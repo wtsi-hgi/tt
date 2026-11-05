@@ -143,6 +143,7 @@ func (m *mockDB) CreateThing(args database.CreateThingParams) (*database.Thing, 
 		DownloadMethod: args.DownloadMethod,
 		RequestSource:  args.RequestSource,
 		CreationDate:   args.CreationDate,
+		CreatorName:    args.Creator,
 	}
 
 	var userID uint32
@@ -774,6 +775,7 @@ func TestWebServerWithCookie(t *testing.T) {
 
 			code := testEndpointCode(s, "POST", EndPointAuthThings, string(thingJSON), cookie)
 
+			thing.CreatorName = mdb.things[0].CreatorName
 			So(code, ShouldEqual, http.StatusNoContent)
 			So(len(mdb.things), ShouldEqual, 1)
 			So(mdb.things[0], ShouldResemble, thing)
@@ -804,6 +806,7 @@ func thingPostAndSubTests(mdb *mockDB, s *Server, auth any) {
 	So(code, ShouldEqual, http.StatusNoContent)
 	So(len(mdb.things), ShouldEqual, 1)
 	thing.CreatorID = mdb.things[0].CreatorID // This is because eg resource data has hardcoded value.
+	thing.CreatorName = mdb.things[0].CreatorName
 	So(mdb.things[0], ShouldResemble, thing)
 
 	Convey("You are a subscriber to the thing you created", func() {

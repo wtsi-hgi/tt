@@ -66,6 +66,7 @@ const (
 	thingsListenPath         = "/things/listen"
 	subscriberPath           = "/subscriber"
 	subscribersByThingIDPath = "/subscriber/:thingid"
+	usernamePath             = "/username"
 
 	EndPointAuthRoot               = gas.EndPointAuth + pageRootPath
 	EndPointAuthUser               = gas.EndPointAuth + userPath
@@ -74,6 +75,7 @@ const (
 	EndPointAuthSseThingsEventName = thingsListenPath
 	EndPointAuthSubscriber         = gas.EndPointAuth + subscriberPath
 	EndPointAuthSubscribersThingID = gas.EndPointAuth + subscribersByThingIDPath
+	EndPointAuthusername           = gas.EndPointAuth + usernamePath
 )
 
 // pageRoot takes no user input; it's for the overall main html page at /.
@@ -193,6 +195,7 @@ func (s *Server) postThing(c *gin.Context) {
 
 	thing.Subscribed = true
 	thing.Owner = true
+	thing.CreatorName = user.Name
 
 	err = s.broadcastNewThing(thing)
 	if err != nil {
@@ -277,6 +280,11 @@ func (s *Server) deleteThing(c *gin.Context) {
 	}
 
 	c.Status(http.StatusOK)
+}
+
+func (s *Server) getUsername(c *gin.Context) {
+	user := s.GetUser(c)
+	c.JSON(http.StatusOK, user.Username)
 }
 
 func (s *Server) postUser(c *gin.Context) {
@@ -441,6 +449,7 @@ func (s *Server) postSubsciption(c *gin.Context) {
 	t.Subscribed = true
 	if t.CreatorID == u.ID {
 		t.Owner = true
+
 	}
 
 	if c.Request.Header.Get("Accept") == jsonType {

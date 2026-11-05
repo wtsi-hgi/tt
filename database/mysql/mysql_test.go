@@ -326,7 +326,9 @@ func TestMySQL(t *testing.T) {
 					So(result.LastPage, ShouldEqual, 0)
 					result.Things[0].Created = time.Time{}
 					result.Things[0].CreatorID = 0
+					result.Things[0].CreatorName = ""
 					result.Things[numThings-1].CreatorID = 0
+					result.Things[numThings-1].CreatorName = ""
 					So(result.Things[0], ShouldResemble, expectedThings[0])
 					result.Things[numThings-1].Created = time.Time{}
 					So(result.Things[numThings-1], ShouldResemble, expectedThings[numThings-1])
@@ -471,16 +473,16 @@ func TestMySQL(t *testing.T) {
 					So(result.Things[0].ID, ShouldEqual, 5)
 
 					Convey("Creators can not unsubscribe", func() {
-						user, err := db.GetUserByID(result.Things[0].CreatorID)
-						So(err, ShouldBeNil)
+						user, errc := db.GetUserByID(result.Things[0].CreatorID)
+						So(errc, ShouldBeNil)
 
-						resultBefore, err := db.GetThings(database.GetThingsParams{Username: user.Name, OnlySubscribed: true})
-						So(err, ShouldBeNil)
+						resultBefore, errc := db.GetThings(database.GetThingsParams{Username: user.Name, OnlySubscribed: true})
+						So(errc, ShouldBeNil)
 
-						err = db.DeleteSubscription(user.Name, result.Things[0].ID)
-						So(err, ShouldBeNil)
-						resultAfter, err := db.GetThings(database.GetThingsParams{Username: user.Name, OnlySubscribed: true})
-						So(err, ShouldBeNil)
+						errc = db.DeleteSubscription(user.Name, result.Things[0].ID)
+						So(errc, ShouldBeNil)
+						resultAfter, errc := db.GetThings(database.GetThingsParams{Username: user.Name, OnlySubscribed: true})
+						So(errc, ShouldBeNil)
 						So(resultBefore.Things, ShouldEqual, resultAfter.Things)
 					})
 					Convey("Users can subscribe to additional things", func() {
@@ -598,12 +600,15 @@ func TestMySQL(t *testing.T) {
 
 				So(thing.Created, ShouldHappenOnOrBetween, before, after)
 				thing.Created = time.Time{}
+				et.CreatorName = thing.CreatorName
 				So(thing, ShouldResemble, &et)
 
 				result, err := db.GetThings(database.GetThingsParams{})
 				So(err, ShouldBeNil)
 
 				result.Things[0].Created = time.Time{}
+				et.CreatorName = result.Things[0].CreatorName
+
 				So(result.Things[0], ShouldResemble, et)
 			})
 		})

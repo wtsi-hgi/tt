@@ -177,7 +177,16 @@ func (s *Server) addEndPoints() error { //nolint:funlen
 
 	s.rootTemplate.Funcs(
 		template.FuncMap{
-			"args":     func(args ...any) []any { return args },
+			"args": func(args ...any) []any { return args },
+			"dict": func(args ...any) map[any]any {
+				m := make(map[any]any)
+
+				for i := 0; i < len(args); i += 2 {
+					m[args[i]] = args[i+1]
+				}
+
+				return m
+			},
 			"add":      func(a, b int) int { return a + b },
 			"sub":      func(a, b int) int { return a - b },
 			"rangenum": func(n int) []struct{} { return make([]struct{}, n) },
@@ -202,6 +211,7 @@ func (s *Server) addEndPoints() error { //nolint:funlen
 	s.AuthRouter().POST(subscriberPath, s.postSubsciption)
 	s.AuthRouter().DELETE(subscriberPath, s.deleteSubscription)
 	s.AuthRouter().DELETE(thingIDPath, s.deleteThing)
+	s.AuthRouter().GET(usernamePath, s.getUsername)
 
 	return nil
 }

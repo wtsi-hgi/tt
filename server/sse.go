@@ -41,7 +41,7 @@ const sseThingsEventName = "thingsSSE"
 func (s *Server) broadcastNewThing(thing *database.Thing) error {
 	var renderedOutput bytes.Buffer
 
-	err := s.rootTemplate.ExecuteTemplate(&renderedOutput, "templates/thing.html", thing)
+	err := s.rootTemplate.ExecuteTemplate(&renderedOutput, "templates/new_thing.html", thing)
 	if err != nil {
 		return err
 	}
