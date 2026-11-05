@@ -252,7 +252,7 @@ func TestMySQL(t *testing.T) {
 			So(err, ShouldBeNil)
 			So(count, ShouldEqual, 0)
 
-			Convey("You can then add users and things", func() { //!!
+			Convey("You can then add users and things", func() {
 				expectedUsers, expectedThings, expectedSubs := internal.GetExampleData()
 
 				user1, err := db.CreateUser(expectedUsers[0].Name, expectedUsers[0].Email)
@@ -291,7 +291,7 @@ func TestMySQL(t *testing.T) {
 					So(created, ShouldHappenOnOrBetween, before, after)
 
 					thing.Created = time.Time{}
-					thing.CreatorID = 0 //!!
+					thing.CreatorID = 0
 					So(thing, ShouldResemble, &et)
 
 					subscribers, errc := db.GetSubscribers(thing.ID)
@@ -325,8 +325,8 @@ func TestMySQL(t *testing.T) {
 					So(len(result.Things), ShouldEqual, numThings)
 					So(result.LastPage, ShouldEqual, 0)
 					result.Things[0].Created = time.Time{}
-					result.Things[0].CreatorID = 0           //!!
-					result.Things[numThings-1].CreatorID = 0 //!!
+					result.Things[0].CreatorID = 0
+					result.Things[numThings-1].CreatorID = 0
 					So(result.Things[0], ShouldResemble, expectedThings[0])
 					result.Things[numThings-1].Created = time.Time{}
 					So(result.Things[numThings-1], ShouldResemble, expectedThings[numThings-1])

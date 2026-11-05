@@ -148,7 +148,7 @@ func TestClient(t *testing.T) {
 
 			things, err := client.GetThings(filter)
 			So(err, ShouldBeNil)
-			So(len(things), ShouldEqual, 1) //!!
+			So(len(things), ShouldEqual, 1)
 			So(things[0].Remove, ShouldHappenOnOrBetween, deleteTimeBefore, deleteTimeAfter)
 
 			things[0].Remove = time.Time{}

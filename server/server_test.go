@@ -513,8 +513,7 @@ func TestServer(t *testing.T) {
 				code := testEndpointCode(s, "POST", EndPointAuthThings, string(thingJSON), jwt)
 				So(code, ShouldEqual, http.StatusNoContent)
 
-				mdb.things[0].CreatorID = 1 //!!
-				// thing.CreatorID = mdb.things[0].ID //!!
+				mdb.things[0].CreatorID = 1
 
 				So(len(mdb.things), ShouldEqual, 1)
 				So(mdb.things[0], ShouldResemble, thing)

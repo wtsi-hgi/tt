@@ -66,6 +66,25 @@
                         Removal Date<span uk-icon="arrow-up" hx-get="/rest/v1/auth/things?sort=remove&dir=DESC"></span><span
                             uk-icon="arrow-down" hx-get="/rest/v1/auth/things?sort=remove&dir=ASC"></span>
                     </th>
+                    <th>
+                        <button 
+                            id="show-subscribed"
+                            class="uk-button uk-button-default"
+			                hx-headers='{"Accept": "text/html"}'
+                            hx-get="/rest/v1/auth/subscriber"
+			                hx-on::after-request="if (event.detail.successful) {this.hidden=true;document.getElementById('show-all').hidden=false;}">
+                            Show subscribed
+                        </button>
+                        <button 
+                            id="show-all"
+                            class="uk-button uk-button-secondary"
+			                hx-headers='{"Accept": "text/html"}'
+                            hx-get="/rest/v1/auth/things"
+			                hx-on::after-request="if (event.detail.successful) {this.hidden=true;document.getElementById('show-subscribed').hidden=false;}"
+                            hidden>
+                            Show all
+                        </button>
+                    </th>
                     <th></th>
                 </tr>
             </thead>
@@ -120,3 +139,4 @@
 </body>
 
 </html>
+

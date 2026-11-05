@@ -100,15 +100,10 @@ func (s *Server) getThings(c *gin.Context) {
 func (s *Server) getThingsWithSubscription(c *gin.Context, subscribed bool) {
 	username := c.Query("username")
 	if username == "" {
-		user := s.GetUser(c) //!!
+		user := s.GetUser(c)
 		username = user.Username
 	}
 
-	// if !s.AllowedAccess(c, username) {
-	// 	c.AbortWithError(http.StatusUnauthorized, ErrUnauthorized) //nolint: errcheck
-
-	// 	return
-	// }
 	validateOrCreateUser(c, s, username)
 
 	filter, err := database.NewGetThingsParams(c.Query("type"), c.Query("sort"), c.Query("dir"), c.Query("page"),
