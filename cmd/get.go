@@ -118,7 +118,7 @@ This command is usable by anyone. `,
 				return err
 			}
 
-			cliPrint("%d\n%s\t%s\t%s\t%s\n", thing.ID, thing.Name, thing.Version, thing.Type, thingWithSubs.Creator.Name)
+			cliPrint("%d\n%s\t%s\t%s\t%s\t%t\n", thing.ID, thing.Name, thing.Version, thing.Type, thingWithSubs.Creator.Name, thing.Subscribed)
 		}
 
 		return nil

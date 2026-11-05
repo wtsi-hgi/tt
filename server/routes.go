@@ -477,12 +477,7 @@ func (s *Server) deleteSubscription(c *gin.Context) {
 		return
 	}
 
-	err := checkOwnership(s, c, subPost)
-	if err != nil {
-		return
-	}
-
-	err = s.db.DeleteSubscription(subPost.Username, subPost.ThingID)
+	err := s.db.DeleteSubscription(subPost.Username, subPost.ThingID)
 	if err != nil {
 		c.AbortWithError(http.StatusBadRequest, err) //nolint:errcheck
 
@@ -506,32 +501,4 @@ func (s *Server) deleteSubscription(c *gin.Context) {
 	}
 
 	c.HTML(http.StatusOK, "templates/subscribe.html", t)
-}
-
-func checkOwnership(s *Server, c *gin.Context, subPost database.NewSubscriptionParams) error {
-	//TODO: should this be here or in queries
-	//TODO: add tests for unsubscribe if you own the thing
-
-	// Unable to unsubscribe if you own the thing
-	thing, err := s.db.GetThingByID(subPost.ThingID)
-	if err != nil {
-		c.AbortWithError(http.StatusInternalServerError, err) //nolint: errcheck
-
-		return err
-	}
-
-	user, err := s.db.GetUserByName(subPost.Username)
-	if err != nil {
-		c.AbortWithError(http.StatusInternalServerError, err) //nolint: errcheck
-
-		return err
-	}
-
-	if thing.CreatorID == user.ID {
-		c.AbortWithError(http.StatusBadRequest, ErrCanNotUnsubscribe) //nolint: errcheck
-
-		return ErrCanNotUnsubscribe
-	}
-
-	return nil
 }

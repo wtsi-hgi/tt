@@ -493,9 +493,16 @@ func TestCreateGet(t *testing.T) {
 				ec, out = runBinary(t, "subscribe", "--url", s.url, "--cert", s.cert, "-n", "any", "-i", thingDetails[0])
 				So(ec, ShouldBeZeroValue)
 
+				ec, out = runBinary(t, "get", "--url", s.url, "--cert", s.cert, "-n", "any", "-s", "true")
+				So(ec, ShouldBeZeroValue)
+				So(out, ShouldContainSubstring, "true")
+
 				ec, out = runBinary(t, "unsubscribe", "--url", s.url, "--cert", s.cert, "-n", "any", "-i", thingDetails[0])
 				So(ec, ShouldBeZeroValue)
-				//TODO: do we need any confirmation of these working?
+
+				ec, out = runBinary(t, "get", "--url", s.url, "--cert", s.cert, "-n", "any", "-s", "true")
+				So(ec, ShouldBeZeroValue)
+				So(out, ShouldNotContainSubstring, "true")
 			})
 		})
 

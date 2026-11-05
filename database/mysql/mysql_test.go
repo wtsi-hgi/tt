@@ -470,6 +470,19 @@ func TestMySQL(t *testing.T) {
 					So(len(result.Things), ShouldEqual, 1)
 					So(result.Things[0].ID, ShouldEqual, 5)
 
+					Convey("Creators can not unsubscribe", func() {
+						user, err := db.GetUserByID(result.Things[0].CreatorID)
+						So(err, ShouldBeNil)
+
+						resultBefore, err := db.GetThings(database.GetThingsParams{Username: user.Name, OnlySubscribed: true})
+						So(err, ShouldBeNil)
+
+						err = db.DeleteSubscription(user.Name, result.Things[0].ID)
+						So(err, ShouldBeNil)
+						resultAfter, err := db.GetThings(database.GetThingsParams{Username: user.Name, OnlySubscribed: true})
+						So(err, ShouldBeNil)
+						So(resultBefore.Things, ShouldEqual, resultAfter.Things)
+					})
 					Convey("Users can subscribe to additional things", func() {
 						thing, errb := db.CreateThing(database.CreateThingParams{Address: "somewhere",
 							Type:           database.ThingsTypeDir,
@@ -521,8 +534,6 @@ func TestMySQL(t *testing.T) {
 							So(len(paginated.Things), ShouldEqual, 1)
 							So(paginated.LastPage, ShouldEqual, 2)
 						})
-
-						//!! (unless you are the creator)> does everything needs a creator? > causes issues when people leave?
 						Convey("Then you can unsubscribe", func() {
 							errd := db.DeleteSubscription(sub1.Name, thing.ID)
 							So(errd, ShouldBeNil)
