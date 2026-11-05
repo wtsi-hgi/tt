@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2025 Genome Research Ltd.
+ * Copyright (c) 2026 Genome Research Ltd.
  *
  * Author: Sendu Bala <sb10@sanger.ac.uk>
  *
@@ -581,7 +581,6 @@ func TestMySQL(t *testing.T) {
 					So(err, ShouldBeNil)
 					So(count, ShouldEqual, (numThings/2)-1)
 				})
-				//TODO: do we have test for get subcribers to a thing?
 			})
 
 			Convey("You can then add a user and a resource", func() {

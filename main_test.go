@@ -488,21 +488,40 @@ func TestCreateGet(t *testing.T) {
 			So(out, ShouldNotContainSubstring, "something_else\t2.3\tirods")
 			So(ec, ShouldBeZeroValue)
 
-			Convey("You can Subscribe and Unsubscribe to a thing", func() {
+			args = []string{"get", "--url", s.url, "--cert", s.cert} //nolint:prealloc
+			args = append(args, createFlags(map[string]string{
+				"type":     "irods",
+				"orderBy":  "address",
+				"orderDir": "ASC",
+				"page":     "1",
+				"perPage":  "10",
+			})...)
+
+			ec, outc := runBinary(t, args...)
+
+			So(outc, ShouldNotContainSubstring, "something\t1.2\ts3")
+			So(outc, ShouldContainSubstring, "something_else\t2.3\tirods")
+			So(ec, ShouldBeZeroValue)
+
+			Convey("You can Subscribe and Unsubscribe to Things", func() {
 				thingDetails := strings.Split(out, "\n")
+				ec, out = runBinary(t, "subscribe", "--url", s.url, "--cert", s.cert, "-n", "any", "-i", thingDetails[0])
+				So(ec, ShouldBeZeroValue)
+
+				thingDetails = strings.Split(outc, "\n")
 				ec, out = runBinary(t, "subscribe", "--url", s.url, "--cert", s.cert, "-n", "any", "-i", thingDetails[0])
 				So(ec, ShouldBeZeroValue)
 
 				ec, out = runBinary(t, "get", "--url", s.url, "--cert", s.cert, "-n", "any", "-s", "true")
 				So(ec, ShouldBeZeroValue)
-				So(out, ShouldContainSubstring, "true")
+				So(strings.Count(out, "true"), ShouldEqual, 2)
 
 				ec, out = runBinary(t, "unsubscribe", "--url", s.url, "--cert", s.cert, "-n", "any", "-i", thingDetails[0])
 				So(ec, ShouldBeZeroValue)
 
-				ec, out = runBinary(t, "get", "--url", s.url, "--cert", s.cert, "-n", "any", "-s", "true")
+				ec, out = runBinary(t, "get", "--url", s.url, "--cert", s.cert, "-n", "any")
 				So(ec, ShouldBeZeroValue)
-				So(out, ShouldNotContainSubstring, "true")
+				So(strings.Count(out, "true"), ShouldEqual, 1)
 			})
 		})
 

@@ -247,7 +247,7 @@ func TestClient(t *testing.T) {
 				err = client.Subscribe(&database.NewSubscriptionParams{Username: userPost.Name, ThingID: things[1].ID})
 				So(err, ShouldBeNil)
 
-				subscribedThings, err := client.GetSubscriptions(userPost.Name)
+				subscribedThings, err := client.GetThings(&database.GetThingsParams{OnlySubscribed: true, Username: userPost.Name})
 				So(err, ShouldBeNil)
 				So(len(subscribedThings), ShouldEqual, 2)
 				So(subscribedThings[0].ID, ShouldEqual, things[0].ID)
@@ -275,7 +275,8 @@ func TestClient(t *testing.T) {
 				Convey("You can unsubscribe to a thing", func() {
 					err := client.Unsubscribe(&database.NewSubscriptionParams{Username: userPost.Name, ThingID: things[0].ID})
 					So(err, ShouldBeNil)
-					subscribedThings, err := client.GetSubscriptions(userPost.Name)
+					subscribedThings, err := client.GetThings(&database.GetThingsParams{OnlySubscribed: true, Username: userPost.Name})
+
 					So(err, ShouldBeNil)
 					So(len(subscribedThings), ShouldEqual, 1)
 					So(subscribedThings, ShouldNotContain, things[0])
