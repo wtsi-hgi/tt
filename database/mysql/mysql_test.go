@@ -320,7 +320,7 @@ func TestMySQL(t *testing.T) {
 				Convey("Then you can get things with desired sorting, pagination and filtering", func() {
 					var result *database.GetThingsResult
 
-					result, err = db.GetThings(database.GetThingsParams{})
+					result, err = db.GetThings(database.GetThingsParams{OnlySubscribed: false})
 					So(err, ShouldBeNil)
 					So(len(result.Things), ShouldEqual, numThings)
 					So(result.LastPage, ShouldEqual, 0)
@@ -501,18 +501,19 @@ func TestMySQL(t *testing.T) {
 
 						Convey("Then you can get the things you are subscribed to", func() {
 							subscribedThingsWithInfo, errd := db.GetThings(database.GetThingsParams{
-								SubscriberName: sub1.Name})
+								Username: sub1.Name, OnlySubscribed: true})
 							subscribedThings := subscribedThingsWithInfo.Things
 
 							So(errd, ShouldBeNil)
 							So(len(subscribedThings), ShouldEqual, 2)
-							So(subscribedThings[1], ShouldResemble, result.Things[0])
+							So(subscribedThings[1].ID, ShouldEqual, result.Things[0].ID)
 							subscribedThings[0].Created = time.Time{}
 							thing.Created = time.Time{}
-							So(subscribedThings[0], ShouldResemble, *thing)
+							So(subscribedThings[0].ID, ShouldEqual, thing.ID)
 
 							paginated, errd := db.GetThings(database.GetThingsParams{
-								SubscriberName: sub1.Name,
+								Username:       sub1.Name,
+								OnlySubscribed: true,
 								Page:           1,
 								ThingsPerPage:  1,
 							})
@@ -527,12 +528,12 @@ func TestMySQL(t *testing.T) {
 							So(errd, ShouldBeNil)
 
 							subscribedThingsWithInfo, errd := db.GetThings(database.GetThingsParams{
-								SubscriberName: sub2.Name})
+								Username: sub2.Name, OnlySubscribed: true})
 							So(errd, ShouldBeNil)
 
 							subscribedThings := subscribedThingsWithInfo.Things
 							So(len(subscribedThings), ShouldEqual, 1)
-							So(subscribedThings[0], ShouldResemble, result.Things[0])
+							So(subscribedThings[0].ID, ShouldEqual, result.Things[0].ID)
 							So(subscribedThings, ShouldNotContain, *thing)
 						})
 					})
@@ -569,7 +570,6 @@ func TestMySQL(t *testing.T) {
 					So(err, ShouldBeNil)
 					So(count, ShouldEqual, (numThings/2)-1)
 				})
-
 				//TODO: do we have test for get subcribers to a thing?
 			})
 

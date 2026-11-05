@@ -57,10 +57,16 @@ The --orderDir flag will sort the Things returned by asc/desc.
 The --page flag and --perPage flag can be used to reduce the list of things 
 returned. These default to 1 and 50 respectively.
 
+The --user flag takes a username in order to retrieve information regarding
+ownership and subscriptions for each item. This will default to the current CLI
+user.
+The --subFilter flag takes true or false depending on whether or not you would 
+like to only see your subscriptions. 
+
 This command is usable by anyone. `,
 
 	RunE: func(cmd *cobra.Command, args []string) error { //nolint: revive
-		var url, cert, typ, orderBy, orderDir, page, perPage string
+		var url, cert, typ, orderBy, orderDir, page, perPage, user string
 
 		for name, v := range map[string]*string{
 			"url":      &url,  //nolint:goconst
@@ -70,6 +76,7 @@ This command is usable by anyone. `,
 			"orderDir": &orderDir,
 			"page":     &page,
 			"perPage":  &perPage,
+			"user":     &user, //nolint:goconst
 		} {
 			val, err := cmd.Flags().GetString(name)
 			if err != nil {
@@ -84,7 +91,12 @@ This command is usable by anyone. `,
 			return err
 		}
 
-		filter, err := database.NewGetThingsParams(typ, orderBy, orderDir, page, perPage, "")
+		sub, err := cmd.Flags().GetBool("subFilter")
+		if err != nil {
+			return err
+		}
+
+		filter, err := database.NewGetThingsParams(typ, orderBy, orderDir, page, perPage, user, sub)
 		if err != nil {
 			return err
 		}
@@ -134,4 +146,8 @@ func init() {
 		"page you would like to see")
 	getCmd.Flags().StringP("perPage", "i", "50",
 		"number of things per page")
+	getCmd.Flags().StringP("user", "n", os.Getenv("USER"),
+		"name of user who is getting the thing")
+	getCmd.Flags().BoolP("subFilter", "s", false,
+		"toggle to filter by subscribed things")
 }

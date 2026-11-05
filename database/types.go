@@ -174,7 +174,8 @@ type GetThingsParams struct {
 	OrderDirection OrderDirection // defaults to OrderAsc
 	Page           int            // treated as 0 if ThingsPerPage is < 1
 	ThingsPerPage  int            // treated as infinite if Page is < 1
-	SubscriberName string
+	Username       string
+	OnlySubscribed bool
 }
 
 // GetThingsResult is the type returned by GetThings(). The Things property will
@@ -300,6 +301,12 @@ type Thing struct {
 	// CreationDate is the date the real thing was created (as opposed to
 	// Created, which is when the thing was added to the database).
 	CreationDate null.Time
+	// Subscribed is a boolean indication of whether the user interacting with the thing
+	// is subscribed to the thing.
+	Subscribed bool
+	// Owner is a boolean indication of whether the user interacting with the thing
+	// is the owner of the thing.
+	Owner bool
 }
 
 // ToCreateParams converts Thing to a CreateThingParams with given user
@@ -335,7 +342,7 @@ type NewSubscriptionParams struct {
 
 // NewGetThingsParams returns a new filter of type GetThingsParams with provided filters, after
 // validating the filter types.
-func NewGetThingsParams(typ, orderBy, dir, page, perPage, username string) (GetThingsParams, error) {
+func NewGetThingsParams(typ, orderBy, dir, page, perPage, username string, sub bool) (GetThingsParams, error) {
 	var filter GetThingsParams
 
 	OrderByTemp, err := NewOrderBy(orderBy)
@@ -357,7 +364,8 @@ func NewGetThingsParams(typ, orderBy, dir, page, perPage, username string) (GetT
 
 	filter.Page = atoiWithDefault(page, defaultPage)
 	filter.ThingsPerPage = atoiWithDefault(perPage, defaultPerPage)
-	filter.SubscriberName = username
+	filter.Username = username
+	filter.OnlySubscribed = sub
 
 	return filter, nil
 }

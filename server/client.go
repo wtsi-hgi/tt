@@ -188,7 +188,8 @@ func (c *Client) GetSubscribers(thingID uint32) ([]database.Subscriber, error) {
 // Subscribe registers a users subscription given their username and the ID of the thing that they would like
 // to subscribe to.
 func (c *Client) Subscribe(subscription *database.NewSubscriptionParams) error {
-	resp, err := c.request().ForceContentType("application/json").SetBody(subscription).Post(EndPointAuthSubscriber)
+	resp, err := c.request().SetHeader("Accept", "application/json").ForceContentType("application/json").
+		SetBody(subscription).Post(EndPointAuthSubscriber)
 	if err != nil {
 		return err
 	}
@@ -204,7 +205,8 @@ func (c *Client) Subscribe(subscription *database.NewSubscriptionParams) error {
 // to subsubscribe to.
 func (c *Client) Unsubscribe(subscription *database.NewSubscriptionParams) error {
 	//
-	resp, err := c.request().ForceContentType("application/json").SetBody(subscription).Delete(EndPointAuthSubscriber)
+	resp, err := c.request().SetHeader("Accept", "application/json").ForceContentType("application/json").
+		SetBody(subscription).Delete(EndPointAuthSubscriber)
 	if err != nil {
 		return err
 	}
@@ -220,7 +222,8 @@ func (c *Client) Unsubscribe(subscription *database.NewSubscriptionParams) error
 func (c *Client) GetSubscriptions(username string) ([]database.Thing, error) { //TODO: should this be passing getThingsParams type?
 	things := []database.Thing{}
 
-	resp, err := c.request().SetHeader("Accept", "application/json").SetQueryParam("username", username).
+	resp, err := c.request().SetHeader("Accept", "application/json").ForceContentType("application/json").
+		SetQueryParam("username", username).
 		SetResult(&things).
 		Get(EndPointAuthSubscriber)
 	if err != nil {
@@ -254,11 +257,13 @@ func (c *Client) GetThings(filter *database.GetThingsParams) ([]database.Thing, 
 	things := []database.Thing{}
 
 	resp, err := c.request().SetHeader("Accept", "application/json").SetQueryParams(map[string]string{
-		"type":     string(filter.FilterOnType),
-		"page":     strconv.Itoa(filter.Page),
-		"per_page": strconv.Itoa(filter.ThingsPerPage),
-		"dir":      string(filter.OrderDirection),
-		"sort":     string(filter.OrderBy),
+		"type":          string(filter.FilterOnType),
+		"page":          strconv.Itoa(filter.Page),
+		"per_page":      strconv.Itoa(filter.ThingsPerPage),
+		"dir":           string(filter.OrderDirection),
+		"sort":          string(filter.OrderBy),
+		"username":      filter.Username,
+		"subscribeOnly": strconv.FormatBool(filter.OnlySubscribed),
 	}).
 		SetResult(&things).
 		Get(EndPointAuthThings)

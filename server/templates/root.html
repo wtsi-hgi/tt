@@ -22,13 +22,6 @@
 </style>
 
 <body>
-    <div class="uk-container uk-flex uk-flex-right uk-padding-small">
-        <form>
-            <input class="uk-input uk-form-width-medium uk-form-small" name="Creator" type="text"
-                placeholder="username" />
-        </form>
-    </div>
-
     <div class="uk-container-expand uk-padding-small">
         <table class="uk-table uk-table-divider uk-table-striped">
             <colgroup>
@@ -78,7 +71,7 @@
             </thead>
 
             <tbody>
-                <form hx-post="/rest/v1/auth/things" hx-include="[name='Creator']" hx-swap="none"
+                <form hx-post="/rest/v1/auth/things" hx-swap="none"
                     hx-on::after-request="this.reset()">
                     <td>
                         <input class="uk-input" name="Name" type="text" required>

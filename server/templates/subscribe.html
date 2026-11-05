@@ -1,0 +1,23 @@
+{{ if .Owner }}
+    <div class="uk-button uk-button-default">
+        Owner
+	</div>
+{{ else }}
+	{{if .Subscribed }}
+		<button class="uk-button uk-button-default"
+			hx-delete="/rest/v1/auth/subscriber"
+			hx-vals='js:{"ThingID": {{ .ID }} }'
+			hx-headers='{"Accept": "text/html"}'
+			hx-swap="outerHTML">
+			Unsubscribe
+		</button>
+	{{ else }}
+		<button class="uk-button uk-button-secondary"
+			hx-post="/rest/v1/auth/subscriber"
+			hx-vals='js:{"ThingID": {{ .ID }} }'
+			hx-headers='{"Accept": "text/html"}'
+			hx-swap="outerHTML">
+			Subscribe
+		</button>
+	{{ end }}
+{{ end }}

@@ -1,4 +1,4 @@
-<tr hx-target="this" hx-swap="outerHTML">
+<tr id="ID_{{ .ID }}">
 	<td>{{ .Name }}</td>
 	<td>{{ .Address }}</td>
 	<td>{{ .Type }}</td>
@@ -11,27 +11,11 @@
 	<td>{{ .DownloadMethod }}</td>
 	<td>{{ .Remove.Format "2006-01-02" }}</td>
 	<td>
-		<button class="uk-button uk-button-danger" hx-delete="/rest/v1/auth/things/{{ .ID }}" hx-swap="swap:1s">
+		<button class="uk-button uk-button-danger" hx-delete="/rest/v1/auth/things/{{ .ID }}" hx-swap="swap:1s" hx-target="#ID_{{ .ID }}">
 			Delete
 		</button>
 	</td>
 	<td class="uk-text-nowrap">
-		{{ if true}}
-		<button class="uk-button uk-button-default"
-			hx-delete="/rest/v1/auth/subscriber"
-			hx-include="[ThingID: '{{ .ID }}']"
-			hx-include="[name='Creator']"
-			hx-headers='{"Accept": "text/html"}'>
-			Unsubscribe
-		</button>
-		{{ else }}
-		<button class="uk-button uk-button-secondary"
-			hx-post="/rest/v1/auth/subscriber"
-			hx-include="[ThingID: '{{ .ID }}']"
-			hx-include="[name='Creator']"
-			hx-headers='{"Accept": "text/html"}'>
-			Subscribe
-		</button>
-		{{ end }}
+		{{ template "templates/subscribe.html" . }}
 	</td>
 </tr>

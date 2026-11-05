@@ -254,14 +254,13 @@ func (m *DB) CreateThing(args database.CreateThingParams) (*database.Thing, erro
 
 const getThings = `
 SELECT things.id,creator_id, address, type, created, description, reason, remove, warned1, warned2, ` +
-	`removed, license, version, name, url, download_method, request_source, creation_date
+	`removed, license, version, things.name, url, download_method, request_source, creation_date,
+CASE WHEN subscribers.thing_id IS NOT NULL THEN TRUE ELSE FALSE END AS subscribed,
+CASE WHEN (things.creator_id = users.id) THEN TRUE ELSE FALSE END AS owner
 FROM things
+LEFT JOIN users ON (users.name = ?)
+LEFT JOIN subscribers ON (things.id = subscribers.thing_id AND subscribers.user_id = users.id)
 `
-
-//!! CASE WHEN users.id IS NOT NULL THEN TRUE
-// 		ELSE FALSE END AS subscribed
-//!! LEFT JOIN `subscriptions` ON (things.id = subscriptions.thing_id)
-// LEFT JOIN `users` ON (subscriptions.user_id = users.id AND users.name = ?)
 
 // GetThings returns things that match the given parameters. Also in the result
 // is the last page that would return things if Page and ThingsPerPage are > 0.
@@ -303,8 +302,9 @@ func (m *DB) GetThings(params database.GetThingsParams) (*database.GetThingsResu
 }
 
 const getThingByID = `
-SELECT things.id,creator_id, address, type, created, description, reason, remove, warned1, warned2, ` +
-	`removed, license, version, name, url, download_method, request_source, creation_date
+SELECT things.id,creator_id, address, type, created, description, reason, remove, warned1, warned2, 
+	removed, license, version, things.name, url, download_method, request_source, creation_date,
+	FALSE as subscribed, FALSE as owner
 FROM things
 WHERE things.id = ?
 `
@@ -381,6 +381,8 @@ INNER JOIN users ON users.id = subscribers.user_id AND users.name = ?
 // }
 
 const subscribe = `INSERT INTO subscribers (user_id, thing_id) VALUES (?, ?);`
+const subscribeWithUsername = `INSERT INTO subscribers (user_id, thing_id) VALUES (users.id, ?)
+LEFT JOIN users ON (users.name = ?);`
 
 // PostSubscription records that a user is subscribed to a thing by adding a
 // new row to the subscribers table given the users username and the ID of the
@@ -401,6 +403,9 @@ func (m *DB) PostSubscription(username string, thingID uint32) error {
 }
 
 const unsubscribe = `DELETE FROM subscribers WHERE user_id = ? AND thing_id = ?;`
+const unsubscribeUnlessCreator = `DELETE FROM subscribers 
+WHERE user_id = ? AND thing_id = ?  AND (user_id != thing.creator_id) 
+INNER JOIN things on (things.id = subscribers.thing_id);`
 
 // DeleteSubscription removes a users subscription to a thing. The row is removed
 // in the subscribers table given the users username and the ID of the thing they
@@ -444,6 +449,8 @@ func getThingRowScan(rows *sql.Rows) (*database.Thing, error) {
 		&thing.DownloadMethod,
 		&thing.RequestSource,
 		&thing.CreationDate,
+		&thing.Subscribed,
+		&thing.Owner,
 	); err != nil {
 		return nil, err
 	}
@@ -454,14 +461,11 @@ func getThingRowScan(rows *sql.Rows) (*database.Thing, error) {
 func (m *DB) runGetThingsQuery(params database.GetThingsParams) (*sql.Rows, error) {
 	var sql strings.Builder
 
-	var vars []any //!! if subscribe being fetched -> base will be different
-	if params.SubscriberName != "" {
-		vars = append(vars, params.SubscriberName)
+	var vars []any //nolint:prealloc
 
-		sql.WriteString(getThingsByUsernameSubscribed)
-	} else {
-		sql.WriteString(getThings)
-	}
+	vars = append(vars, params.Username)
+
+	sql.WriteString(getThings)
 
 	getThingsParamsToSQL(params, &sql, &vars)
 
@@ -480,13 +484,28 @@ func getThingsParamsToSQL(params database.GetThingsParams, sql *strings.Builder,
 }
 
 func whereSQL(params database.GetThingsParams, sql *strings.Builder, vars *[]any) {
-	if params.FilterOnType == database.ThingsTypeNil {
-		return
+	whereStarted := false
+
+	if params.FilterOnType != database.ThingsTypeNil {
+		sql.WriteString("\nWHERE type = ?")
+
+		*vars = append(*vars, params.FilterOnType)
+		whereStarted = true
 	}
 
-	sql.WriteString("\nWHERE type = ?")
+	if params.OnlySubscribed {
+		onlySubscribedFilter(sql, whereStarted)
+	}
+}
 
-	*vars = append(*vars, params.FilterOnType)
+func onlySubscribedFilter(sql *strings.Builder, whereStarted bool) {
+	if whereStarted {
+		sql.WriteString(" AND")
+	} else {
+		sql.WriteString("\nWHERE")
+	}
+
+	sql.WriteString(" subscribers.thing_id IS NOT NULL")
 }
 
 func orderSQL(params database.GetThingsParams, sql *strings.Builder) {
@@ -522,9 +541,7 @@ func limitSQL(params database.GetThingsParams, sql *strings.Builder) {
 }
 
 const countThings = `SELECT COUNT(1) FROM things`
-const countThingsByUsernameSubscribed = `
-SELECT COUNT(1)
-FROM things
+const countThingsByUsernameSubscribed = countThings + `
 INNER JOIN subscribers ON subscribers.thing_id = things.id
 INNER JOIN users ON users.id = subscribers.user_id AND users.name = ?`
 
@@ -539,10 +556,10 @@ func (m *DB) calculateLastPage(params database.GetThingsParams) (int, error) {
 		vars  []any
 	)
 
-	if params.SubscriberName != "" {
+	if params.OnlySubscribed {
 		sql.WriteString(countThingsByUsernameSubscribed)
 
-		vars = append(vars, params.SubscriberName)
+		vars = append(vars, params.Username)
 	} else {
 		sql.WriteString(countThings)
 	}

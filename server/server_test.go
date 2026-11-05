@@ -31,6 +31,7 @@ import (
 	"bytes"
 	"encoding/base64"
 	"encoding/json"
+	"errors"
 	"html/template"
 	"io"
 	"net"
@@ -49,6 +50,7 @@ import (
 	. "github.com/smartystreets/goconvey/convey"
 	gas "github.com/wtsi-hgi/go-authserver"
 	"github.com/wtsi-hgi/tt/database"
+	"github.com/wtsi-hgi/tt/database/mysql"
 	"github.com/wtsi-hgi/tt/internal"
 	"gopkg.in/tylerb/graceful.v1"
 )
@@ -99,7 +101,7 @@ func (m *mockDB) GetUserByName(name string) (*database.User, error) {
 		}
 	}
 
-	return nil, ErrNoUser
+	return nil, mysql.ErrNoUser
 }
 
 func (m *mockDB) GetUserByID(id uint32) (*database.User, error) {
@@ -123,8 +125,8 @@ func (m *mockDB) GetThingByID(id uint32) (*database.Thing, error) {
 }
 
 func (m *mockDB) CreateThing(args database.CreateThingParams) (*database.Thing, error) {
-	id := m.thingID
 	m.thingID++
+	id := m.thingID
 
 	thing := database.Thing{
 		ID:             id,
@@ -150,6 +152,7 @@ func (m *mockDB) CreateThing(args database.CreateThingParams) (*database.Thing, 
 	for _, user := range m.users {
 		if user.Name == args.Creator {
 			userID = user.ID
+			thing.CreatorID = userID
 			found = true
 		}
 	}
@@ -161,6 +164,7 @@ func (m *mockDB) CreateThing(args database.CreateThingParams) (*database.Thing, 
 		}
 
 		userID = user.ID
+		thing.CreatorID = userID
 	}
 
 	subscriber := database.Subscriber{
@@ -175,26 +179,24 @@ func (m *mockDB) CreateThing(args database.CreateThingParams) (*database.Thing, 
 }
 
 func (m *mockDB) GetThings(params database.GetThingsParams) (*database.GetThingsResult, error) {
-	things := m.things
-	if params.SubscriberName == "" {
-		return &database.GetThingsResult{
-			Things:   sortAndFilterThings(things, params),
-			LastPage: m.lastPage,
-		}, nil
+	user, err := m.GetUserByName(params.Username)
+	if errors.Is(err, mysql.ErrNoUser) {
+		user, err = m.CreateUser(params.Username, params.Username+defaultTestEmailDomain)
 	}
 
-	user, err := m.GetUserByName(params.SubscriberName)
 	if err != nil {
 		return &database.GetThingsResult{LastPage: m.lastPage}, err
 	}
 
-	things = nil
+	things := slices.Clone(m.things)
+	for n, thing := range things {
+		thing.Owner = thing.CreatorID == user.ID
 
-	for _, sub := range m.subs {
-		if sub.UserID == user.ID {
-			thing, err := m.GetThingByID(sub.ThingID)
-			if err == nil {
-				things = append(things, *thing)
+		for _, sub := range m.subs {
+			if sub.UserID == user.ID && sub.ThingID == thing.ID {
+				things[n].Subscribed = true
+
+				break
 			}
 		}
 	}
@@ -212,6 +214,12 @@ func sortAndFilterThings(origThings []database.Thing, params database.GetThingsP
 		if params.FilterOnType == database.ThingsTypeNil || thing.Type == params.FilterOnType {
 			things = append(things, thing)
 		}
+	}
+
+	if params.OnlySubscribed {
+		things = slices.DeleteFunc(things, func(thing database.Thing) bool {
+			return !thing.Subscribed
+		})
 	}
 
 	switch params.OrderBy {
@@ -271,20 +279,6 @@ func (m *mockDB) GetSubscribers(id uint32) ([]database.Subscriber, error) {
 	return subscribers, nil
 }
 
-func (m *mockDB) GetSubscriptions(username string) ([]database.Thing, error) {
-	user, err := m.GetUserByName(username)
-	if err != nil {
-		return nil, err
-	}
-
-	thingsResult, err := m.GetThings(database.GetThingsParams{SubscriberName: user.Name})
-	if err != nil {
-		return nil, err
-	}
-
-	return thingsResult.Things, nil
-}
-
 func (m *mockDB) PostSubscription(username string, thingID uint32) error {
 	user, err := m.GetUserByName(username)
 	if err != nil {
@@ -307,12 +301,14 @@ func (m *mockDB) DeleteSubscription(username string, thingID uint32) error {
 		return err
 	}
 
-	for i, sub := range m.subs {
-		if sub.UserID == user.ID && sub.ThingID == thingID {
-			m.subs = slices.Delete(m.subs, i, i+1)
+	l := len(m.subs)
 
-			return nil
-		}
+	m.subs = slices.DeleteFunc(m.subs, func(t database.Subscriber) bool {
+		return t.ThingID == thingID && t.UserID == user.ID
+	})
+
+	if l != len(m.subs) {
+		return nil
 	}
 
 	return ErrNotSubscribed
@@ -511,16 +507,15 @@ func TestServer(t *testing.T) {
 				newUser, thing, exampleSubscriber := internal.GetExampleResourceData()
 				thingParams := thing.ToCreateParams(newUser)
 
-				thing.ID = 0
-
 				thingJSON, err = json.Marshal(thingParams)
 				So(err, ShouldBeNil)
 
 				code := testEndpointCode(s, "POST", EndPointAuthThings, string(thingJSON), jwt)
+				So(code, ShouldEqual, http.StatusNoContent)
 
 				mdb.things[0].CreatorID = 1 //!!
+				// thing.CreatorID = mdb.things[0].ID //!!
 
-				So(code, ShouldEqual, http.StatusNoContent)
 				So(len(mdb.things), ShouldEqual, 1)
 				So(mdb.things[0], ShouldResemble, thing)
 
@@ -528,7 +523,7 @@ func TestServer(t *testing.T) {
 				info := <-ch
 				info2 := <-ch2
 
-				So(info, ShouldContainSubstring, "<tr hx-target=\"this\" hx-swap=\"outerHTML\">\t<td>ResourceName</td>\t")
+				So(info, ShouldContainSubstring, "<tr id=\"ID_1\">\t<td>ResourceName</td>\t<td>address</td>")
 				So(info, ShouldEqual, info2)
 
 				Convey("You are a subscriber to the thing you created", func() {
@@ -539,7 +534,6 @@ func TestServer(t *testing.T) {
 					So(mdb.users[1], ShouldResemble, newUser)
 
 					exampleSubscriber.UserID = newUser.ID
-					exampleSubscriber.ThingID = 0
 
 					So(len(mdb.subs), ShouldEqual, 1)
 					So(mdb.subs[0], ShouldResemble, exampleSubscriber)
@@ -559,7 +553,7 @@ func TestServer(t *testing.T) {
 					So(err, ShouldBeNil)
 
 					code = testEndpointCode(s, "POST", EndPointAuthSubscriber, string(thingJSON), jwt)
-					So(code, ShouldEqual, http.StatusNoContent)
+					So(code, ShouldEqual, http.StatusOK)
 
 					target := EndPointAuthSubscriber + "?username=" + user.Name
 					code = testEndpointCode(s, "GET", target, "", jwt)
@@ -567,7 +561,7 @@ func TestServer(t *testing.T) {
 					So(len(mdb.subs), ShouldEqual, 2)
 
 					code = testEndpointCode(s, "DELETE", EndPointAuthSubscriber, string(thingJSON), jwt)
-					So(code, ShouldEqual, http.StatusNoContent)
+					So(code, ShouldEqual, http.StatusOK)
 
 					target = EndPointAuthSubscriber + "?username=" + user.Name
 					code = testEndpointCode(s, "GET", target, "", jwt)
@@ -604,7 +598,6 @@ func TestServer(t *testing.T) {
 				newUser, thing, _ := internal.GetExampleResourceData()
 				thingParams := thing.ToCreateParams(newUser)
 
-				thing.ID = 0
 				thingJSON, err = json.Marshal(thingParams)
 				So(err, ShouldBeNil)
 
@@ -749,7 +742,7 @@ func TestWebServerWithCookie(t *testing.T) {
 			code := testEndpointCode(s, "POST", EndPointAuthUser, string(thingJSON), cookie)
 			So(code, ShouldEqual, http.StatusUnauthorized)
 
-			So(len(mdb.users), ShouldEqual, 0)
+			So(len(mdb.users), ShouldEqual, 1)
 
 			userPost = &database.User{
 				ID:    1,
@@ -762,7 +755,7 @@ func TestWebServerWithCookie(t *testing.T) {
 			code = testEndpointCode(s, "POST", EndPointAuthUser, string(thingJSON), cookie)
 			So(code, ShouldEqual, http.StatusNoContent)
 
-			So(len(mdb.users), ShouldEqual, 1)
+			So(len(mdb.users), ShouldEqual, 2)
 
 			userPost.ID = 1
 			So(mdb.users[0], ShouldResemble, userPost)
@@ -772,12 +765,11 @@ func TestWebServerWithCookie(t *testing.T) {
 		})
 
 		Convey("You can POST a thing to the thing endpoint without being a user yet", func() {
-			So(len(mdb.users), ShouldEqual, 0)
+			So(len(mdb.users), ShouldEqual, 1)
 
 			_, thing, _ := internal.GetExampleResourceData()
 			thingParams := thing.ToCreateParams(&database.User{Name: user})
 
-			thing.ID = 0
 			thingJSON, err := json.Marshal(thingParams)
 			So(err, ShouldBeNil)
 
@@ -806,25 +798,19 @@ func thingPostAndSubTests(mdb *mockDB, s *Server, auth any) {
 	_, thing, _ := internal.GetExampleResourceData()
 	thingParams := thing.ToCreateParams(mdb.users[0])
 
-	thing.ID = 0
 	thingJSON, err := json.Marshal(thingParams)
 	So(err, ShouldBeNil)
 
 	code := testEndpointCode(s, "POST", EndPointAuthThings, string(thingJSON), auth)
-
 	So(code, ShouldEqual, http.StatusNoContent)
 	So(len(mdb.things), ShouldEqual, 1)
+	thing.CreatorID = mdb.things[0].CreatorID // This is because eg resource data has hardcoded value.
 	So(mdb.things[0], ShouldResemble, thing)
 
 	Convey("You are a subscriber to the thing you created", func() {
-		exampleSubscriber := database.Subscriber{
-			UserID:  1,
-			ThingID: thing.ID,
-		}
-
 		So(len(mdb.subs), ShouldEqual, 1)
-		So(mdb.subs[0], ShouldResemble, exampleSubscriber)
-		So(mdb.things[0].CreatorID, ShouldEqual, exampleSubscriber.UserID)
+		So(mdb.subs[0].ThingID, ShouldResemble, thing.ID)
+		So(mdb.things[0].CreatorID, ShouldEqual, mdb.subs[0].UserID)
 	})
 }
 
@@ -875,6 +861,13 @@ func executeThingsTemplate(things []database.Thing) string {
 	templ := template.New("")
 	templChild := templ.New("templates/things.html")
 	templChild, err = templChild.Parse(string(data))
+	So(err, ShouldBeNil)
+
+	data, err = templatesFS.ReadFile("templates/subscribe.html")
+	So(err, ShouldBeNil)
+
+	templChild = templChild.New("templates/subscribe.html")
+	_, err = templChild.Parse(string(data))
 	So(err, ShouldBeNil)
 
 	data, err = templatesFS.ReadFile("templates/thing.html")

@@ -458,7 +458,7 @@ func TestCreateGet(t *testing.T) {
 			So(out, ShouldBeBlank)
 			So(ec, ShouldBeZeroValue)
 			Convey("You can Get the things that implemented auto creating a user", func() {
-				ec, out = runBinary(t, "get", "--url", s.url, "--cert", s.cert)
+				ec, out = runBinary(t, "get", "--url", s.url, "--cert", s.cert, "-n", newUser)
 				So(out, ShouldContainSubstring, newUser)
 				So(out, ShouldContainSubstring, os.Getenv("USER"))
 				So(ec, ShouldBeZeroValue)

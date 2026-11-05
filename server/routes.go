@@ -36,6 +36,7 @@ import (
 	"github.com/gin-gonic/gin"
 	gas "github.com/wtsi-hgi/go-authserver"
 	"github.com/wtsi-hgi/tt/database"
+	"github.com/wtsi-hgi/tt/database/mysql"
 )
 
 const (
@@ -53,7 +54,6 @@ const (
 	ErrInvalidThingID    = Error("Invalid thing ID")
 	ErrUnauthorized      = Error("Unauthorized") //nolint:misspell
 	ErrCanNotUnsubscribe = Error("Can not unsubscribe as you are the owner of the thing")
-	ErrNoUser            = database.Error("No User found with that name")
 	ErrAlreadySubscribed = database.Error("User already subscribed to this thing")
 	ErrNotSubscribed     = database.Error("User is not subscribed to this thing")
 )
@@ -94,7 +94,25 @@ func (s *Server) pageRoot(c *gin.Context) {
 // page=<int>&per_page=<int> : get a particular page of results, where each page
 // has per_page Things. Page defaults to 1, and per_page defaults to 50.
 func (s *Server) getThings(c *gin.Context) {
-	filter, err := database.NewGetThingsParams(c.Query("type"), c.Query("sort"), c.Query("dir"), c.Query("page"), c.Query("per_page"), "") //nolint:lll
+	s.getThingsWithSubscription(c, false)
+}
+
+func (s *Server) getThingsWithSubscription(c *gin.Context, subscribed bool) {
+	username := c.Query("username")
+	if username == "" {
+		user := s.GetUser(c) //!!
+		username = user.Username
+	}
+
+	// if !s.AllowedAccess(c, username) {
+	// 	c.AbortWithError(http.StatusUnauthorized, ErrUnauthorized) //nolint: errcheck
+
+	// 	return
+	// }
+	validateOrCreateUser(c, s, username)
+
+	filter, err := database.NewGetThingsParams(c.Query("type"), c.Query("sort"), c.Query("dir"), c.Query("page"),
+		c.Query("per_page"), username, subscribed)
 	if err != nil {
 		c.AbortWithError(http.StatusBadRequest, err) //nolint: errcheck
 
@@ -178,6 +196,9 @@ func (s *Server) postThing(c *gin.Context) {
 		return
 	}
 
+	thing.Subscribed = true
+	thing.Owner = true
+
 	err = s.broadcastNewThing(thing)
 	if err != nil {
 		c.AbortWithError(http.StatusInternalServerError, err) //nolint: errcheck
@@ -189,6 +210,11 @@ func (s *Server) postThing(c *gin.Context) {
 }
 
 func validateOrCreateUser(c *gin.Context, s *Server, username string) *database.User {
+	if username == "" {
+		user := s.GetUser(c)
+		username = user.Username
+	}
+
 	if !s.AllowedAccess(c, username) {
 		c.AbortWithError(http.StatusUnauthorized, ErrUnauthorized) //nolint: errcheck
 
@@ -196,12 +222,12 @@ func validateOrCreateUser(c *gin.Context, s *Server, username string) *database.
 	}
 
 	user, err := s.db.GetUserByName(username)
-	if errors.Is(err, ErrNoUser) {
+	if errors.Is(err, mysql.ErrNoUser) {
 		//TODO: we can use postUser here without email?
 		user, err = s.db.CreateUser(username, username+s.DefaultEmailDomain)
 	}
 
-	if err != nil && !errors.Is(err, ErrNoUser) {
+	if err != nil {
 		c.AbortWithError(http.StatusInternalServerError, err) //nolint: errcheck
 
 		return nil
@@ -375,46 +401,11 @@ func (s *Server) getSubscribers(c *gin.Context) {
 		return
 	}
 
-	//TODO: subscriber template
 	c.HTML(http.StatusOK, "templates/things.html", result)
 }
 
 func (s *Server) getSubscriptions(c *gin.Context) {
-	username := c.Query("username")
-	if username == "" {
-		c.AbortWithStatus(http.StatusBadRequest)
-
-		return
-	}
-
-	if !s.AllowedAccess(c, username) {
-		c.AbortWithError(http.StatusUnauthorized, ErrUnauthorized) //nolint: errcheck
-
-		return
-	}
-
-	filter, err := database.NewGetThingsParams(c.Query("type"), c.Query("sort"), c.Query("dir"), c.Query("page"), c.Query("per_page"), username) //nolint:lll
-	if err != nil {
-		c.AbortWithError(http.StatusBadRequest, err) //nolint: errcheck
-
-		return
-	}
-
-	result, err := s.db.GetThings(filter)
-	if err != nil {
-		c.AbortWithError(http.StatusInternalServerError, err) //nolint: errcheck
-
-		return
-	}
-
-	if c.Request.Header.Get("Accept") == jsonType {
-		c.JSON(http.StatusOK, result.Things)
-
-		return
-	}
-
-	//TODO: subscriber template
-	c.HTML(http.StatusOK, "templates/things.html", result.Things)
+	s.getThingsWithSubscription(c, true)
 }
 
 func (s *Server) postSubsciption(c *gin.Context) {
@@ -431,14 +422,39 @@ func (s *Server) postSubsciption(c *gin.Context) {
 		return
 	}
 
-	err := s.db.PostSubscription(subPost.Username, subPost.ThingID)
+	err := s.db.PostSubscription(user.Name, subPost.ThingID)
 	if err != nil {
 		c.AbortWithError(http.StatusBadRequest, err) //nolint:errcheck
 
 		return
 	}
 
-	c.Status(http.StatusNoContent)
+	t, err := s.db.GetThingByID(subPost.ThingID)
+	if err != nil {
+		c.AbortWithError(http.StatusBadRequest, err) //nolint:errcheck
+
+		return
+	}
+
+	u, err := s.db.GetUserByName(user.Name)
+	if err != nil {
+		c.AbortWithError(http.StatusBadRequest, err) //nolint:errcheck
+
+		return
+	}
+
+	t.Subscribed = true
+	if t.CreatorID == u.ID {
+		t.Owner = true
+	}
+
+	if c.Request.Header.Get("Accept") == jsonType {
+		c.Status(http.StatusNoContent)
+
+		return
+	}
+
+	c.HTML(http.StatusOK, "templates/subscribe.html", t)
 }
 
 func (s *Server) deleteSubscription(c *gin.Context) {
@@ -448,6 +464,11 @@ func (s *Server) deleteSubscription(c *gin.Context) {
 		c.AbortWithError(http.StatusBadRequest, err) //nolint: errcheck
 
 		return
+	}
+
+	if subPost.Username == "" {
+		user := s.GetUser(c)
+		subPost.Username = user.Username
 	}
 
 	if !s.AllowedAccess(c, subPost.Username) {
@@ -468,7 +489,23 @@ func (s *Server) deleteSubscription(c *gin.Context) {
 		return
 	}
 
-	c.Status(http.StatusNoContent)
+	t, err := s.db.GetThingByID(subPost.ThingID)
+	if err != nil {
+		c.AbortWithError(http.StatusBadRequest, err) //nolint:errcheck
+
+		return
+	}
+
+	t.Subscribed = false
+	t.Owner = false
+
+	if c.Request.Header.Get("Accept") == jsonType {
+		c.Status(http.StatusNoContent)
+
+		return
+	}
+
+	c.HTML(http.StatusOK, "templates/subscribe.html", t)
 }
 
 func checkOwnership(s *Server, c *gin.Context, subPost database.NewSubscriptionParams) error {

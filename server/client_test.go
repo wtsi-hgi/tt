@@ -142,11 +142,13 @@ func TestClient(t *testing.T) {
 				OrderDirection: database.OrderAsc,
 				Page:           1,
 				ThingsPerPage:  1,
+				Username:       userName,
+				OnlySubscribed: false,
 			}
 
 			things, err := client.GetThings(filter)
 			So(err, ShouldBeNil)
-			So(len(things), ShouldEqual, 1)
+			So(len(things), ShouldEqual, 1) //!!
 			So(things[0].Remove, ShouldHappenOnOrBetween, deleteTimeBefore, deleteTimeAfter)
 
 			things[0].Remove = time.Time{}
@@ -162,6 +164,8 @@ func TestClient(t *testing.T) {
 				OrderDirection: database.OrderAsc,
 				Page:           1,
 				ThingsPerPage:  1,
+				Username:       userName,
+				OnlySubscribed: false,
 			}
 
 			things, err = client.GetThings(filter)
@@ -185,6 +189,8 @@ func TestClient(t *testing.T) {
 				OrderDirection: database.OrderAsc,
 				Page:           1,
 				ThingsPerPage:  2,
+				Username:       userName,
+				OnlySubscribed: false,
 			}
 
 			things, err = client.GetThings(filter)
@@ -212,6 +218,8 @@ func TestClient(t *testing.T) {
 				OrderDirection: database.OrderAsc,
 				Page:           1,
 				ThingsPerPage:  2,
+				Username:       userName,
+				OnlySubscribed: false,
 			}
 
 			things, err = client.GetThings(filter)
@@ -220,6 +228,9 @@ func TestClient(t *testing.T) {
 
 			thing, err := client.GetThingByID(things[0].ID)
 			So(err, ShouldBeNil)
+
+			things[0].Subscribed = false
+			things[0].Owner = false
 			So(thing, ShouldResemble, &things[0])
 
 			Convey("You can Subscribe to things and get all of your subscriptions", func() {
@@ -238,8 +249,8 @@ func TestClient(t *testing.T) {
 
 				subscribedThings, err := client.GetSubscriptions(userPost.Name)
 				So(err, ShouldBeNil)
-				So(subscribedThings[0].ID, ShouldEqual, things[0].ID)
 				So(len(subscribedThings), ShouldEqual, 2)
+				So(subscribedThings[0].ID, ShouldEqual, things[0].ID)
 
 				Convey("You can get information about subscribers to the thing created", func() {
 					// Test get a subscriber with thingID.
