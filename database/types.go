@@ -250,7 +250,7 @@ func ValidateCreateThingsParams(thing CreateThingParams) error { //nolint:gocycl
 	if time.Now().Before(thing.CreationDate.Time) {
 		return ErrBadCreationDate
 	}
-	//TODO: add creator validation again here?
+
 	return nil
 }
 

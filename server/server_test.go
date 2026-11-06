@@ -540,7 +540,6 @@ func TestServer(t *testing.T) {
 				})
 
 				Convey("You can POST, GET and DELTE your subscriptions", func() {
-					//TODO: SSE Test for sub?
 					user := database.User{Name: "username", Email: "username@something"}
 					thingJSON, err := json.Marshal(user)
 					So(err, ShouldBeNil)
@@ -776,6 +775,7 @@ func TestWebServerWithCookie(t *testing.T) {
 			code := testEndpointCode(s, "POST", EndPointAuthThings, string(thingJSON), cookie)
 
 			thing.CreatorName = mdb.things[0].CreatorName
+
 			So(code, ShouldEqual, http.StatusNoContent)
 			So(len(mdb.things), ShouldEqual, 1)
 			So(mdb.things[0], ShouldResemble, thing)

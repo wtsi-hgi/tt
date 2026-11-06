@@ -193,9 +193,7 @@ func (s *Server) postThing(c *gin.Context) {
 		return
 	}
 
-	thing.Subscribed = true
-	thing.Owner = true
-	thing.CreatorName = user.Name
+	thing.Subscribed, thing.Owner, thing.CreatorName = true, true, user.Name
 
 	err = s.broadcastNewThing(thing)
 	if err != nil {
@@ -221,7 +219,6 @@ func validateOrCreateUser(c *gin.Context, s *Server, username string) *database.
 
 	user, err := s.db.GetUserByName(username)
 	if errors.Is(err, mysql.ErrNoUser) {
-		//TODO: we can use postUser here without email?
 		user, err = s.db.CreateUser(username, username+s.DefaultEmailDomain)
 	}
 
@@ -432,33 +429,10 @@ func (s *Server) postSubsciption(c *gin.Context) {
 		return
 	}
 
-	t, err := s.db.GetThingByID(subPost.ThingID)
+	err = toggleSubTemplate(c, s, subPost, true)
 	if err != nil {
-		c.AbortWithError(http.StatusBadRequest, err) //nolint:errcheck
-
 		return
 	}
-
-	u, err := s.db.GetUserByName(user.Name)
-	if err != nil {
-		c.AbortWithError(http.StatusBadRequest, err) //nolint:errcheck
-
-		return
-	}
-
-	t.Subscribed = true
-	if t.CreatorID == u.ID {
-		t.Owner = true
-
-	}
-
-	if c.Request.Header.Get("Accept") == jsonType {
-		c.Status(http.StatusNoContent)
-
-		return
-	}
-
-	c.HTML(http.StatusOK, "templates/subscribe.html", t)
 }
 
 func (s *Server) deleteSubscription(c *gin.Context) {
@@ -488,21 +462,29 @@ func (s *Server) deleteSubscription(c *gin.Context) {
 		return
 	}
 
+	err = toggleSubTemplate(c, s, subPost, false)
+	if err != nil {
+		return
+	}
+}
+
+func toggleSubTemplate(c *gin.Context, s *Server, subPost database.NewSubscriptionParams, subscribed bool) error {
 	t, err := s.db.GetThingByID(subPost.ThingID)
 	if err != nil {
 		c.AbortWithError(http.StatusBadRequest, err) //nolint:errcheck
 
-		return
+		return err
 	}
 
-	t.Subscribed = false
-	t.Owner = false
+	t.Subscribed = subscribed
 
 	if c.Request.Header.Get("Accept") == jsonType {
 		c.Status(http.StatusNoContent)
 
-		return
+		return err
 	}
 
 	c.HTML(http.StatusOK, "templates/subscribe.html", t)
+
+	return nil
 }
