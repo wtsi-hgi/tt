@@ -192,7 +192,7 @@ func (c *Client) Subscribe(subscription *database.NewSubscriptionParams) error {
 }
 
 // Unsubscribe removes a users subscription given their username and the ID of the thing that they would like
-// to subsubscribe to.
+// to unsubscribe to.
 func (c *Client) Unsubscribe(subscription *database.NewSubscriptionParams) error {
 	//
 	resp, err := c.request().SetHeader("Accept", "application/json").ForceContentType("application/json").

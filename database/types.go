@@ -186,7 +186,6 @@ type GetThingsParams struct {
 type GetThingsResult struct {
 	Things   []Thing
 	LastPage int
-	// Add subscribed here or as a new propery in Thing.
 }
 
 type User struct {
@@ -257,7 +256,7 @@ func ValidateCreateThingsParams(thing CreateThingParams) error { //nolint:gocycl
 type Thing struct {
 	// ID is the unique (auto-increment) id of the temporary thing.
 	ID uint32
-	// CreatorID is the id of the user who create dthe temporary thing
+	// CreatorID is the id of the user who create the temporary thing
 	CreatorID uint32
 	// Address is the location of the resource, such as absolute file path on
 	// disk or URL.
@@ -307,7 +306,7 @@ type Thing struct {
 	// Owner is a boolean indication of whether the user interacting with the thing
 	// is the owner of the thing.
 	Owner bool
-	// CreatorName is the username of the creator.
+	// CreatorName is the username of the person who created the thing.
 	CreatorName string
 }
 

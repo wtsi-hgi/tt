@@ -70,9 +70,7 @@ func GetExampleData() ([]*database.User, []database.Thing, []database.Subscriber
 			remove := dateFromYear(year + i)
 
 			expectedThing := database.Thing{
-				ID: i + 1,
-				//!! the sql and routes etc works but maybe fix tests marked !! where we reset the thing creator id?
-				//CreatorID:   1,
+				ID:          i + 1,
 				Address:     addresses[i],
 				Type:        thingType,
 				Description: "desc",

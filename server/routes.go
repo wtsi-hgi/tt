@@ -75,7 +75,7 @@ const (
 	EndPointAuthSseThingsEventName = thingsListenPath
 	EndPointAuthSubscriber         = gas.EndPointAuth + subscriberPath
 	EndPointAuthSubscribersThingID = gas.EndPointAuth + subscribersByThingIDPath
-	EndPointAuthusername           = gas.EndPointAuth + usernamePath
+	EndPointAuthUsername           = gas.EndPointAuth + usernamePath
 )
 
 // pageRoot takes no user input; it's for the overall main html page at /.
