@@ -480,11 +480,12 @@ func TestMySQL(t *testing.T) {
 						So(errc, ShouldBeNil)
 
 						errc = db.DeleteSubscription(user.Name, result.Things[0].ID)
-						So(errc, ShouldBeNil)
+						So(errc, ShouldNotBeNil)
 						resultAfter, errc := db.GetThings(database.GetThingsParams{Username: user.Name, OnlySubscribed: true})
 						So(errc, ShouldBeNil)
 						So(resultBefore.Things, ShouldEqual, resultAfter.Things)
 					})
+
 					Convey("Users can subscribe to additional things", func() {
 						thing, errb := db.CreateThing(database.CreateThingParams{Address: "somewhere",
 							Type:           database.ThingsTypeDir,
@@ -513,6 +514,10 @@ func TestMySQL(t *testing.T) {
 						So(errc, ShouldBeNil)
 						errc = db.PostSubscription(sub2.Name, result.Things[0].ID)
 						So(errc, ShouldBeNil)
+						errc = db.PostSubscription("NonExistentUser", result.Things[0].ID)
+						So(errc, ShouldEqual, ErrInvalidSubscription)
+						errc = db.PostSubscription("NonExistentUser", 0)
+						So(errc, ShouldEqual, ErrInvalidSubscription)
 
 						Convey("Then you can get the things you are subscribed to", func() {
 							subscribedThingsWithInfo, errd := db.GetThings(database.GetThingsParams{
@@ -540,6 +545,8 @@ func TestMySQL(t *testing.T) {
 						Convey("Then you can unsubscribe", func() {
 							errd := db.DeleteSubscription(sub1.Name, thing.ID)
 							So(errd, ShouldBeNil)
+							errd = db.DeleteSubscription(sub1.Name, 0)
+							So(errd, ShouldEqual, ErrInvalidSubscription)
 
 							subscribedThingsWithInfo, errd := db.GetThings(database.GetThingsParams{
 								Username: sub2.Name, OnlySubscribed: true})

@@ -114,6 +114,7 @@ func TestServer(t *testing.T) {
 									output, err = executeRootCommandForTest(t, cliArgs)
 									So(err, ShouldNotBeNil)
 									So(output, ShouldNotContainSubstring, `"key"`)
+
 									Convey("Given default Domain", func() {
 										cliArgs = append(cliArgs, "--domain", envVarVal)
 										output, err = executeRootCommandForTest(t, cliArgs)
@@ -151,6 +152,7 @@ func TestServer(t *testing.T) {
 											}
 
 											Convey("Given real database details", func() {
+
 												Convey("You can't start a server with invalid cert files", func() {
 													output, err := executeRootCommandForTest(t, cliArgs)
 													So(err, ShouldNotBeNil)

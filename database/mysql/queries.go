@@ -36,7 +36,10 @@ import (
 	"github.com/wtsi-hgi/tt/database"
 )
 
-const ErrNoUser = database.Error("No User found with that name")
+const (
+	ErrNoUser              = database.Error("No User found with that name")
+	ErrInvalidSubscription = database.Error("No user or thing found for subscription")
+)
 
 const createUser = `INSERT INTO users (name, email) VALUES (?, ?)`
 
@@ -340,8 +343,6 @@ func (m *DB) GetThingByID(id uint32) (*database.Thing, error) {
 	return thing, nil
 }
 
-const subscribe = `INSERT INTO subscribers (user_id, thing_id) VALUES (?, ?);` //nolint:unused
-
 const subscribeWithUsername = `INSERT INTO subscribers (user_id, thing_id)
 SELECT users.id, things.id
 FROM users
@@ -352,15 +353,22 @@ WHERE users.name = ?`
 // new row to the subscribers table given the users username and the ID of the
 // thing they would like to subscribe to.
 func (m *DB) PostSubscription(username string, thingID uint32) error {
-	_, err := createRow(m.pool, subscribeWithUsername, thingID, username)
+	result, err := m.pool.Exec(subscribeWithUsername, thingID, username)
 	if err != nil {
 		return err
 	}
 
+	rowsAffected, err := result.RowsAffected()
+	if err != nil {
+		return err
+	}
+
+	if rowsAffected == 0 {
+		return ErrInvalidSubscription
+	}
+
 	return nil
 }
-
-const unsubscribe = `DELETE FROM subscribers WHERE user_id = ? AND thing_id = ?;` //nolint:unused
 
 const unsubscribeWithUsername = `DELETE subscribers
 FROM subscribers
@@ -372,10 +380,18 @@ WHERE things.id = ? AND users.name = ? AND (users.id != things.creator_id);`
 // in the subscribers table given the users username and the ID of the thing they
 // would like to unsubscribe to.
 func (m *DB) DeleteSubscription(username string, thingID uint32) error {
-	_, err := m.pool.Exec(unsubscribeWithUsername, thingID, username)
-	// _, err = m.pool.Exec(unsubscribe, user.ID, thingID)
+	result, err := m.pool.Exec(unsubscribeWithUsername, thingID, username)
 	if err != nil {
 		return err
+	}
+
+	rowsAffected, err := result.RowsAffected()
+	if err != nil {
+		return err
+	}
+
+	if rowsAffected == 0 {
+		return ErrInvalidSubscription
 	}
 
 	return nil
@@ -556,7 +572,3 @@ const updateDescription = `UPDATE things SET description = ? WHERE id = ?;` //no
 const firstWarningSent = `UPDATE things SET warned1 = ? WHERE id = ?;` //nolint:unused
 
 const secondWarningSent = `UPDATE things SET warned2 = ? WHERE id = ?;` //nolint:unused
-
-const listSubscribers = `SELECT user_id, thing_id FROM subscribers WHERE thing_id = ?;` //nolint:unused
-
-const listSubscriptions = `SELECT user_id, thing_id FROM subscribers WHERE user_id = ?;` //nolint:unused

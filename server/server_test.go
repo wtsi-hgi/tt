@@ -759,6 +759,7 @@ func TestWebServerWithCookie(t *testing.T) {
 
 			userPost.ID = 1
 			So(mdb.users[0], ShouldResemble, userPost)
+
 			Convey("You can POST your things to the thing endpoint ", func() {
 				thingPostAndSubTests(mdb, s, cookie)
 			})
