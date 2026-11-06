@@ -37,7 +37,7 @@ import (
 
 // serverCmd represents the server command.
 var createUser = &cobra.Command{
-	Use:   "user",
+	Use:   "user", //nolint:goconst
 	Short: "Create a User",
 	Long: `Create a User.
 The tt user command is used to add a new user to the users table.

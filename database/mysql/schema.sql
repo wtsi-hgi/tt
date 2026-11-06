@@ -10,6 +10,7 @@ CREATE TABLE users (
 
 CREATE TABLE things (
     id int unsigned NOT NULL AUTO_INCREMENT PRIMARY KEY,
+    creator_id int unsigned NOT NULL ,
     address varchar(4096) NOT NULL,
     type enum('dir', 'file', 'irods', 'openstack', 's3', 'resource') NOT NULL,
     created date NOT NULL,
@@ -32,10 +33,8 @@ CREATE TABLE things (
 CREATE TABLE subscribers (
     user_id int unsigned NOT NULL,
     thing_id int unsigned NOT NULL,
-    creator bool NOT NULL default 0,
     PRIMARY KEY (user_id, thing_id),
     KEY (user_id),
-    KEY (user_id, creator),
     KEY (thing_id),
     FOREIGN KEY (user_id) REFERENCES users(id)
         ON DELETE CASCADE,

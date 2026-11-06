@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2025 Genome Research Ltd.
+ * Copyright (c) 2026 Genome Research Ltd.
  *
  * Author: Sendu Bala <sb10@sanger.ac.uk>
  *
@@ -83,7 +83,6 @@ func GetExampleData() ([]*database.User, []database.Thing, []database.Subscriber
 			expectedSubs[i] = database.Subscriber{
 				UserID:  creator.ID,
 				ThingID: expectedThing.ID,
-				Creator: true,
 			}
 
 			i++
@@ -116,8 +115,11 @@ func GetExampleUser(id uint32) *database.User {
 // GetExampleResourceData returns an example of a thing, the user who created the thing and
 // a subscriber to the thing.
 func GetExampleResourceData() (*database.User, database.Thing, database.Subscriber) {
+	creator := exampleUser(1)
+
 	expectedThing := database.Thing{
 		ID:             1,
+		CreatorID:      1,
 		Address:        "address",
 		Type:           database.ThingsTypeResource,
 		Description:    "desc",
@@ -130,14 +132,12 @@ func GetExampleResourceData() (*database.User, database.Thing, database.Subscrib
 		DownloadMethod: "command line",
 		RequestSource:  "Jira",
 		CreationDate:   null.TimeFrom(dateFromYear(uint32(1970))), //nolint:mnd
+		CreatorName:    creator.Name,
 	}
-
-	creator := exampleUser(1)
 
 	expectedSub := database.Subscriber{
 		UserID:  creator.ID,
 		ThingID: expectedThing.ID,
-		Creator: true,
 	}
 
 	return creator, expectedThing, expectedSub

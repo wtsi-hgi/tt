@@ -1,0 +1,35 @@
+<tr id="ID_{{ .ID }}">
+	<td>{{ .Name }}</td>
+	<td>{{ .Address }}</td>
+	<td>{{ .Type }}</td>
+	<td>{{ .Reason }}</td>
+	<td>{{ .Description }}</td>
+	<td>{{ .Version }}</td>
+	<td>{{ .RequestSource }}</td>
+	<td>{{ .License }}</td>
+	<td>{{ .URL }}</td>
+	<td>{{ .DownloadMethod }}</td>
+	<td>{{ .Remove.Format "2006-01-02" }}</td>
+	<td>
+		<button class="uk-button uk-button-danger" hx-delete="/rest/v1/auth/things/{{ .ID }}" hx-swap="delete swap:1s" hx-target="#ID_{{ .ID }}">
+			Delete
+		</button>
+	</td>
+	<td class="uk-text-nowrap">
+		{{ template "templates/subscribe.html" . }}
+		{{ template "templates/subscribe.html" dict "ID" .ID "Owner" false "Subscribed" false }}
+		<script type="text/javascript">
+			(async (script) => {
+				window.__user = window.__user || await fetch("/rest/v1/auth/username").then(r => r.json());
+
+				if (window.__user === "{{ .CreatorName }}") {
+					script.previousElementSibling.remove();
+				} else {
+					script.previousElementSibling.previousElementSibling.remove();
+				}
+
+				script.remove();
+			})(document.currentScript);
+		</script>
+	</td>
+</tr>

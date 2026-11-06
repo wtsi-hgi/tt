@@ -36,6 +36,7 @@ import (
 	"github.com/gin-gonic/gin"
 	gas "github.com/wtsi-hgi/go-authserver"
 	"github.com/wtsi-hgi/tt/database"
+	"github.com/wtsi-hgi/tt/database/mysql"
 )
 
 const (
@@ -48,27 +49,33 @@ type Error string
 func (e Error) Error() string { return string(e) }
 
 const (
-	ErrInvalidEmail    = Error("Invalid email")
-	ErrInvalidUserName = Error("Invalid username")
-	ErrInvalidThingID  = Error("Invalid thing ID")
-	ErrUnauthorized    = Error("Unauthorized") //nolint:misspell
-	ErrNoUser          = database.Error("No User found with that name")
+	ErrInvalidEmail      = Error("Invalid email")
+	ErrInvalidUserName   = Error("Invalid username")
+	ErrInvalidThingID    = Error("Invalid thing ID")
+	ErrUnauthorized      = Error("Unauthorized") //nolint:misspell
+	ErrCanNotUnsubscribe = Error("Can not unsubscribe as you are the owner of the thing")
+	ErrAlreadySubscribed = database.Error("User already subscribed to this thing")
+	ErrNotSubscribed     = database.Error("User is not subscribed to this thing")
 )
 
 const (
-	pageRootPath     = "/"
-	thingsPath       = "/things"
-	thingIDPath      = "/things/:id"
-	userPath         = "/user"
-	thingsListenPath = "/things/listen"
-	subscribersPath  = "/subscribers"
+	pageRootPath             = "/"
+	thingsPath               = "/things"
+	thingIDPath              = "/things/:id"
+	userPath                 = "/user"
+	thingsListenPath         = "/things/listen"
+	subscriberPath           = "/subscriber"
+	subscribersByThingIDPath = "/subscriber/:thingid"
+	usernamePath             = "/username"
 
 	EndPointAuthRoot               = gas.EndPointAuth + pageRootPath
 	EndPointAuthUser               = gas.EndPointAuth + userPath
 	EndPointAuthThings             = gas.EndPointAuth + thingsPath
 	EndPointAuthThingID            = gas.EndPointAuth + thingIDPath
 	EndPointAuthSseThingsEventName = thingsListenPath
-	EndPointAuthSubscribers        = gas.EndPointAuth + subscribersPath
+	EndPointAuthSubscriber         = gas.EndPointAuth + subscriberPath
+	EndPointAuthSubscribersThingID = gas.EndPointAuth + subscribersByThingIDPath
+	EndPointAuthUsername           = gas.EndPointAuth + usernamePath
 )
 
 // pageRoot takes no user input; it's for the overall main html page at /.
@@ -89,7 +96,22 @@ func (s *Server) pageRoot(c *gin.Context) {
 // page=<int>&per_page=<int> : get a particular page of results, where each page
 // has per_page Things. Page defaults to 1, and per_page defaults to 50.
 func (s *Server) getThings(c *gin.Context) {
-	filter, err := database.NewGetThingsParams(c.Query("type"), c.Query("sort"), c.Query("dir"), c.Query("page"), c.Query("per_page")) //nolint:lll
+	s.getThingsWithSubscription(c, false)
+}
+
+func (s *Server) getThingsWithSubscription(c *gin.Context, subscribed bool) {
+	username := c.Query("username")
+	if username == "" {
+		user := s.GetUser(c)
+		username = user.Username
+	}
+
+	if validateOrCreateUser(c, s, username) == nil {
+		return
+	}
+
+	filter, err := database.NewGetThingsParams(c.Query("type"), c.Query("sort"), c.Query("dir"), c.Query("page"),
+		c.Query("per_page"), username, subscribed)
 	if err != nil {
 		c.AbortWithError(http.StatusBadRequest, err) //nolint: errcheck
 
@@ -159,7 +181,7 @@ func (s *Server) postThing(c *gin.Context) {
 		return
 	}
 
-	user := validateOrCreateUser(c, s, postedThing)
+	user := validateOrCreateUser(c, s, postedThing.Creator)
 	if user == nil {
 		return
 	}
@@ -173,6 +195,8 @@ func (s *Server) postThing(c *gin.Context) {
 		return
 	}
 
+	thing.Subscribed, thing.Owner, thing.CreatorName = true, true, user.Name
+
 	err = s.broadcastNewThing(thing)
 	if err != nil {
 		c.AbortWithError(http.StatusInternalServerError, err) //nolint: errcheck
@@ -183,19 +207,24 @@ func (s *Server) postThing(c *gin.Context) {
 	c.Status(http.StatusNoContent)
 }
 
-func validateOrCreateUser(c *gin.Context, s *Server, postedThing database.CreateThingParams) *database.User {
-	if !s.AllowedAccess(c, postedThing.Creator) {
+func validateOrCreateUser(c *gin.Context, s *Server, username string) *database.User {
+	if username == "" {
+		user := s.GetUser(c)
+		username = user.Username
+	}
+
+	if !s.AllowedAccess(c, username) {
 		c.AbortWithError(http.StatusUnauthorized, ErrUnauthorized) //nolint: errcheck
 
 		return nil
 	}
 
-	user, err := s.db.GetUserByName(postedThing.Creator)
-	if errors.Is(err, ErrNoUser) {
-		user, err = s.db.CreateUser(postedThing.Creator, postedThing.Creator+s.DefaultEmailDomain)
+	user, err := s.db.GetUserByName(username)
+	if errors.Is(err, mysql.ErrNoUser) {
+		user, err = s.db.CreateUser(username, username+s.DefaultEmailDomain)
 	}
 
-	if err != nil && !errors.Is(err, ErrNoUser) {
+	if err != nil {
 		c.AbortWithError(http.StatusInternalServerError, err) //nolint: errcheck
 
 		return nil
@@ -252,9 +281,13 @@ func (s *Server) deleteThing(c *gin.Context) {
 	c.Status(http.StatusOK)
 }
 
+func (s *Server) getUsername(c *gin.Context) {
+	user := s.GetUser(c)
+	c.JSON(http.StatusOK, user.Username)
+}
+
 func (s *Server) postUser(c *gin.Context) {
 	var userPost database.User
-
 	if err := c.ShouldBind(&userPost); err != nil {
 		c.AbortWithError(http.StatusBadRequest, err) //nolint: errcheck
 
@@ -348,9 +381,9 @@ func (s *Server) getUserByID(c *gin.Context, uID string) {
 }
 
 func (s *Server) getSubscribers(c *gin.Context) {
-	tID := c.Query("id")
+	thingID := c.Param("thingid")
 
-	id, err := strconv.Atoi(tID)
+	id, err := strconv.Atoi(thingID)
 	if err != nil {
 		c.AbortWithError(http.StatusBadRequest, ErrInvalidThingID) //nolint: errcheck
 
@@ -371,4 +404,106 @@ func (s *Server) getSubscribers(c *gin.Context) {
 	}
 
 	c.HTML(http.StatusOK, "templates/things.html", result)
+}
+
+func (s *Server) getSubscriptions(c *gin.Context) {
+	s.getThingsWithSubscription(c, true)
+}
+
+func (s *Server) postSubsciption(c *gin.Context) {
+	var subPost database.NewSubscriptionParams
+
+	if err := c.ShouldBind(&subPost); err != nil {
+		c.AbortWithError(http.StatusBadRequest, err) //nolint: errcheck
+
+		return
+	}
+
+	user := validateOrCreateUser(c, s, subPost.Username)
+	if user == nil {
+		return
+	}
+
+	err := s.db.PostSubscription(user.Name, subPost.ThingID)
+	if err != nil {
+		c.AbortWithError(http.StatusBadRequest, err) //nolint:errcheck
+
+		return
+	}
+
+	err = toggleSubTemplate(c, s, subPost, true)
+	if err != nil {
+		return
+	}
+}
+
+func (s *Server) deleteSubscription(c *gin.Context) {
+	var subPost database.NewSubscriptionParams
+
+	if err := c.ShouldBind(&subPost); err != nil {
+		c.AbortWithError(http.StatusBadRequest, err) //nolint: errcheck
+
+		return
+	}
+
+	user := validateOrCreateUser(c, s, subPost.Username)
+	if user == nil {
+		return
+	}
+
+	subPost.Username = user.Name
+
+	err := checkCreator(c, s, subPost, *user)
+	if err != nil {
+		return
+	}
+
+	err = s.db.DeleteSubscription(subPost.Username, subPost.ThingID)
+	if err != nil {
+		c.AbortWithError(http.StatusBadRequest, err) //nolint:errcheck
+
+		return
+	}
+
+	err = toggleSubTemplate(c, s, subPost, false)
+	if err != nil {
+		return
+	}
+}
+func checkCreator(c *gin.Context, s *Server, subPost database.NewSubscriptionParams, user database.User) error {
+	thing, err := s.db.GetThingByID(subPost.ThingID)
+	if err != nil {
+		c.AbortWithError(http.StatusBadRequest, err) //nolint:errcheck
+
+		return err
+	}
+
+	if thing.CreatorID == user.ID {
+		c.AbortWithError(http.StatusBadRequest, ErrCanNotUnsubscribe) //nolint:errcheck
+
+		return err
+	}
+
+	return nil
+}
+
+func toggleSubTemplate(c *gin.Context, s *Server, subPost database.NewSubscriptionParams, subscribed bool) error {
+	t, err := s.db.GetThingByID(subPost.ThingID)
+	if err != nil {
+		c.AbortWithError(http.StatusBadRequest, err) //nolint:errcheck
+
+		return err
+	}
+
+	t.Subscribed = subscribed
+
+	if c.Request.Header.Get("Accept") == jsonType {
+		c.Status(http.StatusNoContent)
+
+		return err
+	}
+
+	c.HTML(http.StatusOK, "templates/subscribe.html", t)
+
+	return nil
 }

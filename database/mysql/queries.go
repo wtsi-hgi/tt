@@ -36,7 +36,10 @@ import (
 	"github.com/wtsi-hgi/tt/database"
 )
 
-const ErrNoUser = database.Error("No User found with that name")
+const (
+	ErrNoUser              = database.Error("No User found with that name")
+	ErrInvalidSubscription = database.Error("No user or thing found for subscription")
+)
 
 const createUser = `INSERT INTO users (name, email) VALUES (?, ?)`
 
@@ -134,7 +137,7 @@ func scanRowForUser(rows *sql.Rows) (*database.User, error) {
 }
 
 const getSubscriberByThing = `
-SELECT user_id, thing_id, creator
+SELECT user_id, thing_id
 FROM subscribers
 WHERE thing_id = ?
 `
@@ -156,7 +159,6 @@ func (m *DB) GetSubscribers(thingID uint32) ([]database.Subscriber, error) {
 		if err = rows.Scan(
 			&subscriber.UserID,
 			&subscriber.ThingID,
-			&subscriber.Creator,
 		); err != nil {
 			return nil, err
 		}
@@ -173,18 +175,18 @@ func (m *DB) GetSubscribers(thingID uint32) ([]database.Subscriber, error) {
 
 const createThing = `
 INSERT INTO things (
-  address, type, created, description, reason, remove, license, ` +
+  creator_id, address, type, created, description, reason, remove, license, ` +
 	`version, name, url, download_method, request_source, creation_date
 ) VALUES (
-  ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?
+  ?,?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?
 )
 `
 
 const createSubscription = `
 INSERT INTO subscribers (
-  user_id, thing_id, creator
+  user_id, thing_id
 ) VALUES (
-  ?, ?, ?
+  ?, ?
 )
 `
 
@@ -201,6 +203,7 @@ func (m *DB) CreateThing(args database.CreateThingParams) (*database.Thing, erro
 	}
 
 	id, err := createRow(tx, createThing,
+		args.CreatorID,
 		args.Address,
 		args.Type,
 		created,
@@ -221,7 +224,7 @@ func (m *DB) CreateThing(args database.CreateThingParams) (*database.Thing, erro
 		return nil, errors.Join(err, errRollback)
 	}
 
-	_, err = tx.Exec(createSubscription, args.CreatorID, id, 1)
+	_, err = tx.Exec(createSubscription, args.CreatorID, id)
 	if err != nil {
 		errRollback := tx.Rollback()
 
@@ -235,6 +238,7 @@ func (m *DB) CreateThing(args database.CreateThingParams) (*database.Thing, erro
 
 	return &database.Thing{
 		ID:             id,
+		CreatorID:      args.CreatorID,
 		Address:        args.Address,
 		Type:           args.Type,
 		Created:        created,
@@ -252,9 +256,15 @@ func (m *DB) CreateThing(args database.CreateThingParams) (*database.Thing, erro
 }
 
 const getThings = `
-SELECT things.id, address, type, created, description, reason, remove, warned1, warned2, ` +
-	`removed, license, version, name, url, download_method, request_source, creation_date
+SELECT things.id,creator_id, address, type, created, description, reason, remove, warned1, warned2, ` +
+	`removed, license, version, things.name, url, download_method, request_source, creation_date,
+CASE WHEN subscribers.thing_id IS NOT NULL THEN TRUE ELSE FALSE END AS subscribed,
+CASE WHEN (things.creator_id = users.id) THEN TRUE ELSE FALSE END AS owner,
+owner.name AS owner_name
 FROM things
+LEFT JOIN users AS owner ON (owner.id = creator_id)
+LEFT JOIN users ON (users.name = ?)
+LEFT JOIN subscribers ON (things.id = subscribers.thing_id AND subscribers.user_id = users.id)
 `
 
 // GetThings returns things that match the given parameters. Also in the result
@@ -297,8 +307,9 @@ func (m *DB) GetThings(params database.GetThingsParams) (*database.GetThingsResu
 }
 
 const getThingByID = `
-SELECT things.id, address, type, created, description, reason, remove, warned1, warned2, ` +
-	`removed, license, version, name, url, download_method, request_source, creation_date
+SELECT things.id,creator_id, address, type, created, description, reason, remove, warned1, warned2, 
+	removed, license, version, things.name, url, download_method, request_source, creation_date,
+	FALSE as subscribed,  FALSE as owner, ""  as  owner_name
 FROM things
 WHERE things.id = ?
 `
@@ -332,11 +343,66 @@ func (m *DB) GetThingByID(id uint32) (*database.Thing, error) {
 	return thing, nil
 }
 
+const subscribeWithUsername = `INSERT INTO subscribers (user_id, thing_id)
+SELECT users.id, things.id
+FROM users
+JOIN things ON things.id = ?
+WHERE users.name = ?`
+
+// PostSubscription records that a user is subscribed to a thing by adding a
+// new row to the subscribers table given the users username and the ID of the
+// thing they would like to subscribe to.
+func (m *DB) PostSubscription(username string, thingID uint32) error {
+	result, err := m.pool.Exec(subscribeWithUsername, thingID, username)
+	if err != nil {
+		return err
+	}
+
+	rowsAffected, err := result.RowsAffected()
+	if err != nil {
+		return err
+	}
+
+	if rowsAffected == 0 {
+		return ErrInvalidSubscription
+	}
+
+	return nil
+}
+
+const unsubscribeWithUsername = `DELETE subscribers
+FROM subscribers
+JOIN users ON users.id = subscribers.user_id
+JOIN things ON things.id = subscribers.thing_id
+WHERE things.id = ? AND users.name = ? AND (users.id != things.creator_id);`
+
+// DeleteSubscription removes a users subscription to a thing. The row is removed
+// in the subscribers table given the users username and the ID of the thing they
+// would like to unsubscribe to.
+func (m *DB) DeleteSubscription(username string, thingID uint32) error {
+	result, err := m.pool.Exec(unsubscribeWithUsername, thingID, username)
+	if err != nil {
+		return err
+	}
+
+	rowsAffected, err := result.RowsAffected()
+	if err != nil {
+		return err
+	}
+
+	if rowsAffected == 0 {
+		return ErrInvalidSubscription
+	}
+
+	return nil
+}
+
 func getThingRowScan(rows *sql.Rows) (*database.Thing, error) {
 	var thing database.Thing
 
 	if err := rows.Scan(
 		&thing.ID,
+		&thing.CreatorID,
 		&thing.Address,
 		&thing.Type,
 		&thing.Created,
@@ -353,6 +419,9 @@ func getThingRowScan(rows *sql.Rows) (*database.Thing, error) {
 		&thing.DownloadMethod,
 		&thing.RequestSource,
 		&thing.CreationDate,
+		&thing.Subscribed,
+		&thing.Owner,
+		&thing.CreatorName,
 	); err != nil {
 		return nil, err
 	}
@@ -363,10 +432,15 @@ func getThingRowScan(rows *sql.Rows) (*database.Thing, error) {
 func (m *DB) runGetThingsQuery(params database.GetThingsParams) (*sql.Rows, error) {
 	var sql strings.Builder
 
-	sql.WriteString(getThings)
-	getThingsParamsToSQL(params, &sql)
+	var vars []any //nolint:prealloc
 
-	rows, err := m.pool.Query(sql.String())
+	vars = append(vars, params.Username)
+
+	sql.WriteString(getThings)
+
+	getThingsParamsToSQL(params, &sql, &vars)
+
+	rows, err := m.pool.Query(sql.String(), vars...)
 	if err != nil {
 		return nil, err
 	}
@@ -374,20 +448,35 @@ func (m *DB) runGetThingsQuery(params database.GetThingsParams) (*sql.Rows, erro
 	return rows, nil
 }
 
-func getThingsParamsToSQL(params database.GetThingsParams, sql *strings.Builder) {
-	whereSQL(params, sql)
+func getThingsParamsToSQL(params database.GetThingsParams, sql *strings.Builder, vars *[]any) {
+	whereSQL(params, sql, vars)
 	orderSQL(params, sql)
 	limitSQL(params, sql)
 }
 
-func whereSQL(params database.GetThingsParams, sql *strings.Builder) {
-	if params.FilterOnType == database.ThingsTypeNil {
-		return
+func whereSQL(params database.GetThingsParams, sql *strings.Builder, vars *[]any) {
+	whereStarted := false
+
+	if params.FilterOnType != database.ThingsTypeNil {
+		sql.WriteString("\nWHERE type = ?")
+
+		*vars = append(*vars, params.FilterOnType)
+		whereStarted = true
 	}
 
-	sql.WriteString("\nWHERE type = '")
-	sql.WriteString(string(params.FilterOnType))
-	sql.WriteString("'")
+	if params.OnlySubscribed {
+		onlySubscribedFilter(sql, whereStarted)
+	}
+}
+
+func onlySubscribedFilter(sql *strings.Builder, whereStarted bool) {
+	if whereStarted {
+		sql.WriteString(" AND")
+	} else {
+		sql.WriteString("\nWHERE")
+	}
+
+	sql.WriteString(" subscribers.thing_id IS NOT NULL")
 }
 
 func orderSQL(params database.GetThingsParams, sql *strings.Builder) {
@@ -422,7 +511,10 @@ func limitSQL(params database.GetThingsParams, sql *strings.Builder) {
 	sql.WriteString(offset)
 }
 
-const countThings = `SELECT COUNT(*) FROM things`
+const countThings = `SELECT COUNT(1) FROM things`
+const countThingsByUsernameSubscribed = countThings + `
+INNER JOIN subscribers ON subscribers.thing_id = things.id
+INNER JOIN users ON users.id = subscribers.user_id AND users.name = ?`
 
 func (m *DB) calculateLastPage(params database.GetThingsParams) (int, error) {
 	if params.Page < 1 || params.ThingsPerPage < 1 {
@@ -432,12 +524,20 @@ func (m *DB) calculateLastPage(params database.GetThingsParams) (int, error) {
 	var (
 		sql   strings.Builder
 		count int64
+		vars  []any
 	)
 
-	sql.WriteString(countThings)
-	whereSQL(params, &sql)
+	if params.OnlySubscribed {
+		sql.WriteString(countThingsByUsernameSubscribed)
 
-	row := m.pool.QueryRow(sql.String())
+		vars = append(vars, params.Username)
+	} else {
+		sql.WriteString(countThings)
+	}
+
+	whereSQL(params, &sql, &vars)
+
+	row := m.pool.QueryRow(sql.String(), vars...)
 
 	if err := row.Scan(&count); err != nil {
 		return 0, err
@@ -472,11 +572,3 @@ const updateDescription = `UPDATE things SET description = ? WHERE id = ?;` //no
 const firstWarningSent = `UPDATE things SET warned1 = ? WHERE id = ?;` //nolint:unused
 
 const secondWarningSent = `UPDATE things SET warned2 = ? WHERE id = ?;` //nolint:unused
-
-const subscribe = `INSERT INTO subscribers (user_id, thing_id) VALUES (?, ?);` //nolint:unused
-
-const unsubscribe = `DELETE FROM subscribers WHERE user_id = ? AND thing_id = ?;` //nolint:unused
-
-const listSubscribers = `SELECT user_id, thing_id FROM subscribers WHERE thing_id = ?;` //nolint:unused
-
-const listSubscriptions = `SELECT user_id, thing_id FROM subscribers WHERE user_id = ?;` //nolint:unused
