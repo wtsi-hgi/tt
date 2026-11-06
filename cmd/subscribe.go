@@ -41,11 +41,13 @@ var subscribe = &cobra.Command{
 	Use:   "subscribe",
 	Short: "Subscribe to a Thing",
 	Long: `Subscribe to a Thing.
-The tt subscribe command is used to add a subscription to the subscriptions table.
+The tt subscribe command is used to register subscriptions when you would like to 
+express interest in a Thing and receive event information.
 For example,
 tt subscribe --url [] --cert [] --user "username" --id 1
-Will subscribe the user "username" to the Thing that has the id "1". Leaving the 
---user flag blank will default it to the current CLI user. 
+Will subscribe the user "username" to the Thing that has the id "1". 
+Leaving the --user flag blank will default it to the current CLI user. 
+The thing ID can be sourced using the tt get command. 
 
 The --url of the started tt server, including its port, and for it to work
 with your --cert, you probably need to specify it as fqdn:port. 

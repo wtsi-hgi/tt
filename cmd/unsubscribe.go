@@ -41,11 +41,13 @@ var unsubscribe = &cobra.Command{
 	Use:   "unsubscribe",
 	Short: "Unsubscribe to a Thing",
 	Long: `Unsubscribe to a Thing.
-The tt unsubscribe command is used to remove a subscription to the subscriptions table.
+The tt unsubscribe command is used to remove your subscription so that you will 
+no longer receive updates about the Thing.
 For example,
 tt unsubscribe --url [] --cert [] --user "username" --id 1
-Will unsubscribe the user "username" to the Thing that has the id "1". Leaving the 
---user flag blank will default it to the current CLI user. 
+Will unsubscribe the user "username" to the Thing that has the id "1".
+Leaving the --user flag blank will default it to the current CLI user. 
+The thing ID can be sourced using the tt get command. 
 
 The --url of the started tt server, including its port, and for it to work
 with your --cert, you probably need to specify it as fqdn:port. 
@@ -53,7 +55,7 @@ with your --cert, you probably need to specify it as fqdn:port.
 --cert defaults to the TT_SERVER_CERT env var.
 
 This command is usable by anyone. However, if you are not the person
-who started the server, you are not be able to unsubscribe other users to Things.`,
+who started the server, you are not be able to unsubscribe other users from Things.`,
 
 	RunE: func(cmd *cobra.Command, args []string) error { //nolint: revive
 		var url, cert, id string

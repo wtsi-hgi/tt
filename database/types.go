@@ -336,6 +336,8 @@ type Subscriber struct {
 	ThingID uint32
 }
 
+// NewSubscriptionParams is the type used when subscribing and unsubscribing to
+// Things.
 type NewSubscriptionParams struct {
 	Username string
 	ThingID  uint32
