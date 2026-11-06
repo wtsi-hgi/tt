@@ -446,18 +446,27 @@ func (s *Server) deleteSubscription(c *gin.Context) {
 		return
 	}
 
-	if subPost.Username == "" {
-		user := s.GetUser(c)
-		subPost.Username = user.Username
+	user := validateOrCreateUser(c, s, subPost.Username)
+	if user == nil {
+		return
 	}
 
-	if !s.AllowedAccess(c, subPost.Username) {
-		c.AbortWithError(http.StatusUnauthorized, ErrUnauthorized) //nolint: errcheck
+	subPost.Username = user.Name
+
+	thing, err := s.db.GetThingByID(subPost.ThingID)
+	if err != nil {
+		c.AbortWithError(http.StatusBadRequest, err) //nolint:errcheck
 
 		return
 	}
 
-	err := s.db.DeleteSubscription(subPost.Username, subPost.ThingID)
+	if thing.CreatorID == user.ID {
+		c.AbortWithError(http.StatusBadRequest, ErrCanNotUnsubscribe) //nolint:errcheck
+
+		return
+	}
+
+	err = s.db.DeleteSubscription(subPost.Username, subPost.ThingID)
 	if err != nil {
 		c.AbortWithError(http.StatusBadRequest, err) //nolint:errcheck
 

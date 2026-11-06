@@ -741,7 +741,6 @@ func TestWebServerWithCookie(t *testing.T) {
 
 			code := testEndpointCode(s, "POST", EndPointAuthUser, string(thingJSON), cookie)
 			So(code, ShouldEqual, http.StatusUnauthorized)
-
 			So(len(mdb.users), ShouldEqual, 1)
 
 			userPost = &database.User{

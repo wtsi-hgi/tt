@@ -152,7 +152,6 @@ func TestServer(t *testing.T) {
 											}
 
 											Convey("Given real database details", func() {
-
 												Convey("You can't start a server with invalid cert files", func() {
 													output, err := executeRootCommandForTest(t, cliArgs)
 													So(err, ShouldNotBeNil)
