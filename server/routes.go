@@ -453,16 +453,8 @@ func (s *Server) deleteSubscription(c *gin.Context) {
 
 	subPost.Username = user.Name
 
-	thing, err := s.db.GetThingByID(subPost.ThingID)
+	err := checkCreator(c, s, subPost, *user)
 	if err != nil {
-		c.AbortWithError(http.StatusBadRequest, err) //nolint:errcheck
-
-		return
-	}
-
-	if thing.CreatorID == user.ID {
-		c.AbortWithError(http.StatusBadRequest, ErrCanNotUnsubscribe) //nolint:errcheck
-
 		return
 	}
 
@@ -477,6 +469,22 @@ func (s *Server) deleteSubscription(c *gin.Context) {
 	if err != nil {
 		return
 	}
+}
+func checkCreator(c *gin.Context, s *Server, subPost database.NewSubscriptionParams, user database.User) error {
+	thing, err := s.db.GetThingByID(subPost.ThingID)
+	if err != nil {
+		c.AbortWithError(http.StatusBadRequest, err) //nolint:errcheck
+
+		return err
+	}
+
+	if thing.CreatorID == user.ID {
+		c.AbortWithError(http.StatusBadRequest, ErrCanNotUnsubscribe) //nolint:errcheck
+
+		return err
+	}
+
+	return nil
 }
 
 func toggleSubTemplate(c *gin.Context, s *Server, subPost database.NewSubscriptionParams, subscribed bool) error {
