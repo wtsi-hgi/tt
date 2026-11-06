@@ -567,6 +567,7 @@ func TestServer(t *testing.T) {
 					So(code, ShouldEqual, http.StatusOK)
 					So(len(mdb.subs), ShouldEqual, 1)
 				})
+
 				Convey("You can DELETE Things", func() {
 					target := EndPointAuthThings + "/" + strconv.Itoa(int(mdb.things[0].ID))
 					code = testEndpointCode(s, "DELETE", target, "", jwt)

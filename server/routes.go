@@ -106,7 +106,9 @@ func (s *Server) getThingsWithSubscription(c *gin.Context, subscribed bool) {
 		username = user.Username
 	}
 
-	validateOrCreateUser(c, s, username)
+	if validateOrCreateUser(c, s, username) == nil {
+		return
+	}
 
 	filter, err := database.NewGetThingsParams(c.Query("type"), c.Query("sort"), c.Query("dir"), c.Query("page"),
 		c.Query("per_page"), username, subscribed)

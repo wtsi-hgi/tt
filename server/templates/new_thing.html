@@ -11,13 +11,13 @@
 	<td>{{ .DownloadMethod }}</td>
 	<td>{{ .Remove.Format "2006-01-02" }}</td>
 	<td>
-		<button class="uk-button uk-button-danger" hx-delete="/rest/v1/auth/things/{{ .ID }}" hx-swap="swap:1s" hx-target="#ID_{{ .ID }}">
+		<button class="uk-button uk-button-danger" hx-delete="/rest/v1/auth/things/{{ .ID }}" hx-swap="delete swap:1s" hx-target="#ID_{{ .ID }}">
 			Delete
 		</button>
 	</td>
 	<td class="uk-text-nowrap">
 		{{ template "templates/subscribe.html" . }}
-		{{ template "templates/subscribe.html" dict "Owner" false "Subscribed" false }}
+		{{ template "templates/subscribe.html" dict "ID" .ID "Owner" false "Subscribed" false }}
 		<script type="text/javascript">
 			(async (script) => {
 				window.__user = window.__user || await fetch("/rest/v1/auth/username").then(r => r.json());

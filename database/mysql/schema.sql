@@ -39,6 +39,5 @@ CREATE TABLE subscribers (
     FOREIGN KEY (user_id) REFERENCES users(id)
         ON DELETE CASCADE,
     FOREIGN KEY (thing_id) REFERENCES things(id)
-        ON DELETE CASCADE,
-    UNIQUE(user_id, thing_id)
+        ON DELETE CASCADE
 ) ENGINE=INNODB;

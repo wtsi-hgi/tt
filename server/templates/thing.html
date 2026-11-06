@@ -11,7 +11,7 @@
 	<td>{{ .DownloadMethod }}</td>
 	<td>{{ .Remove.Format "2006-01-02" }}</td>
 	<td>
-		<button class="uk-button uk-button-danger" hx-delete="/rest/v1/auth/things/{{ .ID }}" hx-swap="swap:1s" hx-target="#ID_{{ .ID }}">
+		<button class="uk-button uk-button-danger" hx-delete="/rest/v1/auth/things/{{ .ID }}" hx-swap="delete swap:1s" hx-target="#ID_{{ .ID }}">
 			Delete
 		</button>
 	</td>

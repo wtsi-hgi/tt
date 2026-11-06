@@ -536,6 +536,7 @@ func TestMySQL(t *testing.T) {
 							So(len(paginated.Things), ShouldEqual, 1)
 							So(paginated.LastPage, ShouldEqual, 2)
 						})
+
 						Convey("Then you can unsubscribe", func() {
 							errd := db.DeleteSubscription(sub1.Name, thing.ID)
 							So(errd, ShouldBeNil)
