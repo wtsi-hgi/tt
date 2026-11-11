@@ -539,7 +539,7 @@ func TestServer(t *testing.T) {
 					So(mdb.subs[0], ShouldResemble, exampleSubscriber)
 				})
 
-				Convey("You can POST, GET and DELTE your subscriptions", func() {
+				Convey("You can POST, GET and DELETE your subscriptions", func() {
 					user := database.User{Name: "username", Email: "username@something"}
 					thingJSON, err := json.Marshal(user)
 					So(err, ShouldBeNil)

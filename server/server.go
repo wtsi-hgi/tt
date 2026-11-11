@@ -216,7 +216,7 @@ func (s *Server) addEndPoints() error { //nolint:funlen
 	s.AuthRouter().GET(userPath, s.getUser)
 	s.AuthRouter().GET(subscribersByThingIDPath, s.getSubscribers)
 	s.AuthRouter().GET(subscriberPath, s.getSubscriptions)
-	s.AuthRouter().POST(subscriberPath, s.postSubsciption)
+	s.AuthRouter().POST(subscriberPath, s.postSubscription)
 	s.AuthRouter().DELETE(subscriberPath, s.deleteSubscription)
 	s.AuthRouter().DELETE(thingIDPath, s.deleteThing)
 	s.AuthRouter().GET(usernamePath, s.getUsername)

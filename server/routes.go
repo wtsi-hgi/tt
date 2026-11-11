@@ -410,7 +410,7 @@ func (s *Server) getSubscriptions(c *gin.Context) {
 	s.getThingsWithSubscription(c, true)
 }
 
-func (s *Server) postSubsciption(c *gin.Context) {
+func (s *Server) postSubscription(c *gin.Context) {
 	var subPost database.NewSubscriptionParams
 
 	if err := c.ShouldBind(&subPost); err != nil {
@@ -481,7 +481,7 @@ func checkCreator(c *gin.Context, s *Server, subPost database.NewSubscriptionPar
 	if thing.CreatorID == user.ID {
 		c.AbortWithError(http.StatusBadRequest, ErrCanNotUnsubscribe) //nolint:errcheck
 
-		return err
+		return ErrCanNotUnsubscribe
 	}
 
 	return nil
