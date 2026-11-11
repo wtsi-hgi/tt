@@ -178,11 +178,19 @@ func (s *Server) addEndPoints() error { //nolint:funlen
 	s.rootTemplate.Funcs(
 		template.FuncMap{
 			"args": func(args ...any) []any { return args },
-			"dict": func(args ...any) map[any]any {
-				m := make(map[any]any)
+			"dict": func(args ...any) map[string]any {
+				m := make(map[string]any, len(args)/2) //nolint:mnd
+				if len(args)%2 != 0 {
+					return m
+				}
 
 				for i := 0; i < len(args); i += 2 {
-					m[args[i]] = args[i+1]
+					key, ok := args[i].(string)
+					if !ok {
+						continue
+					}
+
+					m[key] = args[i+1]
 				}
 
 				return m
