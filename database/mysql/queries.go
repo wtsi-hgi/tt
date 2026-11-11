@@ -260,7 +260,7 @@ SELECT things.id,creator_id, address, type, created, description, reason, remove
 	`removed, license, version, things.name, url, download_method, request_source, creation_date,
 CASE WHEN subscribers.thing_id IS NOT NULL THEN TRUE ELSE FALSE END AS subscribed,
 CASE WHEN (things.creator_id = users.id) THEN TRUE ELSE FALSE END AS owner,
-owner.name AS owner_name
+COALESCE(owner.name, '') AS owner_name
 FROM things
 LEFT JOIN users AS owner ON (owner.id = creator_id)
 LEFT JOIN users ON (users.name = ?)
