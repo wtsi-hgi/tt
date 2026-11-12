@@ -410,7 +410,7 @@ func (m *DB) DeleteSubscription(username string, thingID uint32) error {
 	return nil
 }
 
-func getThingRowScan(rows *sql.Rows) (*database.Thing, error) {
+func getThingRowScan(rows *sql.Rows) (*database.Thing, error) { //nolint:funlen
 	var thing database.Thing
 
 	var created, warned1, warned2, remove, creationDate int64
@@ -450,12 +450,14 @@ func getThingRowScan(rows *sql.Rows) (*database.Thing, error) {
 
 	return &thing, nil
 }
+
 func assignNullTime(number int64, date *null.Time) {
 	if number != 0 {
 		date.Time = time.Unix(number, 0).In(time.UTC)
 		date.Valid = true
 	}
 }
+
 func (m *DB) runGetThingsQuery(params database.GetThingsParams) (*sql.Rows, error) {
 	var sql strings.Builder
 

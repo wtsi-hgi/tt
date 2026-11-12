@@ -70,12 +70,15 @@ func GetExampleData() ([]*database.User, []database.Thing, []database.Subscriber
 			remove := dateFromYear(year + i)
 
 			expectedThing := database.Thing{
-				ID:          i + 1,
-				Address:     addresses[i],
-				Type:        thingType,
-				Description: "desc",
-				Reason:      reasons[i],
-				Remove:      remove,
+				ID:            i + 1,
+				Address:       addresses[i],
+				Type:          thingType,
+				Description:   "desc",
+				Reason:        reasons[i],
+				Remove:        remove,
+				Version:       "1",
+				Name:          "name",
+				RequestSource: "source",
 			}
 
 			expectedThings[i] = expectedThing
