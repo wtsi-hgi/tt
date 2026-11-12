@@ -51,7 +51,9 @@ func TestClient(t *testing.T) {
 		serverCert, serverKey, err := gas.CreateTestCert(t)
 		So(err, ShouldBeNil)
 
-		mdb := newMockDB()
+		mdb := newTestDB(t)
+		So(mdb.Reset(), ShouldBeNil)
+
 		logWriter := gas.NewStringLogger()
 
 		conf := Config{
@@ -82,7 +84,9 @@ func TestClient(t *testing.T) {
 			err := client.CreateUser(userPost)
 			So(err, ShouldBeNil)
 
-			So(len(mdb.users), ShouldEqual, 1)
+			count, err := mdb.CountTableRows("users")
+			So(err, ShouldBeNil)
+			So(count, ShouldEqual, 1)
 
 			u, err := client.GetUserByName(userPost.Name)
 			So(err, ShouldBeNil)
@@ -108,14 +112,17 @@ func TestClient(t *testing.T) {
 				Reason:        "just because",
 				Creator:       userName,
 			}
-			deleteTimeBefore := time.Now().Add(fiveYear)
+			deleteTimeBefore := time.Now().Add(fiveYear).Truncate(time.Second)
 			err := client.PostThing(thingPost)
-			deleteTimeAfter := time.Now().Add(fiveYear)
+			deleteTimeAfter := time.Now().Add(fiveYear).Truncate(time.Second).Add(time.Second)
 
 			So(err, ShouldBeNil)
-			So(len(mdb.things), ShouldEqual, 1)
 
-			before := time.Now()
+			count, err := mdb.CountTableRows("things")
+			So(err, ShouldBeNil)
+			So(count, ShouldEqual, 1)
+
+			before := time.Now().Truncate(time.Second)
 			thingTwoPost := &database.CreateThingParams{
 				Name:          "something_else",
 				Version:       "2.3",
@@ -133,7 +140,10 @@ func TestClient(t *testing.T) {
 			err = client.PostThing(thingTwoPost)
 
 			So(err, ShouldBeNil)
-			So(len(mdb.things), ShouldEqual, 2)
+			count, err = mdb.CountTableRows("things")
+			So(err, ShouldBeNil)
+
+			So(count, ShouldEqual, 2)
 
 			// Get irods post and verify deletion time automated without creation date.
 			filter := &database.GetThingsParams{
@@ -152,6 +162,7 @@ func TestClient(t *testing.T) {
 			So(things[0].Remove, ShouldHappenOnOrBetween, deleteTimeBefore, deleteTimeAfter)
 
 			things[0].Remove = time.Time{}
+
 			So(things[0].ToCreateParams(&database.User{
 				Name:  userName,
 				Email: userName + s.DefaultEmailDomain,
@@ -240,7 +251,9 @@ func TestClient(t *testing.T) {
 				}
 				err := client.CreateUser(userPost)
 				So(err, ShouldBeNil)
-				So(len(mdb.users), ShouldEqual, 2)
+				count, err := mdb.CountTableRows("users")
+				So(err, ShouldBeNil)
+				So(count, ShouldEqual, 2)
 
 				err = client.Subscribe(&database.NewSubscriptionParams{Username: userPost.Name, ThingID: things[0].ID})
 				So(err, ShouldBeNil)

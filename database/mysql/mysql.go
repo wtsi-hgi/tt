@@ -168,3 +168,18 @@ func (m *DB) Reset() error {
 func (m *DB) Close() error {
 	return m.pool.Close()
 }
+
+func (m *DB) CountTableRows(table string, where ...string) (int64, error) {
+	var count int64
+
+	sql := "SELECT COUNT(*) FROM " + table //nolint:gosec
+
+	if len(where) == 1 {
+		sql += " WHERE " + where[0]
+	}
+
+	row := m.pool.QueryRow(sql)
+	err := row.Scan(&count)
+
+	return count, err
+}

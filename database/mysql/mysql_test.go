@@ -26,7 +26,6 @@
 package mysql
 
 import (
-	"database/sql"
 	"os"
 	"testing"
 	"time"
@@ -240,15 +239,15 @@ func TestMySQL(t *testing.T) {
 			err = db.Reset()
 			So(err, ShouldBeNil)
 
-			count, err := countTableRows(db.pool, "things")
+			count, err := db.CountTableRows("things")
 			So(err, ShouldBeNil)
 			So(count, ShouldEqual, 0)
 
-			count, err = countTableRows(db.pool, "users")
+			count, err = db.CountTableRows("users")
 			So(err, ShouldBeNil)
 			So(count, ShouldEqual, 0)
 
-			count, err = countTableRows(db.pool, "subscribers")
+			count, err = db.CountTableRows("subscribers")
 			So(err, ShouldBeNil)
 			So(count, ShouldEqual, 0)
 
@@ -269,7 +268,7 @@ func TestMySQL(t *testing.T) {
 				_, err = db.CreateUser("foo", expectedUsers[1].Email)
 				So(err, ShouldNotBeNil)
 
-				count, err = countTableRows(db.pool, "users")
+				count, err = db.CountTableRows("users")
 				So(err, ShouldBeNil)
 				So(count, ShouldEqual, 2)
 
@@ -301,19 +300,19 @@ func TestMySQL(t *testing.T) {
 				}
 
 				numThings := len(expectedThings)
-				count, err = countTableRows(db.pool, "things")
+				count, err = db.CountTableRows("things")
 				So(err, ShouldBeNil)
 				So(count, ShouldEqual, numThings)
 
-				count, err = countTableRows(db.pool, "subscribers")
+				count, err = db.CountTableRows("subscribers")
 				So(err, ShouldBeNil)
 				So(count, ShouldEqual, numThings)
 
-				count, err = countTableRows(db.pool, "subscribers", "user_id = 1")
+				count, err = db.CountTableRows("subscribers", "user_id = 1")
 				So(err, ShouldBeNil)
 				So(count, ShouldEqual, numThings/2)
 
-				count, err = countTableRows(db.pool, "subscribers", "user_id = 2")
+				count, err = db.CountTableRows("subscribers", "user_id = 2")
 				So(err, ShouldBeNil)
 				So(count, ShouldEqual, numThings/2)
 
@@ -329,6 +328,7 @@ func TestMySQL(t *testing.T) {
 					result.Things[0].CreatorName = ""
 					result.Things[numThings-1].CreatorID = 0
 					result.Things[numThings-1].CreatorName = ""
+
 					So(result.Things[0], ShouldResemble, expectedThings[0])
 					result.Things[numThings-1].Created = time.Time{}
 					So(result.Things[numThings-1], ShouldResemble, expectedThings[numThings-1])
@@ -564,30 +564,30 @@ func TestMySQL(t *testing.T) {
 					err = db.DeleteUser(2)
 					So(err, ShouldBeNil)
 
-					count, err = countTableRows(db.pool, "users")
+					count, err = db.CountTableRows("users")
 					So(err, ShouldBeNil)
 					So(count, ShouldEqual, 1)
 
-					count, err = countTableRows(db.pool, "things")
+					count, err = db.CountTableRows("things")
 					So(err, ShouldBeNil)
 					So(count, ShouldEqual, numThings)
 
-					count, err = countTableRows(db.pool, "subscribers")
+					count, err = db.CountTableRows("subscribers")
 					So(err, ShouldBeNil)
 					So(count, ShouldEqual, numThings/2)
 
 					err = db.DeleteThing(3)
 					So(err, ShouldBeNil)
 
-					count, err = countTableRows(db.pool, "users")
+					count, err = db.CountTableRows("users")
 					So(err, ShouldBeNil)
 					So(count, ShouldEqual, 1)
 
-					count, err = countTableRows(db.pool, "things")
+					count, err = db.CountTableRows("things")
 					So(err, ShouldBeNil)
 					So(count, ShouldEqual, numThings-1)
 
-					count, err = countTableRows(db.pool, "subscribers")
+					count, err = db.CountTableRows("subscribers")
 					So(err, ShouldBeNil)
 					So(count, ShouldEqual, (numThings/2)-1)
 				})
@@ -600,11 +600,11 @@ func TestMySQL(t *testing.T) {
 				So(err, ShouldBeNil)
 				So(creator, ShouldResemble, expectedUser)
 
-				before := time.Now()
+				before := time.Now().In(time.UTC)
 				thing, err := db.CreateThing(et.ToCreateParams(expectedUser))
 				So(err, ShouldBeNil)
 
-				after := time.Now()
+				after := time.Now().In(time.UTC)
 
 				So(thing.Created, ShouldHappenOnOrBetween, before, after)
 				thing.Created = time.Time{}
@@ -627,19 +627,4 @@ func TestMySQL(t *testing.T) {
 		_, err := New(config)
 		So(err, ShouldNotBeNil)
 	})
-}
-
-func countTableRows(pool *sql.DB, table string, where ...string) (int64, error) {
-	var count int64
-
-	sql := "SELECT COUNT(*) FROM " + table //nolint:gosec
-
-	if len(where) == 1 {
-		sql += " WHERE " + where[0]
-	}
-
-	row := pool.QueryRow(sql)
-	err := row.Scan(&count)
-
-	return count, err
 }

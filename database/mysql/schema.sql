@@ -13,20 +13,20 @@ CREATE TABLE things (
     creator_id int unsigned NOT NULL ,
     address varchar(4096) NOT NULL,
     type enum('dir', 'file', 'irods', 'openstack', 's3', 'resource') NOT NULL,
-    created date NOT NULL,
-    description text(4096),
+    created bigint  NOT NULL,
+    description varchar(4096),
     reason tinytext NOT NULL,
-    remove date NOT NULL,
-    warned1 date,
-    warned2 date,
+    remove bigint NOT NULL,
+    warned1 bigint NOT NULL,
+    warned2 bigint NOT NULL,
     removed bool NOT NULL default 0,
-    license text(4096),
+    license varchar(4096),
     version tinytext,
     name tinytext, 
-    url text(4096),
-    download_method text(4096),
-    request_source text(4096),
-    creation_date date, 
+    url varchar(200),
+    download_method varchar(200),
+    request_source varchar(200),
+    creation_date bigint NOT NULL, 
     UNIQUE(address(170), type)
 ) ENGINE=INNODB;
 
@@ -36,8 +36,8 @@ CREATE TABLE subscribers (
     PRIMARY KEY (user_id, thing_id),
     KEY (user_id),
     KEY (thing_id),
-    FOREIGN KEY (user_id) REFERENCES users(id)
+    FOREIGN KEY(user_id) REFERENCES users(id)
         ON DELETE CASCADE,
-    FOREIGN KEY (thing_id) REFERENCES things(id)
+    FOREIGN KEY(thing_id) REFERENCES things(id)
         ON DELETE CASCADE
 ) ENGINE=INNODB;

@@ -33,12 +33,14 @@ import (
 	"strings"
 	"time"
 
+	"github.com/guregu/null/v5"
 	"github.com/wtsi-hgi/tt/database"
 )
 
 const (
-	ErrNoUser              = database.Error("No User found with that name")
-	ErrInvalidSubscription = database.Error("No user or thing found for subscription")
+	ErrNoUser              = database.Error("No User found")
+	ErrInvalidSubscription = database.Error("No User or Thing found for subscription")
+	ErrNoThing             = database.Error("No Thing found")
 )
 
 const createUser = `INSERT INTO users (name, email) VALUES (?, ?)`
@@ -176,9 +178,9 @@ func (m *DB) GetSubscribers(thingID uint32) ([]database.Subscriber, error) {
 const createThing = `
 INSERT INTO things (
   creator_id, address, type, created, description, reason, remove, license, ` +
-	`version, name, url, download_method, request_source, creation_date
+	`version, name, url, download_method, request_source, creation_date, warned1, warned2
 ) VALUES (
-  ?,?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?
+  ?,?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, 0
 )
 `
 
@@ -202,21 +204,30 @@ func (m *DB) CreateThing(args database.CreateThingParams) (*database.Thing, erro
 		return nil, err
 	}
 
+	var creationDate int64
+
+	if args.CreationDate.Valid {
+		creationDate = args.CreationDate.Time.Unix()
+	}
+
+	remove := args.Remove.Unix()
+	createdInt := created.Unix()
+
 	id, err := createRow(tx, createThing,
 		args.CreatorID,
 		args.Address,
 		args.Type,
-		created,
+		createdInt,
 		args.Description,
 		args.Reason,
-		args.Remove,
+		remove,
 		args.License,
 		args.Version,
 		args.Name,
 		args.URL,
 		args.DownloadMethod,
 		args.RequestSource,
-		args.CreationDate,
+		creationDate,
 	)
 	if err != nil {
 		errRollback := tx.Rollback()
@@ -309,8 +320,10 @@ func (m *DB) GetThings(params database.GetThingsParams) (*database.GetThingsResu
 const getThingByID = `
 SELECT things.id,creator_id, address, type, created, description, reason, remove, warned1, warned2, 
 	removed, license, version, things.name, url, download_method, request_source, creation_date,
-	FALSE as subscribed,  FALSE as owner, ""  as  owner_name
+	FALSE as subscribed,  FALSE as owner,
+	COALESCE(owner.name, '') AS owner_name
 FROM things
+LEFT JOIN users AS owner ON (owner.id = creator_id)
 WHERE things.id = ?
 `
 
@@ -324,7 +337,7 @@ func (m *DB) GetThingByID(id uint32) (*database.Thing, error) {
 	defer rows.Close()
 
 	if gotRow := rows.Next(); !gotRow {
-		return nil, ErrNoUser
+		return nil, ErrNoThing
 	}
 
 	thing, err := getThingRowScan(rows)
@@ -400,17 +413,19 @@ func (m *DB) DeleteSubscription(username string, thingID uint32) error {
 func getThingRowScan(rows *sql.Rows) (*database.Thing, error) {
 	var thing database.Thing
 
+	var created, warned1, warned2, remove, creationDate int64
+
 	if err := rows.Scan(
 		&thing.ID,
 		&thing.CreatorID,
 		&thing.Address,
 		&thing.Type,
-		&thing.Created,
+		&created,
 		&thing.Description,
 		&thing.Reason,
-		&thing.Remove,
-		&thing.Warned1,
-		&thing.Warned2,
+		&remove,
+		&warned1,
+		&warned2,
 		&thing.Removed,
 		&thing.License,
 		&thing.Version,
@@ -418,7 +433,7 @@ func getThingRowScan(rows *sql.Rows) (*database.Thing, error) {
 		&thing.URL,
 		&thing.DownloadMethod,
 		&thing.RequestSource,
-		&thing.CreationDate,
+		&creationDate,
 		&thing.Subscribed,
 		&thing.Owner,
 		&thing.CreatorName,
@@ -426,9 +441,21 @@ func getThingRowScan(rows *sql.Rows) (*database.Thing, error) {
 		return nil, err
 	}
 
+	thing.Remove = time.Unix(remove, 0).In(time.UTC)
+	thing.Created = time.Unix(created, 0).In(time.UTC)
+
+	assignNullTime(creationDate, &thing.CreationDate)
+	assignNullTime(warned1, &thing.Warned1)
+	assignNullTime(warned2, &thing.Warned2)
+
 	return &thing, nil
 }
-
+func assignNullTime(number int64, date *null.Time) {
+	if number != 0 {
+		date.Time = time.Unix(number, 0).In(time.UTC)
+		date.Valid = true
+	}
+}
 func (m *DB) runGetThingsQuery(params database.GetThingsParams) (*sql.Rows, error) {
 	var sql strings.Builder
 
@@ -564,6 +591,8 @@ func (m *DB) DeleteThing(id uint32) error {
 
 	return err
 }
+
+const softDelete = `UPDATE  things  SET removed = 1  WHERE id = ?` //nolint:unused
 
 const extendRemoval = `UPDATE things SET remove = ?, warned1 = NULL, warned2 = NULL WHERE id = ?;` //nolint:unused
 
