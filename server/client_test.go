@@ -142,6 +142,8 @@ func TestClient(t *testing.T) {
 				OrderDirection: database.OrderAsc,
 				Page:           1,
 				ThingsPerPage:  1,
+				Username:       userName,
+				OnlySubscribed: false,
 			}
 
 			things, err := client.GetThings(filter)
@@ -162,6 +164,8 @@ func TestClient(t *testing.T) {
 				OrderDirection: database.OrderAsc,
 				Page:           1,
 				ThingsPerPage:  1,
+				Username:       userName,
+				OnlySubscribed: false,
 			}
 
 			things, err = client.GetThings(filter)
@@ -185,6 +189,8 @@ func TestClient(t *testing.T) {
 				OrderDirection: database.OrderAsc,
 				Page:           1,
 				ThingsPerPage:  2,
+				Username:       userName,
+				OnlySubscribed: false,
 			}
 
 			things, err = client.GetThings(filter)
@@ -212,6 +218,8 @@ func TestClient(t *testing.T) {
 				OrderDirection: database.OrderAsc,
 				Page:           1,
 				ThingsPerPage:  2,
+				Username:       userName,
+				OnlySubscribed: false,
 			}
 
 			things, err = client.GetThings(filter)
@@ -220,28 +228,59 @@ func TestClient(t *testing.T) {
 
 			thing, err := client.GetThingByID(things[0].ID)
 			So(err, ShouldBeNil)
+
+			things[0].Subscribed = false
+			things[0].Owner = false
 			So(thing, ShouldResemble, &things[0])
 
-			Convey("You can get information about subscribers to the thing created", func() {
-				// Test get a subscriber with thingID.
-				u, err := client.GetUserByName(userName)
+			Convey("You can Subscribe to things and get all of your subscriptions", func() {
+				userPost := &database.User{
+					Name:  "exampleSub",
+					Email: "exampleSub" + s.DefaultEmailDomain,
+				}
+				err := client.CreateUser(userPost)
+				So(err, ShouldBeNil)
+				So(len(mdb.users), ShouldEqual, 2)
+
+				err = client.Subscribe(&database.NewSubscriptionParams{Username: userPost.Name, ThingID: things[0].ID})
+				So(err, ShouldBeNil)
+				err = client.Subscribe(&database.NewSubscriptionParams{Username: userPost.Name, ThingID: things[1].ID})
 				So(err, ShouldBeNil)
 
-				subs, err := client.GetSubscribers(things[0].ID)
+				subscribedThings, err := client.GetThings(&database.GetThingsParams{OnlySubscribed: true, Username: userPost.Name})
 				So(err, ShouldBeNil)
-				So(len(subs), ShouldEqual, 1)
-				So(subs[0].UserID, ShouldResemble, u.ID)
+				So(len(subscribedThings), ShouldEqual, 2)
+				So(subscribedThings[0].ID, ShouldEqual, things[0].ID)
 
-				// Test get subscriber and user details.
-				subAndUser, err := client.GetSubscriberAndUserDetails(&subs[0])
-				So(err, ShouldBeNil)
-				So(&subAndUser.User, ShouldResemble, u)
+				Convey("You can get information about subscribers to the thing created", func() {
+					// Test get a subscriber with thingID.
+					u, err := client.GetUserByName(userName)
+					So(err, ShouldBeNil)
 
-				// Test get a thing and its subscriber details.
-				thingAndSubs, err := client.GetThingAndSubscriberDetails(things[0].ID)
-				So(err, ShouldBeNil)
-				So(thingAndSubs.Thing, ShouldResemble, things[0])
-				So(thingAndSubs.Subscribers[0].ID, ShouldResemble, subs[0].UserID)
+					subs, err := client.GetSubscribers(things[0].ID)
+					So(err, ShouldBeNil)
+					So(len(subs), ShouldEqual, 2)
+					So(subs[0].UserID, ShouldResemble, u.ID)
+
+					// Test get a thing and its subscriber details.
+					thingAndSubs, err := client.GetThingAndSubscriberDetails(things[0].ID)
+					So(err, ShouldBeNil)
+					So(len(thingAndSubs.Subscribers), ShouldEqual, 2)
+
+					So(thingAndSubs.Thing, ShouldResemble, things[0])
+					So(thingAndSubs.Subscribers[0].ID, ShouldResemble, subs[0].UserID)
+					So(thingAndSubs.Subscribers[1].Name, ShouldEqual, userPost.Name)
+				})
+
+				Convey("You can unsubscribe to a thing", func() {
+					err := client.Unsubscribe(&database.NewSubscriptionParams{Username: userPost.Name, ThingID: things[0].ID})
+					So(err, ShouldBeNil)
+					subscribedThings, err := client.GetThings(&database.GetThingsParams{OnlySubscribed: true, Username: userPost.Name})
+
+					So(err, ShouldBeNil)
+					So(len(subscribedThings), ShouldEqual, 1)
+					So(subscribedThings, ShouldNotContain, things[0])
+				})
 			})
 		})
 	})

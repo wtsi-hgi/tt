@@ -174,6 +174,8 @@ type GetThingsParams struct {
 	OrderDirection OrderDirection // defaults to OrderAsc
 	Page           int            // treated as 0 if ThingsPerPage is < 1
 	ThingsPerPage  int            // treated as infinite if Page is < 1
+	Username       string
+	OnlySubscribed bool
 }
 
 // GetThingsResult is the type returned by GetThings(). The Things property will
@@ -254,6 +256,8 @@ func ValidateCreateThingsParams(thing CreateThingParams) error { //nolint:gocycl
 type Thing struct {
 	// ID is the unique (auto-increment) id of the temporary thing.
 	ID uint32
+	// CreatorID is the id of the user who create the temporary thing
+	CreatorID uint32
 	// Address is the location of the resource, such as absolute file path on
 	// disk or URL.
 	Address string
@@ -296,6 +300,14 @@ type Thing struct {
 	// CreationDate is the date the real thing was created (as opposed to
 	// Created, which is when the thing was added to the database).
 	CreationDate null.Time
+	// Subscribed is a boolean indication of whether the user interacting with the thing
+	// is subscribed to the thing.
+	Subscribed bool
+	// Owner is a boolean indication of whether the user interacting with the thing
+	// is the owner of the thing.
+	Owner bool
+	// CreatorName is the username of the person who created the thing.
+	CreatorName string
 }
 
 // ToCreateParams converts Thing to a CreateThingParams with given user
@@ -322,12 +334,18 @@ func (t Thing) ToCreateParams(u *User) CreateThingParams {
 type Subscriber struct {
 	UserID  uint32
 	ThingID uint32
-	Creator bool
+}
+
+// NewSubscriptionParams is the type used when subscribing and unsubscribing to
+// Things.
+type NewSubscriptionParams struct {
+	Username string
+	ThingID  uint32
 }
 
 // NewGetThingsParams returns a new filter of type GetThingsParams with provided filters, after
 // validating the filter types.
-func NewGetThingsParams(typ, orderBy, dir, page, perPage string) (GetThingsParams, error) {
+func NewGetThingsParams(typ, orderBy, dir, page, perPage, username string, sub bool) (GetThingsParams, error) {
 	var filter GetThingsParams
 
 	OrderByTemp, err := NewOrderBy(orderBy)
@@ -349,6 +367,8 @@ func NewGetThingsParams(typ, orderBy, dir, page, perPage string) (GetThingsParam
 
 	filter.Page = atoiWithDefault(page, defaultPage)
 	filter.ThingsPerPage = atoiWithDefault(perPage, defaultPerPage)
+	filter.Username = username
+	filter.OnlySubscribed = sub
 
 	return filter, nil
 }

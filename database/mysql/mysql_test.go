@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2025 Genome Research Ltd.
+ * Copyright (c) 2026 Genome Research Ltd.
  *
  * Author: Sendu Bala <sb10@sanger.ac.uk>
  *
@@ -291,12 +291,13 @@ func TestMySQL(t *testing.T) {
 					So(created, ShouldHappenOnOrBetween, before, after)
 
 					thing.Created = time.Time{}
+					thing.CreatorID = 0
 					So(thing, ShouldResemble, &et)
 
 					subscribers, errc := db.GetSubscribers(thing.ID)
 					So(errc, ShouldBeNil)
 					So(len(subscribers), ShouldEqual, 1)
-					So(subscribers[0], ShouldResemble, database.Subscriber{UserID: creator.ID, ThingID: thing.ID, Creator: true})
+					So(subscribers[0], ShouldResemble, database.Subscriber{UserID: creator.ID, ThingID: thing.ID})
 				}
 
 				numThings := len(expectedThings)
@@ -305,10 +306,6 @@ func TestMySQL(t *testing.T) {
 				So(count, ShouldEqual, numThings)
 
 				count, err = countTableRows(db.pool, "subscribers")
-				So(err, ShouldBeNil)
-				So(count, ShouldEqual, numThings)
-
-				count, err = countTableRows(db.pool, "subscribers", "creator = 1")
 				So(err, ShouldBeNil)
 				So(count, ShouldEqual, numThings)
 
@@ -323,11 +320,15 @@ func TestMySQL(t *testing.T) {
 				Convey("Then you can get things with desired sorting, pagination and filtering", func() {
 					var result *database.GetThingsResult
 
-					result, err = db.GetThings(database.GetThingsParams{})
+					result, err = db.GetThings(database.GetThingsParams{OnlySubscribed: false})
 					So(err, ShouldBeNil)
 					So(len(result.Things), ShouldEqual, numThings)
 					So(result.LastPage, ShouldEqual, 0)
 					result.Things[0].Created = time.Time{}
+					result.Things[0].CreatorID = 0
+					result.Things[0].CreatorName = ""
+					result.Things[numThings-1].CreatorID = 0
+					result.Things[numThings-1].CreatorName = ""
 					So(result.Things[0], ShouldResemble, expectedThings[0])
 					result.Things[numThings-1].Created = time.Time{}
 					So(result.Things[numThings-1], ShouldResemble, expectedThings[numThings-1])
@@ -470,6 +471,93 @@ func TestMySQL(t *testing.T) {
 					So(result.LastPage, ShouldEqual, 2)
 					So(len(result.Things), ShouldEqual, 1)
 					So(result.Things[0].ID, ShouldEqual, 5)
+
+					Convey("Creators can not unsubscribe", func() {
+						user, errc := db.GetUserByID(result.Things[0].CreatorID)
+						So(errc, ShouldBeNil)
+
+						resultBefore, errc := db.GetThings(database.GetThingsParams{Username: user.Name, OnlySubscribed: true})
+						So(errc, ShouldBeNil)
+
+						errc = db.DeleteSubscription(user.Name, result.Things[0].ID)
+						So(errc, ShouldNotBeNil)
+						resultAfter, errc := db.GetThings(database.GetThingsParams{Username: user.Name, OnlySubscribed: true})
+						So(errc, ShouldBeNil)
+						So(resultBefore.Things, ShouldEqual, resultAfter.Things)
+					})
+
+					Convey("Users can subscribe to additional things", func() {
+						thing, errb := db.CreateThing(database.CreateThingParams{Address: "somewhere",
+							Type:           database.ThingsTypeDir,
+							Description:    "description",
+							Reason:         "reason",
+							Remove:         expectedThings[0].Remove,
+							License:        "none",
+							Version:        "1",
+							Name:           "someDir",
+							URL:            "someDir@somehwere",
+							DownloadMethod: "jira",
+							RequestSource:  "test",
+							Creator:        expectedUsers[0].Name,
+							CreatorID:      expectedUsers[0].ID})
+
+						So(errb, ShouldBeNil)
+
+						sub1, errc := db.CreateUser("subscribe1", "subscriber1@comething.com")
+						So(errc, ShouldBeNil)
+						sub2, errc := db.CreateUser("subscribe2", "subscriber2@comething.com")
+						So(errc, ShouldBeNil)
+
+						errc = db.PostSubscription(sub1.Name, result.Things[0].ID)
+						So(errc, ShouldBeNil)
+						errc = db.PostSubscription(sub1.Name, thing.ID)
+						So(errc, ShouldBeNil)
+						errc = db.PostSubscription(sub2.Name, result.Things[0].ID)
+						So(errc, ShouldBeNil)
+						errc = db.PostSubscription("NonExistentUser", result.Things[0].ID)
+						So(errc, ShouldEqual, ErrInvalidSubscription)
+						errc = db.PostSubscription("NonExistentUser", 0)
+						So(errc, ShouldEqual, ErrInvalidSubscription)
+
+						Convey("Then you can get the things you are subscribed to", func() {
+							subscribedThingsWithInfo, errd := db.GetThings(database.GetThingsParams{
+								Username: sub1.Name, OnlySubscribed: true})
+							subscribedThings := subscribedThingsWithInfo.Things
+
+							So(errd, ShouldBeNil)
+							So(len(subscribedThings), ShouldEqual, 2)
+							So(subscribedThings[1].ID, ShouldEqual, result.Things[0].ID)
+							subscribedThings[0].Created = time.Time{}
+							thing.Created = time.Time{}
+							So(subscribedThings[0].ID, ShouldEqual, thing.ID)
+
+							paginated, errd := db.GetThings(database.GetThingsParams{
+								Username:       sub1.Name,
+								OnlySubscribed: true,
+								Page:           1,
+								ThingsPerPage:  1,
+							})
+							So(errd, ShouldBeNil)
+							So(len(paginated.Things), ShouldEqual, 1)
+							So(paginated.LastPage, ShouldEqual, 2)
+						})
+
+						Convey("Then you can unsubscribe", func() {
+							errd := db.DeleteSubscription(sub1.Name, thing.ID)
+							So(errd, ShouldBeNil)
+							errd = db.DeleteSubscription(sub1.Name, 0)
+							So(errd, ShouldEqual, ErrInvalidSubscription)
+
+							subscribedThingsWithInfo, errd := db.GetThings(database.GetThingsParams{
+								Username: sub2.Name, OnlySubscribed: true})
+							So(errd, ShouldBeNil)
+
+							subscribedThings := subscribedThingsWithInfo.Things
+							So(len(subscribedThings), ShouldEqual, 1)
+							So(subscribedThings[0].ID, ShouldEqual, result.Things[0].ID)
+							So(subscribedThings, ShouldNotContain, *thing)
+						})
+					})
 				})
 
 				Convey("Then you can delete users and things", func() {
@@ -520,12 +608,15 @@ func TestMySQL(t *testing.T) {
 
 				So(thing.Created, ShouldHappenOnOrBetween, before, after)
 				thing.Created = time.Time{}
+				et.CreatorName = thing.CreatorName
 				So(thing, ShouldResemble, &et)
 
 				result, err := db.GetThings(database.GetThingsParams{})
 				So(err, ShouldBeNil)
 
 				result.Things[0].Created = time.Time{}
+				et.CreatorName = result.Things[0].CreatorName
+
 				So(result.Things[0], ShouldResemble, et)
 			})
 		})

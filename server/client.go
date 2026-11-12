@@ -52,17 +52,9 @@ type Client struct {
 	jwt  string
 }
 
-// SubscriberWithUserDetails represents a subscriber in the form of database.User.
-type SubscriberWithUserDetails struct {
-	database.User
-	Creator bool
-}
-
-// ThingWithSubscriberDetails is an extension of the database.Thing type, it contains a
-// list of the subscribers in user form.
 type ThingWithSubscriberDetails struct {
 	database.Thing
-	Subscribers []SubscriberWithUserDetails
+	Subscribers []database.User
 	Creator     database.User
 }
 
@@ -124,16 +116,6 @@ func (c *Client) GetUserByName(username string) (*database.User, error) {
 	return user, responseToErr(resp)
 }
 
-func (c *Client) setBodyAndOptionalResult(thing interface{}, optionalResponseObj ...interface{}) *resty.Request { //nolint:unused,lll
-	req := c.request().ForceContentType("application/json").SetBody(thing)
-
-	if len(optionalResponseObj) == 1 {
-		req = req.SetResult(&optionalResponseObj[0])
-	}
-
-	return req
-}
-
 // responseToErr converts a response's status code to one of our errors, or nil
 // if there's no problem.
 func responseToErr(resp *resty.Response) error {
@@ -176,13 +158,12 @@ func (c *Client) PostThing(t *database.CreateThingParams) error {
 }
 
 // GetSubscribers gets the subscribers to a thing given the Thing ID.
-func (c *Client) GetSubscribers(id uint32) ([]database.Subscriber, error) {
+func (c *Client) GetSubscribers(thingID uint32) ([]database.Subscriber, error) {
 	subscribers := []database.Subscriber{}
 
 	resp, err := c.request().SetHeader("Accept", "application/json").
-		SetQueryParam("id", strconv.Itoa(int(id))).
 		SetResult(&subscribers).
-		Get(EndPointAuthSubscribers)
+		Get(fmt.Sprintf("%s/%d", EndPointAuthSubscriber, thingID))
 	if err != nil {
 		return nil, err
 	}
@@ -192,6 +173,39 @@ func (c *Client) GetSubscribers(id uint32) ([]database.Subscriber, error) {
 	}
 
 	return subscribers, responseToErr(resp)
+}
+
+// Subscribe registers a users subscription given their username and the ID of the thing that they would like
+// to subscribe to.
+func (c *Client) Subscribe(subscription *database.NewSubscriptionParams) error {
+	resp, err := c.request().SetHeader("Accept", "application/json").ForceContentType("application/json").
+		SetBody(subscription).Post(EndPointAuthSubscriber)
+	if err != nil {
+		return err
+	}
+
+	if resp.StatusCode() != http.StatusNoContent {
+		return errors.New(resp.String()) //nolint:err113
+	}
+
+	return nil
+}
+
+// Unsubscribe removes a users subscription given their username and the ID of the thing that they would like
+// to unsubscribe to.
+func (c *Client) Unsubscribe(subscription *database.NewSubscriptionParams) error {
+	//
+	resp, err := c.request().SetHeader("Accept", "application/json").ForceContentType("application/json").
+		SetBody(subscription).Delete(EndPointAuthSubscriber)
+	if err != nil {
+		return err
+	}
+
+	if resp.StatusCode() != http.StatusNoContent {
+		return errors.New(resp.String()) //nolint:err113
+	}
+
+	return nil
 }
 
 // GetUserByID gets a user given the user ID.
@@ -217,15 +231,21 @@ func (c *Client) GetUserByID(id uint32) (*database.User, error) {
 func (c *Client) GetThings(filter *database.GetThingsParams) ([]database.Thing, error) {
 	things := []database.Thing{}
 
+	endPoint := EndPointAuthThings
+	if filter.OnlySubscribed {
+		endPoint = EndPointAuthSubscriber
+	}
+
 	resp, err := c.request().SetHeader("Accept", "application/json").SetQueryParams(map[string]string{
 		"type":     string(filter.FilterOnType),
 		"page":     strconv.Itoa(filter.Page),
 		"per_page": strconv.Itoa(filter.ThingsPerPage),
 		"dir":      string(filter.OrderDirection),
 		"sort":     string(filter.OrderBy),
+		"username": filter.Username,
 	}).
 		SetResult(&things).
-		Get(EndPointAuthThings)
+		Get(endPoint)
 	if err != nil {
 		return nil, err
 	}
@@ -247,22 +267,6 @@ func (c *Client) GetThingByID(id uint32) (*database.Thing, error) {
 	return thing, responseToErr(resp)
 }
 
-// GetSubscriberAndUserDetails gets the subscribers to a thing given the Thing ID.
-func (c *Client) GetSubscriberAndUserDetails(sub *database.Subscriber) (*SubscriberWithUserDetails, error) {
-	detailedSub := &SubscriberWithUserDetails{
-		Creator: sub.Creator,
-	}
-
-	user, err := c.GetUserByID(sub.UserID)
-	if err != nil {
-		return nil, err
-	}
-
-	detailedSub.User = *user
-
-	return detailedSub, err
-}
-
 // GetThingAndSubscriberDetails returns a struct with a Thing and
 // information about its subscribers given.
 func (c *Client) GetThingAndSubscriberDetails(tID uint32) (*ThingWithSubscriberDetails, error) {
@@ -276,21 +280,21 @@ func (c *Client) GetThingAndSubscriberDetails(tID uint32) (*ThingWithSubscriberD
 		return nil, err
 	}
 
-	var creator database.User
-
-	detailedSubs := []SubscriberWithUserDetails{}
+	userSubs := []database.User{}
 
 	for _, sub := range subs {
-		detailedSub, errc := c.GetSubscriberAndUserDetails(&sub)
+		user, errc := c.GetUserByID(sub.UserID)
 		if errc != nil {
 			return nil, errc
 		}
 
-		detailedSubs = append(detailedSubs, *detailedSub)
-		if detailedSub.Creator {
-			creator = detailedSub.User
-		}
+		userSubs = append(userSubs, *user)
 	}
 
-	return &ThingWithSubscriberDetails{Thing: *thing, Subscribers: detailedSubs, Creator: creator}, err
+	creator, errc := c.GetUserByID(thing.CreatorID)
+	if errc != nil {
+		return nil, errc
+	}
+
+	return &ThingWithSubscriberDetails{Thing: *thing, Subscribers: userSubs, Creator: *creator}, err
 }
