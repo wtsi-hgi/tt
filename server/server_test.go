@@ -212,7 +212,7 @@ func TestServer(t *testing.T) {
 				addr, stopServerFunc, err := gas.StartTestServer(s, serverCert, serverKey)
 				So(err, ShouldBeNil)
 
-				defer stopServerFunc() //nolint: errcheck
+				Reset(func() { stopServerFunc() }) //nolint: errcheck
 
 				ch, err := gas.SSERead("https://"+addr+EndPointAuthSseThingsEventName, serverCert)
 				So(err, ShouldBeNil)
@@ -610,6 +610,19 @@ func TestWebServerWithCookie(t *testing.T) {
 
 			code = testEndpointCode(s, "GET", EndPointAuthThings+"?sort=bad", "", cookie)
 			So(code, ShouldEqual, http.StatusBadRequest)
+
+			Convey("You have been created as a user", func() {
+				count, err := mdb.CountTableRows("users")
+				So(err, ShouldBeNil)
+				So(count, ShouldEqual, 1)
+
+				code = testEndpointCode(s, "GET", EndPointAuthUser+"?name="+user, "", cookie)
+				So(code, ShouldEqual, http.StatusOK)
+
+				u, err := s.db.GetUserByName(user)
+				So(err, ShouldBeNil)
+				So(u, ShouldResemble, &database.User{ID: 1, Name: user, Email: user + s.DefaultEmailDomain})
+			})
 		})
 
 		Convey("You can not POST other users to the user endpoint", func() {
@@ -617,27 +630,21 @@ func TestWebServerWithCookie(t *testing.T) {
 			thingJSON, err := json.Marshal(userPost)
 			So(err, ShouldBeNil)
 
+			countBefore, err := mdb.CountTableRows("users")
+			So(err, ShouldBeNil)
+
 			code := testEndpointCode(s, "POST", EndPointAuthUser, string(thingJSON), cookie)
 			So(code, ShouldEqual, http.StatusUnauthorized)
 
-			count, err := mdb.CountTableRows("users")
+			countAfter, err := mdb.CountTableRows("users")
 			So(err, ShouldBeNil)
-			So(count, ShouldEqual, 1)
+			So(countBefore, ShouldEqual, countAfter)
 
 			userPost = &database.User{
 				ID:    1,
 				Name:  user,
 				Email: user + conf.DefaultEmailDomain,
 			}
-			// thingJSON, err = json.Marshal(userPost)
-			// So(err, ShouldBeNil)
-
-			// code = testEndpointCode(s, "POST", EndPointAuthUser, string(thingJSON), cookie)
-			// So(code, ShouldEqual, http.StatusNoContent)
-
-			// count, err = mdb.CountTableRows("users")
-			// So(err, ShouldBeNil)
-			// So(count, ShouldEqual, 2)
 
 			userInDB, err := s.db.GetUserByID(1)
 			So(err, ShouldBeNil)
