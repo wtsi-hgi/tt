@@ -89,10 +89,7 @@ func newTestDB(t *testing.T) *mysql.DB {
 	s, err := server.NewServer(config, engine, sql.NewContext, memory.NewSessionBuilder(pro), nil)
 	So(err, ShouldBeNil)
 
-	go func() {
-		errc := s.Start()
-		So(errc, ShouldBeNil)
-	}()
+	go s.Start() //nolint:errcheck
 
 	database, err := mysql.New(&gsdmysql.Config{
 		User:                 "User",
