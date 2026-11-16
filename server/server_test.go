@@ -73,14 +73,12 @@ func init() { //nolint:gochecknoinits
 func newTestDB(t *testing.T) *mysql.DB {
 	t.Helper()
 
-	// set up sql test server
+	// Set up sql test server.
 	dbName := "db"
 	db := memory.NewDatabase(dbName)
 	db.EnablePrimaryKeyIndexes()
 	pro := memory.NewDBProvider(db)
 
-	// session := memory.NewSession(sql.NewBaseSessionWithVariables(vars), pro)
-	// ctx := sql.NewContextWithVariables(context.Background(), vars, sql.WithSession(session))
 	engine := sqle.New(analyzer.NewDefault(pro),
 		&sqle.Config{TemporaryUsers: []sqle.TemporaryUser{{Username: "User", Password: "Password"}}})
 
@@ -246,7 +244,6 @@ func TestServer(t *testing.T) {
 				So(err, ShouldBeNil)
 				So(numRows, ShouldEqual, numRowsAfter)
 
-				// Get thing by id 1 (get thing by id endpoint coverage).
 				code = testEndpointCode(s, "GET", EndPointAuthThings+"/1", "", jwt)
 				So(code, ShouldEqual, http.StatusOK)
 
@@ -370,7 +367,7 @@ func TestServer(t *testing.T) {
 		})
 
 		Convey("You can POST yourself as a user to the user endpoint as a non Admin", func() {
-			us.serverUser = "Admin" // changing who server thinks started it.
+			us.serverUser = "Admin"
 			currentUser := user
 			user := &database.User{
 				ID:    1,
