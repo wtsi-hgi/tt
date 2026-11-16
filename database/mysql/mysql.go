@@ -169,6 +169,7 @@ func (m *DB) Close() error {
 	return m.pool.Close()
 }
 
+// CountTableRows counts the number of rows in a table under a condition.
 func (m *DB) CountTableRows(table string, where ...string) (int64, error) {
 	var count int64
 
