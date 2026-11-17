@@ -11,10 +11,11 @@ require (
 	github.com/guregu/null/v5 v5.0.0
 	github.com/inconshreveable/log15 v2.16.0+incompatible
 	github.com/joho/godotenv v1.5.1
+	github.com/sirupsen/logrus v1.8.1
 	github.com/smartystreets/goconvey v1.8.1
 	github.com/spf13/cobra v1.9.1
 	github.com/wtsi-hgi/go-authserver v1.6.3
-	gopkg.in/tylerb/graceful.v1 v1.2.15
+	github.com/wtsi-hgi/graceful v1.2.16
 )
 
 require (
@@ -74,14 +75,12 @@ require (
 	github.com/quic-go/qpack v0.6.0 // indirect
 	github.com/quic-go/quic-go v0.57.1 // indirect
 	github.com/shopspring/decimal v1.3.1 // indirect
-	github.com/sirupsen/logrus v1.8.1 // indirect
 	github.com/smarty/assertions v1.15.0 // indirect
 	github.com/spf13/pflag v1.0.6 // indirect
 	github.com/tetratelabs/wazero v1.8.2 // indirect
 	github.com/thanhpk/randstr v1.0.6 // indirect
 	github.com/twitchyliquid64/golang-asm v0.15.1 // indirect
 	github.com/ugorji/go/codec v1.3.1 // indirect
-	github.com/wtsi-hgi/graceful v1.2.16 // indirect
 	github.com/youmark/pkcs8 v0.0.0-20240726163527-a2c0da244d78 // indirect
 	go.opentelemetry.io/otel v1.31.0 // indirect
 	go.opentelemetry.io/otel/trace v1.31.0 // indirect
