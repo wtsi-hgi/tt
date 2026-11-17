@@ -48,19 +48,20 @@ const (
 	maxOpenConns    = 10
 	maxIdleConns    = 10
 
-	EnvVarEnv    = "TT_ENV"
-	EnvVarUser   = "TT_SQL_USER"
-	EnvVarPass   = "TT_SQL_PASS" //nolint:gosec
-	EnvVarHost   = "TT_SQL_HOST"
-	EnvVarPort   = "TT_SQL_PORT"
-	EnvVarDBName = "TT_SQL_DB"
+	EnvVarEnv          = "TT_ENV"
+	EnvVarUser         = "TT_SQL_USER"
+	EnvVarPass         = "TT_SQL_PASS" //nolint:gosec
+	EnvVarHost         = "TT_SQL_HOST"
+	EnvVarPort         = "TT_SQL_PORT"
+	EnvVarDBName       = "TT_SQL_DB"
+	ErrMissingEnvs     = Error("missing required environment variables")
+	ErrInvalidTableNae = Error("table name invalid")
+	ErrInvalidWhere    = Error("where clause invalid")
 )
 
 type Error string
 
 func (e Error) Error() string { return string(e) }
-
-const ErrMissingEnvs = Error("missing required environment variables")
 
 // ConfigFromEnv returns a new MySQL config suitable for passing to New(),
 // populated from environment variables TT_SQL_USER, TT_SQL_PASS, TT_SQL_HOST,
@@ -173,9 +174,17 @@ func (m *DB) Close() error {
 func (m *DB) CountTableRows(table string, where ...string) (int64, error) {
 	var count int64
 
+	if !regexp.MustCompile(`^[a-zA-Z0-9_]+$`).MatchString(table) {
+		return 0, ErrInvalidTableNae
+	}
+
 	sql := "SELECT COUNT(*) FROM " + table //nolint:gosec
 
 	if len(where) == 1 {
+		if !regexp.MustCompile(`^[a-zA-Z0-9_]+\s*=\s*\d+$`).MatchString(where[0]) {
+			return 0, ErrInvalidWhere
+		}
+
 		sql += " WHERE " + where[0]
 	}
 
