@@ -308,11 +308,11 @@ func TestMySQL(t *testing.T) {
 				So(err, ShouldBeNil)
 				So(count, ShouldEqual, numThings)
 
-				count, err = db.CountTableRows("subscribers", "user_id = 1")
+				count, err = db.CountTableRows("subscribers", "user_id", "1")
 				So(err, ShouldBeNil)
 				So(count, ShouldEqual, numThings/2)
 
-				count, err = db.CountTableRows("subscribers", "user_id = 2")
+				count, err = db.CountTableRows("subscribers", "user_id", "2")
 				So(err, ShouldBeNil)
 				So(count, ShouldEqual, numThings/2)
 
