@@ -48,19 +48,20 @@ const (
 	maxOpenConns    = 10
 	maxIdleConns    = 10
 
-	EnvVarEnv    = "TT_ENV"
-	EnvVarUser   = "TT_SQL_USER"
-	EnvVarPass   = "TT_SQL_PASS" //nolint:gosec
-	EnvVarHost   = "TT_SQL_HOST"
-	EnvVarPort   = "TT_SQL_PORT"
-	EnvVarDBName = "TT_SQL_DB"
+	EnvVarEnv           = "TT_ENV"
+	EnvVarUser          = "TT_SQL_USER"
+	EnvVarPass          = "TT_SQL_PASS" //nolint:gosec
+	EnvVarHost          = "TT_SQL_HOST"
+	EnvVarPort          = "TT_SQL_PORT"
+	EnvVarDBName        = "TT_SQL_DB"
+	ErrMissingEnvs      = Error("missing required environment variables")
+	ErrInvalidTableName = Error("table name invalid")
+	ErrInvalidWhere     = Error("where clause invalid")
 )
 
 type Error string
 
 func (e Error) Error() string { return string(e) }
-
-const ErrMissingEnvs = Error("missing required environment variables")
 
 // ConfigFromEnv returns a new MySQL config suitable for passing to New(),
 // populated from environment variables TT_SQL_USER, TT_SQL_PASS, TT_SQL_HOST,
@@ -167,4 +168,36 @@ func (m *DB) Reset() error {
 // Close closes the database connection. Not strictly necessary to call this.
 func (m *DB) Close() error {
 	return m.pool.Close()
+}
+
+var identRE = regexp.MustCompile(`^[a-zA-Z0-9_]+$`)
+
+// CountTableRows counts rows in table, optionally where column = value.
+func (m *DB) CountTableRows(table string, where ...any) (int64, error) {
+	switch table {
+	case "things", "users", "subscribers":
+	default:
+		return 0, ErrInvalidTableName
+	}
+
+	sql := "SELECT COUNT(*) FROM `" + table + "`"
+
+	var args []any
+
+	if len(where) == 2 { //nolint:mnd
+		col, ok := where[0].(string)
+		if !ok || !identRE.MatchString(col) {
+			return 0, ErrInvalidWhere
+		}
+
+		sql += " WHERE `" + col + "` = ?"
+
+		args = append(args, where[1])
+	}
+
+	var count int64
+
+	err := m.pool.QueryRow(sql, args...).Scan(&count)
+
+	return count, err
 }

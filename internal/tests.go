@@ -70,12 +70,15 @@ func GetExampleData() ([]*database.User, []database.Thing, []database.Subscriber
 			remove := dateFromYear(year + i)
 
 			expectedThing := database.Thing{
-				ID:          i + 1,
-				Address:     addresses[i],
-				Type:        thingType,
-				Description: "desc",
-				Reason:      reasons[i],
-				Remove:      remove,
+				ID:            i + 1,
+				Address:       addresses[i],
+				Type:          thingType,
+				Description:   "desc",
+				Reason:        reasons[i],
+				Remove:        remove,
+				Version:       "1",
+				Name:          "name",
+				RequestSource: "source",
 			}
 
 			expectedThings[i] = expectedThing
@@ -95,7 +98,7 @@ func GetExampleData() ([]*database.User, []database.Thing, []database.Subscriber
 func dateFromYear(year uint32) time.Time {
 	remove, _ := time.Parse(time.DateOnly, fmt.Sprintf("%d-01-02", year)) //nolint:errcheck
 
-	return remove
+	return remove.In(time.UTC)
 }
 
 func exampleUser(id uint32) *database.User {
@@ -124,14 +127,14 @@ func GetExampleResourceData() (*database.User, database.Thing, database.Subscrib
 		Type:           database.ThingsTypeResource,
 		Description:    "desc",
 		Reason:         "reason",
-		Remove:         dateFromYear(uint32(1971)), //nolint:mnd
+		Remove:         dateFromYear(uint32(1971)).Truncate(time.Hour), //nolint:mnd
 		Version:        "2",
 		License:        "MIT",
 		Name:           "ResourceName",
 		URL:            "example.com",
 		DownloadMethod: "command line",
 		RequestSource:  "Jira",
-		CreationDate:   null.TimeFrom(dateFromYear(uint32(1970))), //nolint:mnd
+		CreationDate:   null.TimeFrom(dateFromYear(uint32(1970)).Truncate(time.Hour)), //nolint:mnd
 		CreatorName:    creator.Name,
 	}
 

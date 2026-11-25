@@ -251,6 +251,7 @@ func (s *Server) postThingValidate(c *gin.Context, postedThing *database.CreateT
 
 	return nil
 }
+
 func setRemovalDate(postedThing *database.CreateThingParams) {
 	if postedThing.CreationDate.Valid {
 		postedThing.Remove = postedThing.CreationDate.Time.Add(fiveYear)
