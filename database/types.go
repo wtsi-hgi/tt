@@ -45,7 +45,6 @@ const (
 	ErrBadAddress        = Error("Invalid things address")
 	ErrBadDescription    = Error("Invalid things description")
 	ErrBadReason         = Error("Invalid things reason")
-	ErrBadVersion        = Error("Invalid things version")
 	ErrBadName           = Error("Invalid things name")
 	ErrBadRequestSource  = Error("Invalid things request source")
 	ErrBadRemove         = Error("Invalid things remove")
@@ -113,7 +112,6 @@ const (
 	OrderByType    OrderBy = "type"
 	OrderByReason  OrderBy = "reason"
 	OrderByRemove  OrderBy = "remove"
-	OrderByVersion OrderBy = "version"
 )
 
 // NewOrderBy converts the given str to an OrderBy, but only if it matches
@@ -129,8 +127,6 @@ func NewOrderBy(str string) (OrderBy, error) {
 		orderBy = OrderByType
 	case OrderByReason:
 		orderBy = OrderByReason
-	case OrderByVersion:
-		orderBy = OrderByVersion
 	case "", OrderByRemove:
 		orderBy = OrderByRemove
 	default:
@@ -232,10 +228,6 @@ func ValidateCreateThingsParams(thing CreateThingParams) error { //nolint:gocycl
 
 	if thing.Remove.IsZero() {
 		return ErrBadRemove
-	}
-
-	if thing.Version == "" {
-		return ErrBadVersion
 	}
 
 	if thing.Name == "" {

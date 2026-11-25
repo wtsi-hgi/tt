@@ -91,7 +91,7 @@ func (s *Server) pageRoot(c *gin.Context) {
 //
 // dir=[ASC|DESC] : sort direction, default ascending
 //
-// type=[dir|file|irods|openstack|s3] : filter to only show this type of thing
+// type=[dir|file|irods|openstack|s3|resource] : filter to only show this type of thing
 //
 // page=<int>&per_page=<int> : get a particular page of results, where each page
 // has per_page Things. Page defaults to 1, and per_page defaults to 50.

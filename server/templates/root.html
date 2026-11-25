@@ -41,6 +41,58 @@
             <thead>
                 <tr hx-headers='{"Accept": "text/html"}' hx-trigger="click" hx-target="tbody#things-list">
                     <th>
+                        <button 
+                            class="uk-button uk-button-default"
+                            hx-get="/rest/v1/auth/things?type=">
+                            all
+                        </button>
+                    </th>
+                    <th>
+                        <button 
+                            class="uk-button uk-button-default"
+                            hx-get="/rest/v1/auth/things?type=irods">
+                            irods
+                        </button>
+                    </th>
+                    <th>
+                        <button 
+                            class="uk-button uk-button-default"
+                            hx-get="/rest/v1/auth/things?type=s3">
+                            s3
+                        </button>
+                    </th>
+                    <th>
+                        <button 
+                            class="uk-button uk-button-default"
+                            hx-get="/rest/v1/auth/things?type=file">
+                            file
+                        </button>
+                    </th>
+                    <th>
+                        <button 
+                            class="uk-button uk-button-default"
+                            hx-get="/rest/v1/auth/things?type=dir">
+                            dir
+                        </button>
+                    </th>
+                    <th>
+                        <button 
+                            class="uk-button uk-button-default"
+                            hx-get="/rest/v1/auth/things?type=resource">
+                            resource
+                        </button>
+                    </th>
+                    <th>
+                        <button 
+                            class="uk-button uk-button-default"
+                            hx-get="/rest/v1/auth/things?type=openstack">
+                            openstack
+                        </button>
+                    </th>
+                </tr>
+
+                <tr hx-headers='{"Accept": "text/html"}' hx-trigger="click" hx-target="tbody#things-list">
+                    <th>
                         Name<span uk-icon="arrow-up" hx-get="/rest/v1/auth/things?sort=name&dir=DESC"></span><span
                             uk-icon="arrow-down" hx-get="/rest/v1/auth/things?sort=name&dir=ASC"></span>
                     </th>
@@ -54,10 +106,7 @@
                     </th>
                     <th>Reason</th>
                     <th>Description</th>
-                    <th>
-                        Version<span uk-icon="arrow-up" hx-get="/rest/v1/auth/things?sort=version&dir=DESC"></span><span
-                            uk-icon="arrow-down" hx-get="/rest/v1/auth/things?sort=version&dir=ASC"></span>
-                    </th>
+                    <th>Version</th>
                     <th>RequestSource</th>
                     <th>License</th>
                     <th>URL</th>
@@ -108,7 +157,7 @@
                         <input class="uk-input" name="Description" type="text" required>
                     </td>
                     <td>
-                        <input class="uk-input" name="Version" type="text" required>
+                        <input class="uk-input" name="Version" type="text">
                     </td>
                     <td>
                         <input class="uk-input" name="RequestSource" type="text" required>
